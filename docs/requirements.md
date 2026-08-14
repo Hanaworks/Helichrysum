@@ -456,6 +456,7 @@ Scope = {
 | ArchivePair | 一个压缩包与一个解压目录之间的对应关系 |
 | Plan | 处理计划，由用户在报告中标记后汇总生成 |
 | Resolution | 对关系组的处理意图（Equality / Compatibility / Conflict），由决策模型自动得出 |
+| 解压锚点（Extraction Anchor） | 压缩包内部条目时间戳（打包时记录、不受文件系统拷贝污染），作为解压目录内容的时间基准，供新旧判定证据链使用 |
 
 ---
 
