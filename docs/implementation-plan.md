@@ -122,6 +122,7 @@ git push  # CI 三平台绿
 - Scanner：扫 fixture `backup1/backup2` → 断言对象数量、类型、路径相对化正确
 - ExactDuplicate：fixture 中构造的重复组 → 断言分组正确；`(size, mtime)` 碰撞才触发 hash
 - 报告 JSON：断言重复组成员、路径、hash 字段
+- **韧性隔离（F-Scan-11）**：fixture 中放置截断 zip / 坏 JPEG 头 / 超长文件名 → 扫描不崩，正确跳过并标记（断言 scan 完成、坏对象有记录、其余对象完整）
 
 **验收命令：**
 ```bash
@@ -334,8 +335,9 @@ helichrysum exec <id>             # 确认后执行
 - **增量扫描**：对比上次 manifest，只扫新增/修改
 - hash 缓存命中率优化
 - 100 万+ 文件调优（内存预算、批量事务、索引）
+- **压力/并发对抗基准**（§4.6.5）：50 万文件合成数据扫描基线、扫描时干扰器、多线程遇文件锁、双进程同开 manifest——建立时间/内存基准曲线
 
-**验收命令：** 对真实大规模目录（用户数据）执行，报告时间/内存指标。
+**验收命令：** 对真实大规模目录（用户数据）执行，报告时间/内存指标；压力基准对比基线无退化。
 
 ---
 
@@ -395,9 +397,9 @@ helichrysum exec <id>             # 确认后执行
 
 ---
 
-## 4.6 测试策略：需求全覆盖（92 条 F-xxx 可追溯）
+## 4.6 测试策略：需求全覆盖（F-xxx 全部可追溯）
 
-> 每条需求（70 必须 + 22 应当，共 92 条）都必须有可断言的测试证明"已实现且正确"。
+> 每条需求（当前 116 条，持续演化中）都必须有可断言的测试证明"已实现且正确"。
 > 不存在"无测试覆盖的需求"——这是硬门禁，不是建议。
 
 ### 4.6.1 测试组织架构（与需求模块对齐）
@@ -406,7 +408,7 @@ helichrysum exec <id>             # 确认后执行
 tests/
 ├── Helichrysum.Core.Tests/          # 核心逻辑单元测试
 │   ├── ScopeTests/                  # → F-Scope (7条)
-│   ├── ScanningTests/               # → F-Scan (10条)
+│   ├── ScanningTests/               # → F-Scan (11条)
 │   ├── LinkTests/                   # → F-Link (6条)
 │   ├── LayeredHashTests/            # → F-Layered (6条)
 │   ├── RelationTests/               # → F-Relation (8条)
@@ -443,7 +445,7 @@ public class ScanTests
 | 模块 | 需求数 | 测试套件 | 关键覆盖点（示例） |
 |---|---|---|---|
 | F-Scope | 7 | `ScopeTests` | 多根路径；排除规则；canonical 防绕过；配置持久化 |
-| F-Scan | 10 | `ScanningTests` | 类型识别；hardlink 不重复；循环；可中断；进度 |
+| F-Scan | 11 | `ScanningTests` | 类型识别；hardlink 不重复；循环；可中断；进度；**韧性隔离（坏文件跳过不崩 + 解析上限）** |
 | F-Link | 6 | `LinkTests` | 不跟随；InScope/OutOfScope/Broken/Circular 分流 |
 | F-Layered | 7 | `LayeredHashTests` | 四层分析；单调升级；摘要分层 CRC32→MD5；**指纹持久化能力（强度可配，基线 CRC32+MD5+时间戳）** |
 | F-Relation | 8 | `RelationTests` | 九种关系识别；置信度；可追溯 |
@@ -475,12 +477,16 @@ public class ScanTests
 ### 4.6.5 自动化门禁（CI 强制）
 
 ```text
-1. dotnet test --collect:"XPlat Code Coverage"    # 所有 92 条需求的对应测试运行
+1. dotnet test --collect:"XPlat Code Coverage"    # 所有 F-xxx 需求的对应测试运行
 2. 覆盖率报告：核心 ≥80% 失败则 CI 红
 3. 需求追溯核对：脚本检查每条 F-xxx 有对应测试名（缺失 → CI 红）
 4. lifelike 场景 golden diff 失败 → CI 红
 5. 三平台（Win/Linux/macOS）全绿
 ```
+
+**脏输入冒烟**（CI 必跑，轻量）：fixture 内置"半损坏"样本集（截断 zip、坏 JPEG 头、超长路径、0 字节文件、声明与内容不符的文件）——每次 CI 跑一轮扫描冒烟：不得崩溃、坏样本被正确跳过并标记。专门 fuzz 框架不引入（脏输入模拟 + F-Scan-11 韧性隔离已覆盖真实场景）。
+
+**压力/并发对抗**（切片 9 阶段，与性能调优同步）：合成大数据基准（50 万文件扫描耗时/内存基线）、扫描时干扰器（后台增删文件）、多线程 hash 遇文件锁、双进程同开 manifest——作为独立基准任务，不进常规 CI（CI 只跑脏输入冒烟）。
 
 ---
 
