@@ -444,7 +444,7 @@ public class ScanTests
 | F-Relation | 8 | `RelationTests` | 九种关系识别；置信度；可追溯 |
 | F-Resolve | 10 | `ResolutionTests` | 三态决策；目录级兼容；自动项可见可否决 |
 | F-Archive | 7 | `ArchiveTests` | 8 格式清单；配对判定；mtime 容差；加密标记 |
-| F-Report | 10 | `ReportTests` | 目录树展开；筛选；**只读边界（无写能力）**；**分级渲染（摘要内嵌+详情惰性）**；**精简投影（≤20MB）**；单文件/超限切服务；未启动计划可查看 |
+| F-Report | 10 | `ReportTests` | 目录树展开；筛选；**只读边界（无写能力）**；**分级渲染（摘要内嵌+详情惰性）**；**精简投影（≤20MB）**；**单文件唯一形态 + 超限截断**；未启动计划可查看 |
 | F-Preview | 10 | `PreviewTests` | 文本/图片/PDF/Office 预览；exe 不预览；打开/定位 |
 | F-Plan | 7 | `PlanTests` | 动作类型；dry-run；保存加载；冲突检测；回滚信息 |
 | F-Exec | 6 | `ExecTests` | 二次确认；Trash 优先；执行日志；中断恢复 |
