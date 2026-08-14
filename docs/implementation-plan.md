@@ -221,6 +221,7 @@ helichrysum report --format json
     - 目录命名序列（backup0505/0620）+ 演化链 → 方向证据
     - ctime 聚集检验：fixture 中"整目录同一 ctime" → 时间降权，不参与投票
     - ctime+mtime 成对：ctime 老 + mtime 新 = 可信演化；双同时 = 拷贝痕迹
+    - 父目录时间佐证：父目录 mtime 晚于全部子文件 → 佐证活跃目录；父子全聚集 → 整链拷贝痕迹（F-Resolve-4a 补充）
     - 压缩包锚点：受污染的 A 目录关联旧 zip（内部时间戳早）vs B 目录 ctime 分散 → 判 B 新
     - 证据耗尽 → 提升人工，断言不产生自动猜测决策
 
