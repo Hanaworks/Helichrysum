@@ -412,7 +412,7 @@ tests/
 │   ├── RelationTests/               # → F-Relation (8条)
 │   ├── ResolutionTests/             # → F-Resolve (10条)
 │   ├── ArchiveTests/                # → F-Archive (7条)
-│   ├── ReportTests/                 # → F-Report (11条)
+│   ├── ReportTests/                 # → F-Report (12条)
 │   ├── PreviewTests/                # → F-Preview (10条)
 │   ├── PlanTests/                   # → F-Plan (7条)
 │   ├── ExecTests/                   # → F-Exec (6条)
@@ -449,7 +449,7 @@ public class ScanTests
 | F-Relation | 8 | `RelationTests` | 九种关系识别；置信度；可追溯 |
 | F-Resolve | 10 | `ResolutionTests` | 三态决策；目录级兼容；自动项可见可否决 |
 | F-Archive | 7 | `ArchiveTests` | 8 格式清单；配对判定；mtime 容差；加密标记 |
-| F-Report | 11 | `ReportTests` | 目录树展开；筛选；**只读边界（无写能力）**；**分级渲染（摘要内嵌+详情惰性）**；**精简投影（≤20MB）**；**单文件唯一形态 + 超限截断**；未启动计划可查看；**schema 版本校验 + 一次性转换 + 降级报错** |
+| F-Report | 12 | `ReportTests` | 目录树展开；筛选；**只读边界（无写能力）**；**分级渲染（摘要内嵌+详情惰性）**；**精简投影（≤20MB）**；**单文件唯一形态 + 超限截断**；未启动计划可查看；**schema 版本校验 + 一次性转换 + 降级报错**；**快照元数据（时间/Scope 快照/工具版本）+ 快照年龄展示** |
 | F-Preview | 10 | `PreviewTests` | 文本/图片/PDF/Office 预览；exe 不预览；打开/定位 |
 | F-Plan | 7 | `PlanTests` | 动作类型；dry-run；保存加载；冲突检测；回滚信息 |
 | F-Exec | 6 | `ExecTests` | 二次确认；Trash 优先；执行日志；中断恢复 |

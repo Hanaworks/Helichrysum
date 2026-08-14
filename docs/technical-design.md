@@ -382,6 +382,8 @@ public sealed record Evidence
 -- 与 Rust 版一致，此处不重复，见 ./manifest-schema.md
 ```
 
+**快照元数据（F-Report-12）：** manifest 库级 `_manifest_meta` 表必须含 `created_at` / `scanned_at` / `scope_snapshot` / `tool_version`，并在报告与 UI 展示快照年龄；schema 版本号字段（F-Report-11）与版本转换以 `if (v<n) upgradeToVn()` 一次性硬编码实现。
+
 **索引策略：**（与 Rust 版一致）
 
 ```sql
