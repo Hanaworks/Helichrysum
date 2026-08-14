@@ -191,13 +191,14 @@ helichrysum report --format json
 - **Renamed / Moved**：依据（Filesystem Identity + hash + 路径差异）
 - **Versioned**：同名文件、size 接近、内容部分相似
 - （可选）**NearDuplicate**：文本类文件 EOL/BOM/尾部空白归一化后比对
-- **处理决策模型（F-Resolve-1~14）**：对每个关系组输出处理意图 `Equality` / `Compatibility` / `Conflict`
+- **处理决策模型（F-Resolve-1~17）**：对每个关系组输出处理意图 `Equality` / `Compatibility` / `Conflict`
   - 文件级兼容：旧内容逐字包含于新内容（文本类精确；二进制降级低置信建议）
   - 目录级兼容：旧目录文件集合 ⊆ 新目录文件集合（新增=合并即可；减少→人工；同名不同内容→文件级判定）
   - **处理链（F-Resolve-11，最高约束）**：文件级 → 目录级 → 结构级固定顺序，不可跳级；交织特例通过"下钻→回溯"嵌入链中（F-Resolve-12）
   - **同层仲裁**：仅同层意图矛盾时触发（Moved > StructuralSibling > ArchivePair > Duplicate），意图一致直接合并（F-Resolve-13）
   - **按需下钻 = 暴露机制**：界面沿链自上而下查看，展开依据不下钻处理链本身（F-Resolve-14）
   - **依赖链可视化**：报告标注处理链顺序 + 下钻依据（F-Resolve-15）
+- **新旧多证据综合（F-Resolve-4/4a/16/17）**：内容包含 > 命名序列/演化链 > 可信时间 > size > 压缩包锚点；时间经受 ctime 聚集检验；证据不足全部交给人工（不武断猜测）
 
 **TDD 红线：**
 - fixture `sibling_a/sibling_b`：Jaccard > 阈值 → StructuralSibling，置信度+依据正确
@@ -215,7 +216,13 @@ helichrysum report --format json
     - 依赖链：回溯后的目录级决策结果 != 用原始快照计算的结果（证明使用了文件级解决状态）
     - 同层冲突：Moved KEEP vs Duplicate CLEAN → 仲裁判 KEEP，无需人工
     - 意图一致：同文件全组 CLEAN → 直接合并，不触发仲裁
-  - **依赖链可视**（F-Resolve-14）：报告 JSON 中目录级决策含 `based_on` 字段指向文件级解决记录
+  - **新旧证据链（F-Resolve-4/4a/16/17）**：
+    - 内容包含 → 判定方向（不依赖时间）
+    - 目录命名序列（backup0505/0620）+ 演化链 → 方向证据
+    - ctime 聚集检验：fixture 中"整目录同一 ctime" → 时间降权，不参与投票
+    - ctime+mtime 成对：ctime 老 + mtime 新 = 可信演化；双同时 = 拷贝痕迹
+    - 压缩包锚点：受污染的 A 目录关联旧 zip（内部时间戳早）vs B 目录 ctime 分散 → 判 B 新
+    - 证据耗尽 → 提升人工，断言不产生自动猜测决策
 
 **验收命令：** 报告 JSON 中出现 `StructuralSibling` / `Renamed` / `Moved` / `Versioned` 组，字段含 confidence + evidence；每组附 `resolution` 字段（equality/compatibility/conflict）。
 
@@ -230,6 +237,7 @@ helichrysum report --format json
 - 候选解压目录查找：同名兄弟目录、`-1` / `_extracted` 后缀
 - 匹配度判定：FullyExtracted / PartialExtraction / ModifiedAfterExtraction / Unrelated
 - mtime 容差（默认 1h）判定"解压后未改动" → 高可信度"建议清理压缩包"
+- **解压锚点产出（F-Resolve-16 联动）**：提取压缩包内部条目时间戳与压缩包文件 mtime，供新旧判定的证据链使用
 
 **TDD 红线：**
 - fixture `archives/project.zip + project/`：清单完全一致 → FullyExtracted + 建议清理
