@@ -194,10 +194,10 @@ helichrysum report --format json
 - **处理决策模型（F-Resolve-1~14）**：对每个关系组输出处理意图 `Equality` / `Compatibility` / `Conflict`
   - 文件级兼容：旧内容逐字包含于新内容（文本类精确；二进制降级低置信建议）
   - 目录级兼容：旧目录文件集合 ⊆ 新目录文件集合（新增=合并即可；减少→人工；同名不同内容→文件级判定）
-  - **按需下钻决策（F-Resolve-11）**：目录 → 文件 → 内容为主路径；上级存疑才下钻，必要时回溯修正上级
-  - **交织处理**：目录级判断不覆盖文件级已解决的新旧问题（F-Resolve-12）
+  - **处理链（F-Resolve-11，最高约束）**：文件级 → 目录级 → 结构级固定顺序，不可跳级；交织特例通过"下钻→回溯"嵌入链中（F-Resolve-12）
   - **同层仲裁**：仅同层意图矛盾时触发（Moved > StructuralSibling > ArchivePair > Duplicate），意图一致直接合并（F-Resolve-13）
-  - **依赖链可视化**：报告标注每层决策的物化依据（F-Resolve-14）
+  - **按需下钻 = 暴露机制**：界面沿链自上而下查看，展开依据不下钻处理链本身（F-Resolve-14）
+  - **依赖链可视化**：报告标注处理链顺序 + 下钻依据（F-Resolve-15）
 
 **TDD 红线：**
 - fixture `sibling_a/sibling_b`：Jaccard > 阈值 → StructuralSibling，置信度+依据正确
@@ -209,9 +209,9 @@ helichrysum report --format json
   - 文本文件"旧内容逐字包含于新内容" → `Compatibility`（文件级）
   - 内容互不包含 → `Conflict`
   - `Equality` 组（CRC32+MD5 双确认相等）→ 不进入人工
-  - **按需下钻（F-Resolve-11）**：
-    - 主路径：目录级无存疑 → 直接出结论，不逐文件下钻（省事原则）
-    - 交织场景：NewDir 整体更新，但 OldDir 有唯一新文件 → 目录级发现存疑 → 下钻文件级先保留该文件 → 回溯目录级结果为"合并"而非"清理 OldDir"
+  - **处理链（F-Resolve-11/12）**：
+    - 主路径：处理链按固定顺序推进（文件→目录→结构），不可跳级
+    - 交织场景：NewDir 整体更新，但 OldDir 有唯一新文件 → 处理链在目录环发现存疑 → 下钻文件级先保留该文件 → 回溯目录环结果为"合并"而非"清理 OldDir"
     - 依赖链：回溯后的目录级决策结果 != 用原始快照计算的结果（证明使用了文件级解决状态）
     - 同层冲突：Moved KEEP vs Duplicate CLEAN → 仲裁判 KEEP，无需人工
     - 意图一致：同文件全组 CLEAN → 直接合并，不触发仲裁
