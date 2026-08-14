@@ -23,7 +23,9 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass  # 安静模式
 
-with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), NoCacheHandler) as httpd:
-    httpd.allow_reuse_address = True
+class ReusableTCPServer(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True   # 在 __init__ 前设置，避免 TIME_WAIT 导致 bind 失败
+
+with ReusableTCPServer(("0.0.0.0", PORT), NoCacheHandler) as httpd:
     print(f"Serving {DIRECTORY} at http://0.0.0.0:{PORT} (no-cache)")
     httpd.serve_forever()

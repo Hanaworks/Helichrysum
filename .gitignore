@@ -1,0 +1,7 @@
+# 构建产物（由 scripts/docs-release.sh 从 index.template.html 生成）
+docs-site/index.html
+
+# .NET
+bin/
+obj/
+*.user
