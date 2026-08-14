@@ -113,7 +113,7 @@ git push  # CI 三平台绿
 **功能清单：**
 - **Scope**：`ScopeConfig`（根路径集合、排除规则 glob）、canonical path、`Contains()` 判定
 - **Scanner 基础版**：递归遍历 regular file / directory / symlink（识别但不跟随）；排除规则；进度上报
-- **Manifest**：SQLite schema（scopes / objects / hashes / relations 表）、迁移、批量写入、断点续扫占位
+- **Manifest**：SQLite schema（scopes / objects / hashes / relations / tags 表 + `_schema_version` 版本号占位）、批量写入、断点续扫占位；版本转换函数**发布前补齐**（开发期删库重扫，F-Report-11）
 - **ExactDuplicate**：size 索引 → 元数据碰撞 → FullHash（SHA256）→ 去重分组
 - **报告**：只读精简投影——目录聚合 + 重复组 + 标签统计；分级渲染（摘要内嵌 + 详情惰性）+ 单文件 HTML（默认，≤阈值）+ JSON
 
@@ -412,7 +412,7 @@ tests/
 │   ├── RelationTests/               # → F-Relation (8条)
 │   ├── ResolutionTests/             # → F-Resolve (10条)
 │   ├── ArchiveTests/                # → F-Archive (7条)
-│   ├── ReportTests/                 # → F-Report (9条)
+│   ├── ReportTests/                 # → F-Report (11条)
 │   ├── PreviewTests/                # → F-Preview (10条)
 │   ├── PlanTests/                   # → F-Plan (7条)
 │   ├── ExecTests/                   # → F-Exec (6条)
@@ -449,7 +449,7 @@ public class ScanTests
 | F-Relation | 8 | `RelationTests` | 九种关系识别；置信度；可追溯 |
 | F-Resolve | 10 | `ResolutionTests` | 三态决策；目录级兼容；自动项可见可否决 |
 | F-Archive | 7 | `ArchiveTests` | 8 格式清单；配对判定；mtime 容差；加密标记 |
-| F-Report | 10 | `ReportTests` | 目录树展开；筛选；**只读边界（无写能力）**；**分级渲染（摘要内嵌+详情惰性）**；**精简投影（≤20MB）**；**单文件唯一形态 + 超限截断**；未启动计划可查看 |
+| F-Report | 11 | `ReportTests` | 目录树展开；筛选；**只读边界（无写能力）**；**分级渲染（摘要内嵌+详情惰性）**；**精简投影（≤20MB）**；**单文件唯一形态 + 超限截断**；未启动计划可查看；**schema 版本校验 + 一次性转换 + 降级报错** |
 | F-Preview | 10 | `PreviewTests` | 文本/图片/PDF/Office 预览；exe 不预览；打开/定位 |
 | F-Plan | 7 | `PlanTests` | 动作类型；dry-run；保存加载；冲突检测；回滚信息 |
 | F-Exec | 6 | `ExecTests` | 二次确认；Trash 优先；执行日志；中断恢复 |
