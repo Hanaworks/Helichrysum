@@ -170,11 +170,13 @@ helichrysum report --format json
 - SampledHash：头 16KB + 中段 32KB + 尾 16KB（xxhash），<64KB 全读
 - 单调升级（永不回退）
 - hash 结果缓存（manifest 持久化，二次扫描命中）
+- **摘要分层（F-Layered-6）**：文件相等判定走两级摘要——快速摘要（CRC32）预筛 + 强摘要（MD5/SHA256）确认；快速摘要不等 → 直接判不等
 
 **TDD 红线：**
 - 升级路径：`(size,mtime)` 不碰撞 → 停在 Metadata；碰撞 → Sampled；采样仍碰撞 → Full
 - 采样可靠性：对 fixture 中"仅改动中段"的一对文件，Sampled 升级到 Full 后被识别
 - 缓存：二次扫描相同文件 → 不重算（读取 hash 记录）
+- 摘要分层：CRC32 相同 → MD5 确认；CRC32 不同 → 直接判不等（不触发 MD5）
 
 **验收命令：** 在切片 1 的链路上加 `--tier sampled`，观察 hash 时间下降、重复组结果不变。
 
@@ -189,13 +191,22 @@ helichrysum report --format json
 - **Renamed / Moved**：依据（Filesystem Identity + hash + 路径差异）
 - **Versioned**：同名文件、size 接近、内容部分相似
 - （可选）**NearDuplicate**：文本类文件 EOL/BOM/尾部空白归一化后比对
+- **处理决策模型（F-Resolve-1~10）**：对每个关系组输出处理意图 `Equality` / `Compatibility` / `Conflict`
+  - 文件级兼容：旧内容逐字包含于新内容（文本类精确；二进制降级低置信建议）
+  - 目录级兼容：旧目录文件集合 ⊆ 新目录文件集合（新增=合并即可；减少→人工；同名不同内容→文件级判定）
 
 **TDD 红线：**
 - fixture `sibling_a/sibling_b`：Jaccard > 阈值 → StructuralSibling，置信度+依据正确
 - 同 inode/同 hash 不同路径 → Moved；仅名字不同 → Renamed
 - Versioned：同名不同 mtime、hash 不同 → Versioned 组
+- **决策模型**：
+  - fixture 构造"旧目录文件列表 ⊆ 新目录"（仅新增）→ `Compatibility`（目录级）
+  - fixture 构造"旧有文件在新目录消失" → 非兼容，标人工
+  - 文本文件"旧内容逐字包含于新内容" → `Compatibility`（文件级）
+  - 内容互不包含 → `Conflict`
+  - `Equality` 组（CRC32+MD5 双确认相等）→ 不进入人工
 
-**验收命令：** 报告 JSON 中出现 `StructuralSibling` / `Renamed` / `Moved` / `Versioned` 组，字段含 confidence + evidence。
+**验收命令：** 报告 JSON 中出现 `StructuralSibling` / `Renamed` / `Moved` / `Versioned` 组，字段含 confidence + evidence；每组附 `resolution` 字段（equality/compatibility/conflict）。
 
 ---
 
@@ -225,11 +236,16 @@ helichrysum report --format json
 **功能清单：**
 - **标记**：Keep / MoveToTrash / MoveTo / Rename / ReplaceWithLink / Merge
 - **Plan**：生成、持久化、冲突检测（目标已存在 / 对象被多 action 引用 / 跨卷风险）
+- **决策落地（F-Resolve）**：基于关系组的 `resolution`（equality/compatibility/conflict）自动生成计划项——Equality → 自动去重；Compatibility → 自动以新为准；Conflict → 进人工队列。**自动项同样列出到报告，标注判据/置信度，可被用户否决**
 - **dry-run**：模拟执行结果预览
 - **Executor**：二次确认；**Trash 优先**（Windows 回收站 / macOS Finder / Linux gio）；跨卷两阶段（先 Copy 后 Delete）；执行日志；中断恢复
 
 **TDD 红线：**
 - 冲突检测：目标路径已存在 → Conflict；同对象两个 action → Conflict
+- Equality 组 → 自动产生去重计划项（保留一份，其余 MoveToTrash）
+- Compatibility 组 → 自动产生"以新为准"计划项（旧版标清理），且**出现在报告中可被否决**
+- Conflict 组 → 不进自动执行，进人工队列
+- 用户否决自动项 → 该决定持久化，不重复生成
 - Trash：对 fixture 文件执行 MoveToTrash → 断言进入对应平台回收站/Trash（测试注入 mock 断言调用）
 - 两阶段：Copy 失败 → 不执行 Delete（异常路径测试）
 - 执行日志：每条动作写日志，幂等恢复
