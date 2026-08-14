@@ -5,3 +5,5 @@ docs-site/index.html
 bin/
 obj/
 *.user
+# 本地运行记录
+.omo/
