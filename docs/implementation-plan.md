@@ -170,7 +170,7 @@ helichrysum report --format json
 - SampledHash：头 16KB + 中段 32KB + 尾 16KB（xxhash），<64KB 全读
 - 单调升级（永不回退）
 - hash 结果缓存（manifest 持久化，二次扫描命中）
-- **摘要分层（F-Layered-6/7）**：文件相等判定走两级摘要——快速摘要（CRC32）预筛 + 强摘要（MD5/SHA256）确认；快速摘要不等 → 直接判不等；**指纹（CRC32+MD5+时间戳）随 manifest 持久化，作为执行验证统一基线**
+- **摘要分层（F-Layered-6/7）**：文件相等判定走两级摘要——快速摘要（CRC32）预筛 + 强摘要（MD5/SHA256）确认；快速摘要不等 → 直接判不等；**指纹持久化能力（CRC32+MD5+时间戳，强度可配）作为执行验证统一基线**
 
 **TDD 红线：**
 - 升级路径：`(size,mtime)` 不碰撞 → 停在 Metadata；碰撞 → Sampled；采样仍碰撞 → Full
@@ -445,7 +445,7 @@ public class ScanTests
 | F-Scope | 7 | `ScopeTests` | 多根路径；排除规则；canonical 防绕过；配置持久化 |
 | F-Scan | 10 | `ScanningTests` | 类型识别；hardlink 不重复；循环；可中断；进度 |
 | F-Link | 6 | `LinkTests` | 不跟随；InScope/OutOfScope/Broken/Circular 分流 |
-| F-Layered | 7 | `LayeredHashTests` | 四层分析；单调升级；摘要分层 CRC32→MD5；**指纹持久化（CRC32+MD5+时间戳基线）** |
+| F-Layered | 7 | `LayeredHashTests` | 四层分析；单调升级；摘要分层 CRC32→MD5；**指纹持久化能力（强度可配，基线 CRC32+MD5+时间戳）** |
 | F-Relation | 8 | `RelationTests` | 九种关系识别；置信度；可追溯 |
 | F-Resolve | 10 | `ResolutionTests` | 三态决策；目录级兼容；自动项可见可否决 |
 | F-Archive | 7 | `ArchiveTests` | 8 格式清单；配对判定；mtime 容差；加密标记 |
