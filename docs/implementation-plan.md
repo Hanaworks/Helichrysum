@@ -115,7 +115,7 @@ git push  # CI 三平台绿
 - **Scanner 基础版**：递归遍历 regular file / directory / symlink（识别但不跟随）；排除规则；进度上报
 - **Manifest**：SQLite schema（scopes / objects / hashes / relations 表）、迁移、批量写入、断点续扫占位
 - **ExactDuplicate**：size 索引 → 元数据碰撞 → FullHash（SHA256）→ 去重分组
-- **报告**：HTML 单文件（目录树 + 重复组标记）+ JSON
+- **报告**：只读精简投影——目录聚合 + 重复组 + 标签统计；分级渲染（摘要内嵌 + 详情惰性）+ 单文件 HTML（默认，≤阈值）+ JSON
 
 **TDD 红线：**
 - Scope.Contains：包含 / 排除 / 路径边界（不包含父级前缀误匹配）
@@ -294,7 +294,7 @@ helichrysum exec <id>             # 确认后执行
 **功能清单：**
 - ASP.NET Core API（操作接口 + 报告接口两套端点，见技术方案 §5.3）
 - **操作界面**：Scope 配置、扫描进度、问题列表（默认视图，类型分组、批量标记）、计划管理、执行、全局筛选条
-- **报告界面**：目录树逐层展开 + 问题标记 + **预览/差异面板**（文本并排 Diff、图片对比、ArchivePair 清单差异、exe 元数据）、导出
+- **报告界面**：目录树逐层展开 + 问题标记 + **预览/差异面板**（文本并排 Diff、图片对比、ArchivePair 清单差异、exe 元数据）、导出（只读，无决策操作）
 - 前端 Vite + Svelte（待定框架），构建产物入 `wwwroot/`
 - 本地服务默认 `127.0.0.1`
 
@@ -444,7 +444,7 @@ public class ScanTests
 | F-Relation | 8 | `RelationTests` | 九种关系识别；置信度；可追溯 |
 | F-Resolve | 10 | `ResolutionTests` | 三态决策；目录级兼容；自动项可见可否决 |
 | F-Archive | 7 | `ArchiveTests` | 8 格式清单；配对判定；mtime 容差；加密标记 |
-| F-Report | 9 | `ReportTests` | 目录树展开；筛选；三格式导出；未启动计划可查看 |
+| F-Report | 10 | `ReportTests` | 目录树展开；筛选；**只读边界（无写能力）**；**分级渲染（摘要内嵌+详情惰性）**；**精简投影（≤20MB）**；单文件/超限切服务；未启动计划可查看 |
 | F-Preview | 10 | `PreviewTests` | 文本/图片/PDF/Office 预览；exe 不预览；打开/定位 |
 | F-Plan | 7 | `PlanTests` | 动作类型；dry-run；保存加载；冲突检测；回滚信息 |
 | F-Exec | 6 | `ExecTests` | 二次确认；Trash 优先；执行日志；中断恢复 |
