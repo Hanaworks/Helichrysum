@@ -222,6 +222,8 @@ helichrysum report --format json
     - ctime 聚集检验：fixture 中"整目录同一 ctime" → 时间降权，不参与投票
     - ctime+mtime 成对：ctime 老 + mtime 新 = 可信演化；双同时 = 拷贝痕迹
     - 父目录时间佐证：父目录 mtime 晚于全部子文件 → 佐证活跃目录；父子全聚集 → 整链拷贝痕迹（F-Resolve-4a 补充）
+    - 一致性投票：多数派一致 + 孤立者 → 孤立者标 Integrity_Suspected（F-Resolve-18）
+    - 格式内建校验：zip CRC/JPEG 结构解析失败但 hash 自洽 → 仍标 Suspected（F-Resolve-19）
     - 压缩包锚点：受污染的 A 目录关联旧 zip（内部时间戳早）vs B 目录 ctime 分散 → 判 B 新
     - 证据耗尽 → 提升人工，断言不产生自动猜测决策
 
@@ -258,6 +260,7 @@ helichrysum report --format json
 - **Plan**：生成、持久化、冲突检测（目标已存在 / 对象被多 action 引用 / 跨卷风险）
 - **决策落地（F-Resolve）**：基于关系组的 `resolution`（equality/compatibility/conflict）自动生成计划项——Equality → 自动去重；Compatibility → 自动以新为准；Conflict → 进人工队列。**自动项同样列出到报告，标注判据/置信度，可被用户否决**
 - **dry-run**：模拟执行结果预览
+- **安全兜底（F-Exec-7~12）**：清理前复制到 Staging 保底区；清理后重算保留副本 hash 校验、失败自动回滚；保底三策略可配；执行前重校验对象身份（防 TOCTOU）；Suspected 对象不进自动清理
 - **Executor**：二次确认；**Trash 优先**（Windows 回收站 / macOS Finder / Linux gio）；跨卷两阶段（先 Copy 后 Delete）；执行日志；中断恢复
 
 **TDD 红线：**
@@ -266,6 +269,9 @@ helichrysum report --format json
 - Compatibility 组 → 自动产生"以新为准"计划项（旧版标清理），且**出现在报告中可被否决**
 - Conflict 组 → 不进自动执行，进人工队列
 - 用户否决自动项 → 该决定持久化，不重复生成
+- **Staging（F-Exec-7/8）**：清理动作 → 断言被清理对象先复制进 staging（含 manifest 记录）；清理后 mock 保留副本 hash 校验失败 → 断言自动回滚恢复 + 报告标"已回滚"
+- **TOCTOU（F-Exec-11）**：执行前替换 fixture 目标对象身份 → 断言动作中止 + 标人工
+- **Suspected（F-Exec-12）**：fixture 中标记 Suspected 的文件 → 断言不进自动清理
 - Trash：对 fixture 文件执行 MoveToTrash → 断言进入对应平台回收站/Trash（测试注入 mock 断言调用）
 - 两阶段：Copy 失败 → 不执行 Delete（异常路径测试）
 - 执行日志：每条动作写日志，幂等恢复
