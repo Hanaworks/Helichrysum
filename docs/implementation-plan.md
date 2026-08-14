@@ -170,7 +170,7 @@ helichrysum report --format json
 - SampledHash：头 16KB + 中段 32KB + 尾 16KB（xxhash），<64KB 全读
 - 单调升级（永不回退）
 - hash 结果缓存（manifest 持久化，二次扫描命中）
-- **摘要分层（F-Layered-6）**：文件相等判定走两级摘要——快速摘要（CRC32）预筛 + 强摘要（MD5/SHA256）确认；快速摘要不等 → 直接判不等
+- **摘要分层（F-Layered-6/7）**：文件相等判定走两级摘要——快速摘要（CRC32）预筛 + 强摘要（MD5/SHA256）确认；快速摘要不等 → 直接判不等；**指纹（CRC32+MD5+时间戳）随 manifest 持久化，作为执行验证统一基线**
 
 **TDD 红线：**
 - 升级路径：`(size,mtime)` 不碰撞 → 停在 Metadata；碰撞 → Sampled；采样仍碰撞 → Full
@@ -270,7 +270,12 @@ helichrysum report --format json
 - Conflict 组 → 不进自动执行，进人工队列
 - 用户否决自动项 → 该决定持久化，不重复生成
 - **Staging（F-Exec-7/8）**：清理动作 → 断言被清理对象先复制进 staging（含 manifest 记录）；清理后 mock 保留副本 hash 校验失败 → 断言自动回滚恢复 + 报告标"已回滚"
-- **TOCTOU（F-Exec-11）**：执行前替换 fixture 目标对象身份 → 断言动作中止 + 标人工
+- **TOCTOU（F-Exec-11）**：
+    - 执行前替换 fixture 目标对象身份 → 断言动作中止 + 标人工
+    - 修改 fixture 文件 mtime（内容不变）→ 时间校验触发中止
+    - 修改 fixture 文件内容（mtime 不变）→ CRC32 触发中止（不走到 MD5）
+    - symlink 替换目标（路径字符串相同）→ realpath 后身份不符 → 中止
+    - 指纹基线缺失的对象 → 默认中止该动作
 - **Suspected（F-Exec-12）**：fixture 中标记 Suspected 的文件 → 断言不进自动清理
 - Trash：对 fixture 文件执行 MoveToTrash → 断言进入对应平台回收站/Trash（测试注入 mock 断言调用）
 - 两阶段：Copy 失败 → 不执行 Delete（异常路径测试）
@@ -440,7 +445,7 @@ public class ScanTests
 | F-Scope | 7 | `ScopeTests` | 多根路径；排除规则；canonical 防绕过；配置持久化 |
 | F-Scan | 10 | `ScanningTests` | 类型识别；hardlink 不重复；循环；可中断；进度 |
 | F-Link | 6 | `LinkTests` | 不跟随；InScope/OutOfScope/Broken/Circular 分流 |
-| F-Layered | 6 | `LayeredHashTests` | 四层分析；墙体升级；摘要分层 CRC32→MD5 |
+| F-Layered | 7 | `LayeredHashTests` | 四层分析；单调升级；摘要分层 CRC32→MD5；**指纹持久化（CRC32+MD5+时间戳基线）** |
 | F-Relation | 8 | `RelationTests` | 九种关系识别；置信度；可追溯 |
 | F-Resolve | 10 | `ResolutionTests` | 三态决策；目录级兼容；自动项可见可否决 |
 | F-Archive | 7 | `ArchiveTests` | 8 格式清单；配对判定；mtime 容差；加密标记 |
