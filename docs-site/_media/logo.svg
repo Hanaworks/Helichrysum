@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="128" height="128">
+  <!-- 背景圆 -->
+  <circle cx="100" cy="100" r="96" fill="#fdf6e3" stroke="#b8860b" stroke-width="4"/>
+  <!-- 太阳光芒 -->
+  <g stroke="#e8c76b" stroke-width="3" stroke-linecap="round">
+    <line x1="100" y1="20" x2="100" y2="34"/>
+    <line x1="100" y1="166" x2="100" y2="180"/>
+    <line x1="20" y1="100" x2="34" y2="100"/>
+    <line x1="166" y1="100" x2="180" y2="100"/>
+    <line x1="43" y1="43" x2="53" y2="53"/>
+    <line x1="147" y1="147" x2="157" y2="157"/>
+    <line x1="43" y1="157" x2="53" y2="147"/>
+    <line x1="147" y1="53" x2="157" y2="43"/>
+  </g>
+  <!-- 蜡菊花瓣：两圈圆点 -->
+  <g fill="#e8c76b">
+    <circle cx="100" cy="64" r="9"/>
+    <circle cx="100" cy="136" r="9"/>
+    <circle cx="64" cy="100" r="9"/>
+    <circle cx="136" cy="100" r="9"/>
+    <circle cx="75" cy="75" r="9"/>
+    <circle cx="125" cy="125" r="9"/>
+    <circle cx="75" cy="125" r="9"/>
+    <circle cx="125" cy="75" r="9"/>
+  </g>
+  <!-- 花芯 -->
+  <circle cx="100" cy="100" r="20" fill="#b8860b"/>
+  <circle cx="100" cy="100" r="10" fill="#d4a017"/>
+</svg>
