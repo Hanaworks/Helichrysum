@@ -364,12 +364,102 @@ helichrysum exec <id>             # 确认后执行
 
 ---
 
+## 4.6 测试策略：需求全覆盖（92 条 F-xxx 可追溯）
+
+> 每条需求（70 必须 + 22 应当，共 92 条）都必须有可断言的测试证明"已实现且正确"。
+> 不存在"无测试覆盖的需求"——这是硬门禁，不是建议。
+
+### 4.6.1 测试组织架构（与需求模块对齐）
+
+```text
+tests/
+├── Helichrysum.Core.Tests/          # 核心逻辑单元测试
+│   ├── ScopeTests/                  # → F-Scope (7条)
+│   ├── ScanningTests/               # → F-Scan (10条)
+│   ├── LinkTests/                   # → F-Link (6条)
+│   ├── LayeredHashTests/            # → F-Layered (6条)
+│   ├── RelationTests/               # → F-Relation (8条)
+│   ├── ResolutionTests/             # → F-Resolve (10条)
+│   ├── ArchiveTests/                # → F-Archive (7条)
+│   ├── ReportTests/                 # → F-Report (9条)
+│   ├── PreviewTests/                # → F-Preview (10条)
+│   ├── PlanTests/                   # → F-Plan (7条)
+│   ├── ExecTests/                   # → F-Exec (6条)
+│   └── FormTests/                   # → F-Form (6条)
+├── Helichrysum.Integration.Tests/   # 端到端链路（每切片验收命令）
+└── Helichrysum.Cli.Tests/           # CLI 行为测试
+```
+
+### 4.6.2 命名规范（追溯自动化）
+
+每条需求在对应测试类中至少一个 `[Fact]`，测试名带需求号，构建时可自动核对：
+
+```csharp
+// xUnit 的 Theory/属性或命名惯例：
+public class ScanTests
+{
+    [Fact]
+    public void F_Scan_1_RegularFile_IsScanned() { ... }   // → F-Scan-1
+    [Fact]
+    public void F_Scan_6_CircularReference_IsDetected() { ... } // → F-Scan-6
+}
+```
+
+> 工具侧：CI 步骤用 `grep` 或测试清单核对"每条 F-xxx 都有同名测试"；缺失 → 构建告警/失败。
+
+### 4.6.3 需求 → 测试覆盖矩阵（简化摘录，完整实现时逐条展开）
+
+| 模块 | 需求数 | 测试套件 | 关键覆盖点（示例） |
+|---|---|---|---|
+| F-Scope | 7 | `ScopeTests` | 多根路径；排除规则；canonical 防绕过；配置持久化 |
+| F-Scan | 10 | `ScanningTests` | 类型识别；hardlink 不重复；循环；可中断；进度 |
+| F-Link | 6 | `LinkTests` | 不跟随；InScope/OutOfScope/Broken/Circular 分流 |
+| F-Layered | 6 | `LayeredHashTests` | 四层分析；墙体升级；摘要分层 CRC32→MD5 |
+| F-Relation | 8 | `RelationTests` | 九种关系识别；置信度；可追溯 |
+| F-Resolve | 10 | `ResolutionTests` | 三态决策；目录级兼容；自动项可见可否决 |
+| F-Archive | 7 | `ArchiveTests` | 8 格式清单；配对判定；mtime 容差；加密标记 |
+| F-Report | 9 | `ReportTests` | 目录树展开；筛选；三格式导出；未启动计划可查看 |
+| F-Preview | 10 | `PreviewTests` | 文本/图片/PDF/Office 预览；exe 不预览；打开/定位 |
+| F-Plan | 7 | `PlanTests` | 动作类型；dry-run；保存加载；冲突检测；回滚信息 |
+| F-Exec | 6 | `ExecTests` | 二次确认；Trash 优先；执行日志；中断恢复 |
+| F-Form | 6 | `FormTests` | CLI/SDK/WebUI/GUI 共享 manifest；CLI 独立跑全流程 |
+
+### 4.6.4 "生活化场景"测试数据集
+
+除模块单元测试外，另建**贴近真实世界**的集成测试数据集（见场景表），用于验证"面对真实数据形态时结果合理"——不只是"逻辑正确"。
+
+| 场景 | 用户故事 | 覆盖需求 | 预期结果（golden） |
+|---|---|---|---|
+| S1 多盘多年演进 | 三套备份(B2019/B2021/Current) | StructuralSibling + F-Resolve | 兼容组；冲突组列出 |
+| S2 下载解压残留 | zip+解压目录(改过/没改过) | F-Archive-4/5 | FullyExtracted vs ModifiedAfter |
+| S3 零散复制 | 同文件散落桌面/下载/文档 | F-Scan-6 + F-Resolve | Equality 自动去重 |
+| S4 批量重命名移动 | 整个文件夹改名挪位 | F-Relation-3 | Renamed/Moved |
+| S5 链接与外部盘 | 链接到移动硬盘 | F-Link-2 | OutOfScope 分流正确 |
+| S6 真实文件类型 | docx/pdf/jpg/zip/源码混合 | F-Preview 系列 | 预览能力按类型分流 |
+| S7 mtime 分布 | 文件时间跨年纪(b2019~2024) | F-Resolve-4 | 新旧判定正确 |
+| S8 深层嵌套+混乱命名 | 1000 层嵌套、`新建文件夹(2)` | F-Scan-1 + 报告 | 扫描不崩、报告可读 |
+
+**Golden file 机制**：每个场景固定一个断言 JSON，运行结果与之逐字段 diff；人为更新须显式 `--update-golden` 并 review diff。
+
+### 4.6.5 自动化门禁（CI 强制）
+
+```text
+1. dotnet test --collect:"XPlat Code Coverage"    # 所有 92 条需求的对应测试运行
+2. 覆盖率报告：核心 ≥80% 失败则 CI 红
+3. 需求追溯核对：脚本检查每条 F-xxx 有对应测试名（缺失 → CI 红）
+4. lifelike 场景 golden diff 失败 → CI 红
+5. 三平台（Win/Linux/macOS）全绿
+```
+
+---
+
 ## 5. 完成定义（Definition of Done）
 
 每个切片合入前检查：
 
 - [ ] 切片清单内所有功能点实现
 - [ ] **§4.5 TDD 验收标准全部满足**（U-1~U-7 + I-1~I-4 + M-1~M-3 + 覆盖率门槛）
+- [ ] **§4.6 需求全覆盖检查通过**：该切片涉及的 F-xxx 需求全部有对应测试（追溯核对脚本绿）
 - [ ] 该切片所有 TDD 红线测试全绿（红-绿-重构闭环过）
 - [ ] 集成测试通过（链接路 + 幂等 + 输出契约）
 - [ ] 手工按验收命令跑通过，看到真实输出（M-1）
