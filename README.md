@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs-site/_media/logo.svg" width="128" height="128" alt="Helichrysum Logo">
+</p>
+
 # Helichrysum
 
 > 蜡菊（永久花）—— 面向个人数字资产的整理与归档工具。
@@ -22,9 +26,11 @@
 
 | 项 | 状态 |
 |---|---|
-| 需求规格说明书 | ✅ v0.1（Draft） |
+| 需求规格说明书 | ✅ v0.2（Draft，116 条编号需求） |
 | 技术实现方案（.NET 主方案） | ✅ v0.2（Draft） |
-| 代码实现 | ⏳ 未开始（待 Phase 0 启动） |
+| 实施计划 | ✅ v0.2（Draft，切片 0-9 + TDD 验收标准） |
+| License | GPL-3.0 |
+| 代码实现 | ⏳ 未开始（待切片 0 启动） |
 
 ## 关键特性
 
@@ -52,17 +58,17 @@
 
 | 文档 | 内容 |
 |---|---|
-| [docs/REQUIREMENTS.md](docs/requirements.md) | 需求规格说明书（70+ 条编号需求） |
-| [docs/technical-design.md](docs/technical-design.md) | .NET 技术实现方案（主方案） |
+| [docs/requirements.md](docs/requirements.md) | 需求规格说明书（116 条编号需求，含处理决策模型） |
+| [docs/technical-design.md](docs/technical-design.md) | .NET 技术实现方案（主方案，含分层选型与可替换接口） |
+| [docs/implementation-plan.md](docs/implementation-plan.md) | 实施计划（切片 0-9 + TDD 验收标准 + 需求全覆盖测试策略） |
 | [docs/technical-design-rust.md](docs/technical-design-rust.md) | Rust 版备选方案（早期探索，保留参考） |
 
 ## 路线图
 
-- **Phase 0**：项目骨架（.sln + Core/Fs/CLI + CI）
-- **Phase 1**：扫描 + 重复识别 + HTML 报告 MVP（命令行端到端跑通）
-- **Phase 2-4**：Link / 分层 hash / 关系分析扩展 / Plan + Executor
-- **Phase 5-6**：WebUI（交互实验室）→ WPF 桌面壳
-- **Phase 7**：增量扫描与大规模调优
+- **切片 0-1**：项目骨架 + 扫描/重复/报告端到端握手（5 周内可用）
+- **切片 2-6**：Link 处理 / 分层 hash / 关系分析 / ArchivePair / Plan + Executor
+- **切片 7-8**：WebUI（交互实验室）→ WPF 桌面壳（Windows 优先）
+- **切片 9**：增量扫描、规模调优、压力基准
 
 ## 开发
 

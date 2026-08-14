@@ -2,8 +2,8 @@
 
 | 项目 | 内容 |
 |---|---|
-| 文档状态 | Draft v0.1 |
-| 最后更新 | 2026-08-13 |
+| 文档状态 | Draft v0.2 |
+| 最后更新 | 2026-08-14 |
 | 关联文档 | [REQUIREMENTS.md](./requirements.md) · [TECHNICAL_DESIGN.md](./technical-design.md) |
 
 > 本文档定义**如何一步步把 Helichrysum 写出来**。里程碑由垂直切片序列构成，每个切片的内部细节（功能清单 / TDD 红线 / 验收命令）构成实现步骤。已与需求文档和技术方案同步。

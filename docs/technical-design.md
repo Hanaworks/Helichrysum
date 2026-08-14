@@ -3,7 +3,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档状态 | Draft v0.2 |
-| 最后更新 | 2026-08-13 |
+| 最后更新 | 2026-08-14 |
 | 适用版本 | 目标 v1.0 |
 | 关联文档 | [REQUIREMENTS.md](./requirements.md) |
 | 备选方案 | [TECHNICAL_DESIGN_RUST.md](./technical-design-rust.md) |
