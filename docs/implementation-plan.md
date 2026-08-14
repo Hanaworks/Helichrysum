@@ -191,9 +191,13 @@ helichrysum report --format json
 - **Renamed / Moved**：依据（Filesystem Identity + hash + 路径差异）
 - **Versioned**：同名文件、size 接近、内容部分相似
 - （可选）**NearDuplicate**：文本类文件 EOL/BOM/尾部空白归一化后比对
-- **处理决策模型（F-Resolve-1~10）**：对每个关系组输出处理意图 `Equality` / `Compatibility` / `Conflict`
+- **处理决策模型（F-Resolve-1~14）**：对每个关系组输出处理意图 `Equality` / `Compatibility` / `Conflict`
   - 文件级兼容：旧内容逐字包含于新内容（文本类精确；二进制降级低置信建议）
   - 目录级兼容：旧目录文件集合 ⊆ 新目录文件集合（新增=合并即可；减少→人工；同名不同内容→文件级判定）
+  - **分层决策流水线**：文件级 → 目录级 → 结构级，逐层串行、每层物化后才进下一层（F-Resolve-11）
+  - **交织处理**：目录级判断不覆盖文件级已解决的新旧问题（F-Resolve-12）
+  - **同层仲裁**：仅同层意图矛盾时触发（Moved > StructuralSibling > ArchivePair > Duplicate），意图一致直接合并（F-Resolve-13）
+  - **依赖链可视化**：报告标注每层决策的物化依据（F-Resolve-14）
 
 **TDD 红线：**
 - fixture `sibling_a/sibling_b`：Jaccard > 阈值 → StructuralSibling，置信度+依据正确
@@ -205,6 +209,12 @@ helichrysum report --format json
   - 文本文件"旧内容逐字包含于新内容" → `Compatibility`（文件级）
   - 内容互不包含 → `Conflict`
   - `Equality` 组（CRC32+MD5 双确认相等）→ 不进入人工
+  - **分层流水线（F-Resolve-11/12/13）**：
+    - 交织场景：NewDir 整体更新，但 OldDir 有唯一新文件 → 文件级先保留该文件，目录级结果为"合并"而非"清理 OldDir"
+    - 依赖链：目录级决策结果 != 用原始快照计算的结果（证明使用了物化后的文件级状态）
+    - 同层冲突：Moved KEEP vs Duplicate CLEAN → 仲裁判 KEEP，无需人工
+    - 意图一致：同文件全组 CLEAN → 直接合并，不触发仲裁
+  - **依赖链可视**（F-Resolve-14）：报告 JSON 中目录级决策含 `based_on` 字段指向文件级解决记录
 
 **验收命令：** 报告 JSON 中出现 `StructuralSibling` / `Renamed` / `Moved` / `Versioned` 组，字段含 confidence + evidence；每组附 `resolution` 字段（equality/compatibility/conflict）。
 
