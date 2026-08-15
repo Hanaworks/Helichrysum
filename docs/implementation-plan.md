@@ -81,18 +81,18 @@ fixture 以脚本或 `git` 方式维护（目录结构、mtime 可控制），�
 
 | 切片 | 名称 | 对应 Phase | 交付物 | 大致工期 |
 |---|---|---|---|---|
-| **0** | 项目骨架 | Phase 0 | 可构建 sln + 测试基础设施 + CI 三平台绿 | 2 周 |
-| **1** | 扫描→manifest→重复→报告 | Phase 1 | **CLI 端到端跑通**（找完全重复 + HTML/JSON 报告） | 3 周 |
-| **2** | Link 完整处理 | Phase 2a | 全部 link 类型识别 + 分流 + 不扩大 scope | 1.5 周 |
-| **3** | 分层 hash | Phase 2b | SampledHash + 单调升级 + hash 缓存 | 0.5 周 |
-| **4** | 关系分析扩展 | Phase 3a | StructuralSibling / Renamed / Moved / Versioned | 2 周 |
-| **5** | ArchivePair | Phase 3b | 压缩包↔解压目录配对 + mtime 高可信标记 | 1 周 |
-| **6** | Plan + 冲突检测 + Executor | Phase 4 | 标记→计划→dry-run→执行→日志/回滚 | 2 周 |
-| **7** | WebUI | Phase 5 | 操作界面 + 报告界面（浏览器） | 3 周 |
-| **8** | WPF 桌面壳 | Phase 6 | 操作界面 + 报告界面 + 系统集成 | 2 周 |
-| **9** | 增量与性能 | Phase 7 | 增量扫描 / hash 缓存 / 大规模调优 | 持续 |
+| **0** | 项目骨架 | Phase 0 | 可构建 sln + 测试基础设施 + CI 三平台绿 | 2 周 | ✅ |
+| **1** | 扫描→manifest→重复→报告 | Phase 1 | **CLI 端到端跑通**（找完全重复 + HTML/JSON 报告） | 3 周 | ✅ |
+| **2** | Link 完整处理 | Phase 2a | 全部 link 类型识别 + 分流 + 不扩大 scope | 1.5 周 | ✅ |
+| **3** | 分层 hash | Phase 2b | SampledHash + 单调升级 + hash 缓存 | 0.5 周 | ✅ |
+| **4** | 关系分析扩展 | Phase 3a | StructuralSibling / Renamed / Moved / Versioned | 2 周 | ✅ |
+| **5** | ArchivePair | Phase 3b | 压缩包↔解压目录配对 + mtime 高可信标记 | 1 周 | ✅ |
+| **6** | Plan + 冲突检测 + Executor | Phase 4 | 标记→计划→dry-run→执行→日志/回滚 | 2 周 | ✅ |
+| **7** | WebUI | Phase 5 | 操作界面 + 报告界面（浏览器） | 3 周 | ⏳ |
+| **8** | WPF 桌面壳 | Phase 6 | 操作界面 + 报告界面 + 系统集成 | 2 周 | ⏳ |
+| **9** | 增量与性能 | Phase 7 | 增量扫描 / hash 缓存 / 大规模调优 | 持续 | ⏳ |
 
-**v1.0 = 切片 0–8 完成；~17 周。** 切片 9 持续演进。
+**v1.0 = 切片 0–8 完成；切片 0-6 已交付（64 测试全绿）。** 切片 9 持续演进。
 
 ---
 
@@ -529,10 +529,10 @@ public class ScanTests
 ## 6. 实施顺序快速指引
 
 ```text
-先: 切片 0（骨架）→ 切片 1（端到端握手）   —— 5 周内拿到可运行工具
-再: 切片 2-6（加深核心能力）                 —— 逐层加 Link/hash/关系/归档/执行
-后: 切片 7（WebUI 交互定稿）→ 切片 8（WPF 落地）
-终: 切片 9（规模性能）
+✅ 切片 0-1（骨架 + 扫描/重复/报告）
+✅ 切片 2-6（Link 处理 / 分层 hash / 关系分析 / ArchivePair / Plan+Executor）
+⏳ 切片 7（WebUI 交互定稿）→ 切片 8（WPF 落地）
+  每次交付后执行：dotnet test 验证 64 测试全绿
 ```
 
 **每个切片完成后，用户亲手验收一次：** 这是流程硬约束。
