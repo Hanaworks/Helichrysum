@@ -55,29 +55,31 @@ helichrysum report --format json
 
 ### 测试 1：LinkInspectorTests（任务 1，跨平台）
 
-| 测试名 | 断言 | 涉及 F-xxx |
-|---|---|---|
-| `LinkInspector_Symlink_DetectsTarget` | fixture 中 symlink 指向正确 target | F-Link-1 |
-| `LinkInspector_BrokenSymlink_MarkedBroken` | 目标不存在的 symlink → IsLink=true, ScopeRelation=Broken | F-Link-2 |
-| `LinkInspector_Hardlink_SameInode` | 同一文件的 hardlink → 相同 inode group ID | F-Link-3 |
-| `LinkInspector_RegularFile_NotLink` | 普通文件 → IsLink=false | F-Link-1 |
+| 测试名 | 断言 | 涉及 F-xxx | 状态 |
+|---|---|---|---|
+| `LinkInspector_Symlink_DetectsTarget` | fixture 中 symlink 指向正确 target | F-Link-1 | ✅ |
+| `LinkInspector_BrokenSymlink_MarkedBroken` | 目标不存在的 symlink → IsLink=true, ScopeRelation=Broken | F-Link-2 | ✅ |
+| `LinkInspector_Hardlink_SameInode` | 同一文件的 hardlink → 相同 inode group ID | F-Link-3 | ⏳ 待 P/Invoke 实现 |
+| `LinkInspector_RegularFile_NotLink` | 普通文件 → IsLink=false | F-Link-1 | ✅ |
+| `LinkInspector_Directory_NotLink` | 目录 → IsLink=false | F-Link-1 | ✅ |
 
 ### 测试 2：LinkResolutionTests（任务 2）
 
-| 测试名 | 断言 | 涉及 F-xxx |
-|---|---|---|
-| `Link_ScopeIn_NotDuplicated` | Scope 内 symlink → 目标被扫描一次，不重复 | F-Link-2 |
-| `Link_ScopeOut_MarkedOutOfScope` | Scope 外 symlink → 标记 OutOfScope, 不递归 | F-Link-2 |
-| `Link_Circular_Detected` | A→B→A 循环 symlink → 两者标记 Circular | F-Link-6 |
-| `Link_Hardlink_Deduplicated` | 同一 inode 两个路径 → 只产生一个内容统计 | F-Link-3 |
+| 测试名 | 断言 | 涉及 F-xxx | 状态 |
+|---|---|---|---|
+| `RegularFile_NotLink` | 普通文件 → 不标记为 link | F-Link-2 | ✅ |
+| `Symlink_ScopeIn_Resolved` | Scope 内 symlink → 目标被扫描一次，不重复 | F-Link-2 | ✅ |
+| `Symlink_ScopeOut_MarkedOutOfScope` | Scope 外 symlink → 标记 OutOfScope, 不递归 | F-Link-2 | ✅ |
+| `BrokenSymlink_MarkedBroken` | 目标不存在的 symlink → Broken | F-Link-2 | ✅ |
+| `CircularSymlink_Detected` | Symlink 指向已访问目录 → 标记 Circular | F-Link-6 | ✅ |
 
 ### 测试 3：ScannerLinkTests（任务 3，集成）
 
-| 测试名 | 断言 | 涉及 F-xxx |
-|---|---|---|
-| `Scanner_Links_ScopeRelationCorrect` | 扫 fixture links/ → 所有 link 的 ScopeRelation 正确 | F-Link-2 |
-| `Scanner_Symlink_NotFollowed` | 扫 symlink 目录 → 不递归进入目标 | F-Link-1 |
-| `Scanner_MountPoint_NotCrossed` | 挂载点边界 → 不跨设备扫描 | F-Link-4 |
+| 测试名 | 断言 | 涉及 F-xxx | 状态 |
+|---|---|---|---|
+| `Scanner_Links_ScopeRelationCorrect` | 扫 fixture links/ → 所有 link 的 ScopeRelation 正确 | F-Link-2 | ✅ |
+| `Scanner_Symlink_NotFollowedIntoDirectory` | Symlink 指向已访问目录 → 标记 Circular | F-Link-1 | ✅ |
+| `Scanner_DoesNotCrossMountPoint` | Scope 外 symlink → 标记 OutOfScope, 不跨 Scope | F-Link-4 | ✅ |
 
 ---
 

@@ -1,0 +1,2637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Helichrysum WebUI 设计稿 · 高保真静态稿</title>
+<!--
+  Helichrysum WebUI 高保真静态设计稿（v0.1）
+  · 用途：视觉风格 + 信息架构评审（之后据此用 Vite + Vue 正式实现）
+  · 约束：单文件自包含，无任何外部依赖 / CDN / 网络请求，离线可打开
+  · JS 仅承担：视图切换、目录树展开/收起、判定依据下钻展开、节点选中（均为演示级交互）
+-->
+<style>
+/* ============================================================
+   1. 设计 token（颜色 / 字体 / 圆角 / 投影）
+   ============================================================ */
+:root {
+  /* 画布与表面 */
+  --color-canvas: #faf9f7;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f3f1ec;
+  --color-surface-hover: #f7f5f0;
+  --color-border: #e9e5de;
+  --color-border-strong: #d8d2c8;
+
+  /* 文字（暖石灰阶） */
+  --color-text-primary: #292524;
+  --color-text-secondary: #6f6963;
+  --color-text-tertiary: #a49e95;
+  --color-text-inverted: #ffffff;
+
+  /* 品牌（蜡菊琥珀金） */
+  --color-brand: #d97706;
+  --color-brand-deep: #b45309;
+  --color-brand-bright: #f59e0b;
+  --color-brand-tint: #fffbeb;
+  --color-brand-tint-strong: #fef3c7;
+  --color-brand-border: #f5d9a8;
+
+  /* 关系类型语义色 */
+  --relation-exact-duplicate: #2563eb;        --relation-exact-duplicate-background: #eff6ff;
+  --relation-near-duplicate: #0e7490;         --relation-near-duplicate-background: #ecfeff;
+  --relation-versioned: #16a34a;              --relation-versioned-background: #f0fdf4;
+  --relation-renamed: #52627a;                --relation-renamed-background: #f1f5f9;
+  --relation-moved: #64748b;                  --relation-moved-background: #f4f6f8;
+  --relation-structural-sibling: #4f46e5;     --relation-structural-sibling-background: #eef2ff;
+  --relation-archive-pair: #9333ea;           --relation-archive-pair-background: #faf5ff;
+  --relation-link-reference: #475569;         --relation-link-reference-background: #f1f5f9;
+  --relation-partial-overlap: #ea580c;        --relation-partial-overlap-background: #fff7ed;
+  --relation-out-of-scope: #b45309;           --relation-out-of-scope-background: #fef3c7;
+  --relation-broken: #dc2626;                 --relation-broken-background: #fef2f2;
+  --relation-circular: #9f1239;               --relation-circular-background: #ffe4e6;
+
+  /* Resolution 语义色 */
+  --resolution-equality: #15803d;             --resolution-equality-background: #dcfce7;
+  --resolution-compatibility: #0369a1;        --resolution-compatibility-background: #e0f2fe;
+  --resolution-conflict: #dc2626;             --resolution-conflict-background: #fee2e2;
+  --resolution-integrity-suspected: #7f1d1d;  --resolution-integrity-suspected-background: #f7dcdc;
+
+  /* 处理动作语义色 */
+  --action-keep: #15803d;                     --action-keep-background: #dcfce7;
+  --action-trash: #be123c;                    --action-trash-background: #ffe4e6;
+  --action-move: #1d4ed8;                     --action-move-background: #dbeafe;
+  --action-rename: #475569;                   --action-rename-background: #f1f5f9;
+  --action-link: #0f766e;                     --action-link-background: #ccfbf1;
+  --action-merge: #4338ca;                    --action-merge-background: #e0e7ff;
+  --action-manual: #b45309;                   --action-manual-background: #fef3c7;
+
+  /* 字体 */
+  --font-family-interface: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-family-monospace: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, "Courier New", monospace;
+
+  /* 圆角与投影 */
+  --radius-card: 12px;
+  --radius-element: 8px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(41, 37, 36, 0.04), 0 4px 16px rgba(41, 37, 36, 0.05);
+  --shadow-raised: 0 1px 3px rgba(41, 37, 36, 0.08), 0 8px 24px rgba(41, 37, 36, 0.09);
+  --shadow-brand: 0 2px 10px rgba(217, 119, 6, 0.32);
+}
+
+/* ============================================================
+   2. 基础重置
+   ============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-family-interface);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+  background: var(--color-canvas);
+  background-image: radial-gradient(1200px 400px at 70% -200px, rgba(245, 158, 11, 0.055), transparent 70%);
+  min-width: 1180px;
+}
+::selection { background: var(--color-brand-tint-strong); color: var(--color-brand-deep); }
+button { font-family: inherit; font-size: inherit; line-height: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+input, select { font-family: inherit; font-size: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--color-brand-bright); outline-offset: 2px; border-radius: 4px; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--color-brand); }
+.monospace { font-family: var(--font-family-monospace); font-size: 12px; }
+.numeric { font-variant-numeric: tabular-nums; }
+.icon { width: 16px; height: 16px; flex: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; vertical-align: -3px; }
+.icon-small { width: 13px; height: 13px; vertical-align: -2px; }
+.scrollable::-webkit-scrollbar { width: 8px; height: 8px; }
+.scrollable::-webkit-scrollbar-thumb { background: #ddd8cf; border-radius: 8px; }
+.scrollable::-webkit-scrollbar-track { background: transparent; }
+
+/* ============================================================
+   3. 顶栏（品牌 / 视图切换 / 快照年龄）
+   ============================================================ */
+.application-bar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 20px;
+  padding: 10px 28px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+}
+.brand-cluster { display: flex; align-items: center; gap: 10px; min-width: 300px; }
+.brand-mark {
+  width: 34px; height: 34px; border-radius: 10px; flex: none;
+  display: grid; place-items: center;
+  background: linear-gradient(145deg, var(--color-brand-bright), var(--color-brand));
+  box-shadow: var(--shadow-brand);
+}
+.brand-mark svg { width: 20px; height: 20px; }
+.brand-name { font-size: 16px; font-weight: 700; letter-spacing: 0.2px; }
+.brand-name em { font-style: normal; color: var(--color-brand-deep); }
+.version-chip {
+  font-family: var(--font-family-monospace); font-size: 10.5px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill); padding: 1px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.view-switcher {
+  display: flex; gap: 3px; margin: 0 auto;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill); padding: 3px;
+}
+.view-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 15px; border-radius: var(--radius-pill);
+  font-size: 13px; color: var(--color-text-secondary);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.view-tab:hover { color: var(--color-text-primary); }
+.view-tab.active {
+  background: var(--color-surface); color: var(--color-brand-deep); font-weight: 600;
+  box-shadow: 0 1px 3px rgba(41, 37, 36, 0.12);
+}
+.view-tab .icon { width: 14px; height: 14px; }
+.snapshot-age-pill {
+  display: flex; align-items: center; gap: 7px; min-width: 300px; justify-content: flex-end;
+  font-size: 12px; color: var(--color-brand-deep);
+  background: var(--color-brand-tint);
+  border: 1px solid var(--color-brand-border);
+  border-radius: var(--radius-pill); padding: 5px 12px;
+  cursor: default; white-space: nowrap;
+}
+.snapshot-age-pill .icon { width: 13px; height: 13px; color: var(--color-brand); }
+
+/* ============================================================
+   4. 视图容器与通用组件
+   ============================================================ */
+.application-view { display: none; }
+.application-view.active { display: block; animation: viewFadeIn 0.22s ease; }
+@keyframes viewFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.view-container { max-width: 1440px; margin: 0 auto; padding: 26px 28px 48px; }
+.view-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.view-title { font-size: 22px; font-weight: 700; letter-spacing: 0.2px; }
+.view-subtitle { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+.view-header-actions { display: flex; gap: 10px; flex: none; }
+
+.button {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--radius-element);
+  font-size: 13px; font-weight: 500;
+  border: 1px solid var(--color-border-strong); background: var(--color-surface);
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.button:hover { background: var(--color-surface-hover); border-color: #c9c2b6; }
+.button-primary {
+  border: none; color: var(--color-text-inverted); font-weight: 600;
+  background: linear-gradient(180deg, var(--color-brand-bright), var(--color-brand));
+  box-shadow: var(--shadow-brand);
+}
+.button-primary:hover { background: linear-gradient(180deg, #f59e0b, #c2670a); }
+.button-disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+.button-small { padding: 4px 10px; font-size: 12px; }
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.card-header { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--color-border); }
+.card-title { font-size: 15px; font-weight: 650; }
+.card-title-note { font-size: 12px; color: var(--color-text-tertiary); font-weight: 400; margin-left: 4px; }
+.card-body { padding: 16px 18px; }
+
+/* 信息条 / 警告条 */
+.banner { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; border-radius: var(--radius-element); font-size: 13px; border: 1px solid transparent; line-height: 1.55; }
+.banner .icon { margin-top: 2px; flex: none; }
+.banner-info { background: #eff6ff; border-color: #d3e3fd; color: #1e40af; }
+.banner-warning { background: var(--color-brand-tint); border-color: var(--color-brand-border); color: var(--color-brand-deep); }
+.banner-danger { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+.banner-readonly { background: var(--color-surface-sunken); border-color: var(--color-border); color: var(--color-text-secondary); }
+.banner b { font-weight: 650; }
+
+/* 徽章：关系类型 / Resolution / 动作 */
+.relation-badge {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  font-size: 12px; font-weight: 600;
+  border-radius: var(--radius-pill); padding: 2px 10px 2px 8px; white-space: nowrap;
+}
+.relation-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.relation-code { font-family: var(--font-family-monospace); font-size: 10px; font-weight: 400; opacity: 0.72; }
+.relation-exact-duplicate { color: var(--relation-exact-duplicate); background: var(--relation-exact-duplicate-background); }
+.relation-near-duplicate { color: var(--relation-near-duplicate); background: var(--relation-near-duplicate-background); }
+.relation-versioned { color: var(--relation-versioned); background: var(--relation-versioned-background); }
+.relation-renamed { color: var(--relation-renamed); background: var(--relation-renamed-background); }
+.relation-moved { color: var(--relation-moved); background: var(--relation-moved-background); }
+.relation-structural-sibling { color: var(--relation-structural-sibling); background: var(--relation-structural-sibling-background); }
+.relation-archive-pair { color: var(--relation-archive-pair); background: var(--relation-archive-pair-background); }
+.relation-link-reference { color: var(--relation-link-reference); background: var(--relation-link-reference-background); }
+.relation-partial-overlap { color: var(--relation-partial-overlap); background: var(--relation-partial-overlap-background); }
+.relation-out-of-scope { color: var(--relation-out-of-scope); background: var(--relation-out-of-scope-background); }
+.relation-broken { color: var(--relation-broken); background: var(--relation-broken-background); }
+.relation-circular { color: var(--relation-circular); background: var(--relation-circular-background); }
+
+.resolution-badge {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+  border-radius: var(--radius-pill); padding: 2px 10px;
+  border: 1px solid transparent;
+}
+.resolution-equality { color: var(--resolution-equality); background: var(--resolution-equality-background); border-color: #bbf7d0; }
+.resolution-compatibility { color: var(--resolution-compatibility); background: var(--resolution-compatibility-background); border-color: #bae6fd; }
+.resolution-conflict { color: var(--resolution-conflict); background: var(--resolution-conflict-background); border-color: #fecaca; }
+.resolution-integrity-suspected { color: var(--resolution-integrity-suspected); background: var(--resolution-integrity-suspected-background); border-color: #efb9b9; }
+
+.action-type-badge { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: var(--radius-pill); padding: 2px 10px; flex: none; }
+.action-keep { color: var(--action-keep); background: var(--action-keep-background); }
+.action-trash { color: var(--action-trash); background: var(--action-trash-background); }
+.action-move { color: var(--action-move); background: var(--action-move-background); }
+.action-rename { color: var(--action-rename); background: var(--action-rename-background); }
+.action-link { color: var(--action-link); background: var(--action-link-background); }
+.action-merge { color: var(--action-merge); background: var(--action-merge-background); }
+.action-manual { color: var(--action-manual); background: var(--action-manual-background); }
+
+/* 置信度指示器 */
+.confidence-indicator { display: flex; align-items: center; gap: 7px; flex: none; }
+.confidence-track { width: 52px; height: 5px; border-radius: 4px; background: var(--color-surface-sunken); overflow: hidden; }
+.confidence-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--color-brand-bright), var(--color-brand)); }
+.confidence-value { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; width: 36px; }
+.confidence-unavailable { font-size: 12px; color: var(--color-text-tertiary); }
+
+/* ============================================================
+   5. 视图① 问题列表
+   ============================================================ */
+.stat-tile-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px;
+  padding: 18px; border-radius: var(--radius-card);
+  background:
+    radial-gradient(560px 120px at 12% 0%, rgba(245, 158, 11, 0.10), transparent 75%),
+    radial-gradient(480px 140px at 88% 120%, rgba(245, 158, 11, 0.06), transparent 70%),
+    var(--color-surface);
+  border: 1px solid var(--color-border); box-shadow: var(--shadow-card);
+}
+.stat-tile { display: flex; flex-direction: column; gap: 2px; padding: 2px 6px; }
+.stat-tile + .stat-tile { border-left: 1px solid var(--color-border); padding-left: 22px; }
+.stat-tile-value { font-size: 26px; font-weight: 750; letter-spacing: 0.2px; font-variant-numeric: tabular-nums; }
+.stat-tile-value .stat-tile-unit { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin-left: 4px; }
+.stat-tile-label { font-size: 12.5px; color: var(--color-text-secondary); }
+.stat-tile-accent .stat-tile-value { color: var(--color-brand-deep); }
+.stat-tile-warning .stat-tile-value { color: var(--resolution-conflict); }
+
+/* 筛选栏 */
+.filter-bar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; padding: 13px 16px; margin-bottom: 16px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-card); box-shadow: var(--shadow-card); }
+.filter-field { display: flex; flex-direction: column; gap: 4px; }
+.filter-field-label { font-size: 11px; color: var(--color-text-tertiary); font-weight: 600; letter-spacing: 0.3px; }
+.filter-input, .filter-select {
+  font-size: 13px; padding: 6px 10px;
+  border: 1px solid var(--color-border-strong); border-radius: var(--radius-element);
+  background: var(--color-surface); min-width: 90px;
+  font-variant-numeric: tabular-nums;
+}
+.filter-input:focus, .filter-select:focus { outline: none; border-color: var(--color-brand-bright); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16); }
+.filter-input-wide { min-width: 210px; font-family: var(--font-family-monospace); font-size: 12px; }
+.filter-range-separator { color: var(--color-text-tertiary); padding: 0 2px; }
+.quick-chip-row { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+.quick-chip { font-size: 12px; padding: 5px 12px; border-radius: var(--radius-pill); border: 1px solid var(--color-border-strong); color: var(--color-text-secondary); transition: all 0.15s ease; }
+.quick-chip:hover { border-color: var(--color-brand); color: var(--color-brand-deep); }
+.quick-chip.selected { background: var(--color-brand-tint-strong); border-color: var(--color-brand); color: var(--color-brand-deep); font-weight: 600; }
+
+/* 问题列表布局：左 rail + 主列表 */
+.issues-layout { display: grid; grid-template-columns: 208px 1fr; gap: 16px; align-items: start; }
+.issue-type-rail { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 2px; padding: 10px 8px; }
+.rail-heading { font-size: 11px; font-weight: 700; color: var(--color-text-tertiary); letter-spacing: 0.6px; padding: 4px 10px 8px; }
+.rail-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--color-text-secondary);
+  padding: 5px 10px; border-radius: var(--radius-element); text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.rail-item:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.rail-item.active { background: var(--color-brand-tint-strong); color: var(--color-brand-deep); font-weight: 600; }
+.rail-item-dot { width: 8px; height: 8px; border-radius: 3px; flex: none; }
+.rail-item-count { margin-left: auto; font-size: 11.5px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+.rail-item.active .rail-item-count { color: var(--color-brand-deep); }
+
+/* 批量标记工具条 */
+.batch-action-toolbar {
+  position: sticky; top: 66px; z-index: 50;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 9px 14px; margin-bottom: 14px;
+  background: rgba(41, 37, 36, 0.96); color: #f5f2ec;
+  border-radius: var(--radius-card); box-shadow: var(--shadow-raised);
+}
+.selected-count-badge {
+  font-size: 12.5px; font-weight: 600; color: var(--color-brand-bright);
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-pill); padding: 3px 11px;
+  font-variant-numeric: tabular-nums; margin-right: 4px;
+}
+.batch-action-button {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12.5px; color: #e8e3da;
+  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: var(--radius-element);
+  padding: 4px 10px; transition: all 0.15s ease;
+}
+.batch-action-button:hover { border-color: var(--color-brand-bright); color: #fff; background: rgba(245, 158, 11, 0.12); }
+.batch-action-button .icon { width: 13px; height: 13px; }
+.batch-action-note { font-size: 12px; color: #a8a199; margin-left: auto; }
+
+/* 问题分组卡片 */
+.issue-group-list { display: flex; flex-direction: column; gap: 14px; }
+.issue-group { overflow: hidden; scroll-margin-top: 130px; }
+.issue-group-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 13px 18px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+.issue-group-title { font-size: 14.5px; font-weight: 650; display: flex; align-items: center; gap: 8px; min-width: 180px; }
+.issue-group-title .monospace { font-size: 12.5px; font-weight: 500; color: var(--color-text-primary); }
+.issue-group-meta { margin-left: auto; font-size: 12px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.recommend-tag {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  font-size: 11.5px; font-weight: 700; color: var(--color-brand-deep);
+  background: var(--color-brand-tint-strong); border: 1px dashed var(--color-brand);
+  border-radius: var(--radius-pill); padding: 2px 9px;
+}
+.recommend-tag .icon { width: 12px; height: 12px; }
+
+.issue-member-list { display: flex; flex-direction: column; }
+.issue-member-list-header {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr) 86px 140px 130px 92px 34px; gap: 10px; align-items: center;
+  padding: 7px 18px; font-size: 11px; font-weight: 600; letter-spacing: 0.4px; color: var(--color-text-tertiary);
+  border-bottom: 1px solid var(--color-border); background: #fcfbf9;
+}
+.issue-member {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr) 86px 140px 130px 92px 34px; gap: 10px; align-items: center;
+  padding: 9px 18px; border-bottom: 1px solid #f1eee8;
+  transition: background-color 0.15s ease;
+}
+.issue-member:hover { background: var(--color-surface-hover); }
+.issue-member-checkbox { width: 15px; height: 15px; accent-color: var(--color-brand); cursor: pointer; }
+.member-path-cell { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.member-path { font-family: var(--font-family-monospace); font-size: 12.5px; display: flex; align-items: center; gap: 7px; white-space: nowrap; overflow: hidden; }
+.member-path .icon { width: 14px; height: 14px; color: var(--color-text-tertiary); }
+.member-path .keep-candidate-star { color: var(--color-brand); width: 13px; height: 13px; fill: currentColor; stroke: none; }
+.member-path-detail { font-size: 11px; color: var(--color-text-tertiary); }
+.member-size, .member-mtime { font-size: 12px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.suggestion-chip { font-size: 11px; font-weight: 600; border-radius: var(--radius-pill); padding: 2px 9px; white-space: nowrap; justify-self: start; }
+.suggestion-keep { color: var(--action-keep); background: var(--action-keep-background); }
+.suggestion-trash { color: var(--action-trash); background: var(--action-trash-background); }
+.suggestion-manual { color: var(--action-manual); background: var(--action-manual-background); }
+.suggestion-neutral { color: var(--color-text-secondary); background: var(--color-surface-sunken); }
+.suggestion-integrity { color: var(--resolution-integrity-suspected); background: var(--resolution-integrity-suspected-background); }
+.member-more-button { width: 26px; height: 26px; border-radius: 6px; color: var(--color-text-tertiary); display: grid; place-items: center; letter-spacing: 1px; font-weight: 700; }
+.member-more-button:hover { background: var(--color-surface-sunken); color: var(--color-text-primary); }
+
+/* 下钻：判定依据与处理链 */
+.issue-detail-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 10px 18px; font-size: 12.5px; font-weight: 600; color: var(--color-brand-deep);
+  border: 1px solid var(--color-brand-border); background: var(--color-brand-tint);
+  border-radius: var(--radius-pill); padding: 4px 13px;
+  transition: background-color 0.15s ease;
+}
+.issue-detail-toggle:hover { background: var(--color-brand-tint-strong); }
+.issue-detail-toggle .toggle-caret { transition: transform 0.18s ease; display: inline-flex; }
+.issue-detail-toggle .toggle-caret.rotated { transform: rotate(90deg); }
+.issue-detail.collapsed { display: none; }
+.issue-detail { margin: 0 18px 14px; padding: 14px 16px; background: #fdfcf9; border: 1px solid var(--color-border); border-radius: var(--radius-element); }
+.detail-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 16px; }
+.detail-panel-heading { font-size: 12px; font-weight: 700; letter-spacing: 0.4px; color: var(--color-text-secondary); margin-bottom: 9px; display: flex; align-items: center; gap: 6px; }
+.evidence-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.evidence-item { display: flex; gap: 8px; font-size: 12.5px; line-height: 1.5; }
+.evidence-item .evidence-marker { color: var(--action-keep); flex: none; margin-top: 2px; }
+.evidence-item .evidence-marker.evidence-miss { color: var(--resolution-conflict); }
+.evidence-item-text { color: var(--color-text-secondary); }
+.evidence-item-text b { color: var(--color-text-primary); font-weight: 600; }
+.analysis-layer-chips { display: flex; gap: 5px; margin-top: 10px; }
+.layer-chip {
+  font-size: 10.5px; font-weight: 600; border-radius: var(--radius-pill); padding: 2px 8px;
+  color: var(--color-text-tertiary); border: 1px solid var(--color-border-strong);
+  font-variant-numeric: tabular-nums;
+}
+.layer-chip.hit { color: var(--color-text-inverted); background: #44403c; border-color: #44403c; }
+
+.process-chain-panel { display: flex; flex-direction: column; gap: 0; }
+.process-chain-step { display: flex; align-items: flex-start; gap: 9px; padding: 5px 0; }
+.process-chain-dot {
+  width: 20px; height: 20px; border-radius: 50%; flex: none; margin-top: 1px;
+  display: grid; place-items: center; font-size: 11px; font-weight: 700;
+  border: 1.5px solid var(--color-border-strong); color: var(--color-text-tertiary); background: var(--color-surface);
+}
+.process-chain-step.state-done .process-chain-dot { background: var(--resolution-equality-background); border-color: var(--resolution-equality); color: var(--resolution-equality); }
+.process-chain-step.state-active .process-chain-dot { background: var(--color-brand); border-color: var(--color-brand); color: #fff; box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.15); }
+.process-chain-name { font-size: 12.5px; font-weight: 650; }
+.process-chain-step.state-pending .process-chain-name { color: var(--color-text-tertiary); font-weight: 500; }
+.process-chain-meta { font-size: 11.5px; color: var(--color-text-secondary); }
+.chain-dependency-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: var(--color-brand-deep);
+  background: var(--color-brand-tint); border: 1px solid var(--color-brand-border);
+  border-radius: var(--radius-pill); padding: 1px 8px; margin-left: 6px;
+}
+.process-chain-note { font-size: 11.5px; color: var(--color-text-tertiary); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border); }
+
+/* Conflict 参与方与差异摘要 */
+.conflict-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.conflict-party { border: 1px solid var(--color-border); border-radius: var(--radius-element); padding: 10px 12px; background: var(--color-surface); }
+.conflict-party-label { font-size: 11px; font-weight: 700; color: var(--color-text-tertiary); letter-spacing: 0.4px; margin-bottom: 4px; }
+.conflict-party .monospace { font-size: 11.5px; word-break: break-all; }
+.conflict-party-meta { font-size: 11.5px; color: var(--color-text-secondary); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.conflict-summary { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.6; }
+.conflict-summary b { color: var(--color-text-primary); }
+.manual-decision-ribbon {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+  font-size: 12px; font-weight: 700; color: var(--resolution-conflict);
+  background: var(--resolution-conflict-background); border: 1px solid #fecaca;
+  border-radius: var(--radius-element); padding: 5px 12px;
+}
+
+/* ============================================================
+   6. 视图② Scope 配置
+   ============================================================ */
+.scope-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.scope-layout-column { display: flex; flex-direction: column; gap: 16px; }
+.path-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.path-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-family-monospace); font-size: 12.5px;
+  background: var(--color-surface-sunken); border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-element); padding: 5px 8px 5px 10px;
+}
+.path-chip .icon { width: 14px; height: 14px; color: var(--color-brand); }
+.path-chip-remove { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; color: var(--color-text-tertiary); }
+.path-chip-remove:hover { background: var(--resolution-conflict-background); color: var(--resolution-conflict); }
+.add-path-row { display: flex; gap: 8px; margin-top: 12px; }
+.add-path-input { flex: 1; font-family: var(--font-family-monospace); font-size: 12.5px; padding: 7px 11px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-element); }
+.add-path-input:focus { outline: none; border-color: var(--color-brand-bright); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16); }
+
+.rule-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px dashed var(--color-border); }
+.rule-row:last-of-type { border-bottom: none; }
+.rule-type-badge {
+  font-size: 11px; font-weight: 650; flex: none; width: 58px; text-align: center;
+  border-radius: var(--radius-pill); padding: 2px 0;
+  color: var(--color-brand-deep); background: var(--color-brand-tint); border: 1px solid var(--color-brand-border);
+}
+.rule-pattern { font-family: var(--font-family-monospace); font-size: 12.5px; }
+.rule-purpose { font-size: 12px; color: var(--color-text-tertiary); margin-left: auto; }
+.rule-remove { color: var(--color-text-tertiary); }
+.rule-remove:hover { color: var(--resolution-conflict); }
+.add-rule-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+
+.setting-row { display: flex; align-items: flex-start; gap: 14px; padding: 13px 0; border-bottom: 1px solid #f1eee8; }
+.setting-row:last-child { border-bottom: none; padding-bottom: 2px; }
+.setting-row-main { flex: 1; }
+.setting-row-title { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.setting-row-hint { font-size: 12px; color: var(--color-text-tertiary); margin-top: 2px; line-height: 1.5; }
+.requirement-reference { font-family: var(--font-family-monospace); font-size: 10.5px; color: #b0a89c; }
+.default-tag { font-size: 10.5px; font-weight: 600; color: var(--color-text-tertiary); background: var(--color-surface-sunken); border-radius: var(--radius-pill); padding: 1px 8px; }
+
+.toggle-switch { position: relative; width: 40px; height: 22px; flex: none; cursor: pointer; margin-top: 2px; }
+.toggle-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; margin: 0; }
+.toggle-slider { position: absolute; inset: 0; background: #d6d0c6; border-radius: var(--radius-pill); transition: background-color 0.18s ease; }
+.toggle-slider::after {
+  content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; top: 3px; left: 3px; box-shadow: 0 1px 3px rgba(41, 37, 36, 0.25);
+  transition: transform 0.18s ease;
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--color-brand); }
+.toggle-switch input:checked + .toggle-slider::after { transform: translateX(18px); }
+
+.virtual-directory-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.virtual-directory-chip {
+  font-family: var(--font-family-monospace); font-size: 11px; color: var(--color-text-secondary);
+  background: var(--color-surface-sunken); border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill); padding: 2px 9px;
+}
+
+.depth-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.depth-choice {
+  display: flex; flex-direction: column; gap: 3px; cursor: pointer;
+  border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-element);
+  padding: 11px 13px; transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.depth-choice:hover { border-color: #c9c2b6; }
+.depth-choice.selected { border-color: var(--color-brand); background: var(--color-brand-tint); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12); }
+.depth-choice-title { font-size: 13px; font-weight: 650; display: flex; align-items: center; gap: 7px; }
+.depth-choice-title .layer-chip { margin-left: auto; }
+.depth-choice-hint { font-size: 11.5px; color: var(--color-text-tertiary); line-height: 1.45; }
+
+.parallelism-row { display: flex; align-items: center; gap: 14px; }
+.parallelism-slider { flex: 1; accent-color: var(--color-brand); height: 4px; cursor: pointer; }
+.parallelism-value { font-size: 15px; font-weight: 700; color: var(--color-brand-deep); width: 30px; text-align: center; font-variant-numeric: tabular-nums; }
+.strength-select { font-size: 13px; padding: 6px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-element); background: var(--color-surface); width: 100%; }
+
+.scope-profile-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.scope-profile-input { flex: 1; font-size: 13px; padding: 7px 11px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-element); }
+.scope-profile-list { display: flex; flex-direction: column; gap: 6px; }
+.scope-profile-item { display: flex; align-items: center; gap: 10px; font-size: 12.5px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-element); }
+.scope-profile-item.current { border-color: var(--color-brand); background: var(--color-brand-tint); }
+.scope-profile-name { font-weight: 600; }
+.scope-profile-meta { color: var(--color-text-tertiary); font-size: 11.5px; margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   7. 视图③ 扫描进度
+   ============================================================ */
+.scan-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; align-items: start; }
+.scan-main-column { display: flex; flex-direction: column; gap: 16px; }
+.scan-side-column { display: flex; flex-direction: column; gap: 16px; }
+.progress-hero { padding: 22px 24px; }
+.progress-title-row { display: flex; align-items: baseline; gap: 14px; margin-bottom: 14px; }
+.progress-percentage { font-size: 40px; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; line-height: 1; }
+.progress-percentage .progress-percentage-unit { font-size: 18px; font-weight: 600; color: var(--color-text-secondary); }
+.progress-title-meta { font-size: 12.5px; color: var(--color-text-secondary); }
+.progress-track-large { height: 10px; border-radius: 6px; background: var(--color-surface-sunken); overflow: hidden; margin-bottom: 5px; }
+.progress-fill-large {
+  height: 100%; width: 62%; border-radius: 6px;
+  background: linear-gradient(90deg, var(--color-brand-bright), var(--color-brand));
+  box-shadow: 0 0 12px rgba(217, 119, 6, 0.35);
+}
+.progress-caption-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; margin-bottom: 18px; }
+.progress-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.progress-stat { border-left: 3px solid var(--color-brand-border); padding-left: 12px; }
+.progress-stat-value { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.progress-stat-value .progress-stat-unit { font-size: 11.5px; font-weight: 500; color: var(--color-text-secondary); margin-left: 3px; }
+.progress-stat-label { font-size: 12px; color: var(--color-text-secondary); margin-top: 1px; }
+.current-path-line {
+  display: flex; align-items: center; gap: 8px; margin-top: 18px;
+  font-family: var(--font-family-monospace); font-size: 12px; color: var(--color-text-secondary);
+  background: var(--color-surface-sunken); border-radius: var(--radius-element); padding: 8px 12px;
+  white-space: nowrap; overflow: hidden;
+}
+.current-path-label { font-family: var(--font-family-interface); font-size: 11px; font-weight: 700; color: var(--color-text-tertiary); letter-spacing: 0.5px; flex: none; }
+.current-path-cursor { color: var(--color-brand); animation: pathBlink 1.1s ease infinite; }
+@keyframes pathBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+.scan-layer-stepper { display: flex; align-items: stretch; gap: 0; padding: 4px 0 0; }
+.layer-step { flex: 1; display: flex; gap: 10px; padding: 14px 16px 14px 14px; }
+.layer-step + .layer-step { border-left: 1px dashed var(--color-border-strong); }
+.layer-step-dot {
+  width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  border: 1.5px solid var(--color-border-strong); color: var(--color-text-tertiary); background: var(--color-surface);
+}
+.layer-step.state-done .layer-step-dot { background: var(--resolution-equality-background); border-color: var(--resolution-equality); color: var(--resolution-equality); }
+.layer-step.state-running .layer-step-dot { background: var(--color-brand); border-color: var(--color-brand); color: #fff; box-shadow: 0 0 0 5px rgba(217, 119, 6, 0.16); }
+.layer-step-name { font-size: 13.5px; font-weight: 650; }
+.layer-step-state { font-size: 11px; font-weight: 700; margin-left: 7px; }
+.layer-step.state-done .layer-step-state { color: var(--resolution-equality); }
+.layer-step.state-running .layer-step-state { color: var(--color-brand-deep); }
+.layer-step.state-pending .layer-step-name { color: var(--color-text-tertiary); font-weight: 500; }
+.layer-step-meta { font-size: 11.5px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.layer-step-progress-track { height: 4px; border-radius: 3px; background: var(--color-surface-sunken); margin-top: 8px; overflow: hidden; }
+.layer-step-progress-fill { height: 100%; border-radius: 3px; background: var(--color-brand); }
+
+.scan-controls { display: flex; gap: 10px; margin-top: 16px; align-items: center; }
+.scan-resume-hint { font-size: 12px; color: var(--color-text-tertiary); margin-left: auto; }
+
+.quarantine-count-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.quarantine-count { font-size: 26px; font-weight: 750; color: var(--color-brand-deep); font-variant-numeric: tabular-nums; }
+.quarantine-reason-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--color-border); font-size: 12.5px; }
+.quarantine-reason-row:last-child { border-bottom: none; }
+.quarantine-reason-count { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-text-secondary); }
+
+.scan-log {
+  font-family: var(--font-family-monospace); font-size: 11.5px; line-height: 1.9;
+  background: #fbfaf7; border: 1px solid var(--color-border); border-radius: var(--radius-element);
+  padding: 12px 14px; color: var(--color-text-secondary);
+  max-height: 200px; overflow: auto;
+}
+.log-line { white-space: nowrap; }
+.log-time { color: var(--color-text-tertiary); }
+.log-tag-info { color: var(--relation-structural-sibling); }
+.log-tag-warning { color: var(--color-brand-deep); font-weight: 600; }
+.log-tag-hash { color: var(--relation-near-duplicate); }
+.log-tag-link { color: var(--relation-renamed); }
+.scan-rate-spark { width: 100%; height: 56px; margin-top: 10px; display: block; }
+
+/* ============================================================
+   8. 视图④ 计划与执行确认
+   ============================================================ */
+.plan-layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 16px; align-items: start; }
+.plan-main-column { display: flex; flex-direction: column; gap: 16px; }
+.plan-side-column { display: flex; flex-direction: column; gap: 16px; }
+.plan-summary-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.plan-summary-chip { font-size: 12px; font-weight: 600; border-radius: var(--radius-pill); padding: 4px 12px; background: var(--color-surface-sunken); border: 1px solid var(--color-border); font-variant-numeric: tabular-nums; }
+.plan-summary-chip.emphasis { background: var(--color-brand-tint-strong); border-color: var(--color-brand-border); color: var(--color-brand-deep); }
+
+.plan-action-table-header, .plan-action-row { display: grid; grid-template-columns: 128px minmax(0, 1fr) 236px 90px; gap: 12px; align-items: center; padding: 10px 16px; }
+.plan-action-table-header { font-size: 11px; font-weight: 600; letter-spacing: 0.4px; color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border); background: #fcfbf9; }
+.plan-action-row { border-bottom: 1px solid #f1eee8; transition: background-color 0.15s ease; }
+.plan-action-row:hover { background: var(--color-surface-hover); }
+.plan-action-object { font-family: var(--font-family-monospace); font-size: 12px; min-width: 0; word-break: break-all; }
+.plan-action-object-sub { font-size: 11px; color: var(--color-text-tertiary); font-family: var(--font-family-interface); }
+.plan-action-target { font-family: var(--font-family-monospace); font-size: 11.5px; color: var(--color-text-secondary); word-break: break-all; }
+.conflict-inline-flag { color: var(--resolution-conflict); font-weight: 700; font-family: var(--font-family-interface); white-space: nowrap; }
+.plan-action-space { font-size: 12.5px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.plan-action-space.reclaimed { color: var(--action-keep); }
+.plan-action-row.conflict-flagged { background: #fffaf5; }
+.plan-folded-row { padding: 10px 16px; font-size: 12.5px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 8px; }
+
+.conflict-alert-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px dashed var(--color-border); }
+.conflict-alert-item:last-child { border-bottom: none; }
+.conflict-alert-icon { color: var(--resolution-conflict); margin-top: 2px; flex: none; }
+.conflict-alert-text { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.55; }
+.conflict-alert-text b { color: var(--color-text-primary); }
+.conflict-alert-suggestion { font-size: 12px; color: var(--action-move); margin-top: 2px; }
+
+.dry-run-compare { display: grid; grid-template-columns: 1fr 34px 1fr; gap: 0; align-items: stretch; margin-bottom: 14px; }
+.compare-column { padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-element); background: var(--color-surface); }
+.compare-column.column-after { background: #f4fbf6; border-color: #bbe7c9; }
+.compare-column-heading { font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); letter-spacing: 0.4px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.compare-column.column-after .compare-column-heading { color: var(--action-keep); }
+.compare-stat { display: flex; justify-content: space-between; font-size: 12.5px; padding: 3px 0; font-variant-numeric: tabular-nums; }
+.compare-stat-label { color: var(--color-text-secondary); }
+.compare-stat-value { font-weight: 650; }
+.compare-arrow { display: grid; place-items: center; color: var(--color-text-tertiary); }
+.transform-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.transform-item { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--color-text-secondary); }
+.transform-item .monospace { font-size: 11.5px; word-break: break-all; }
+.transform-arrow { color: var(--color-brand); flex: none; font-weight: 700; margin-top: 1px; }
+.transform-result { font-weight: 600; color: var(--color-text-primary); white-space: nowrap; }
+
+.safety-strategy-grid { display: flex; flex-direction: column; gap: 9px; }
+.strategy-card {
+  display: flex; gap: 11px; align-items: flex-start; cursor: pointer;
+  border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-element);
+  padding: 11px 13px; transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.strategy-card:hover { border-color: #c9c2b6; }
+.strategy-card.selected { border-color: var(--color-brand); background: var(--color-brand-tint); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12); }
+.strategy-radio-dot { width: 16px; height: 16px; border-radius: 50%; flex: none; margin-top: 2px; border: 1.5px solid var(--color-border-strong); display: grid; place-items: center; }
+.strategy-card.selected .strategy-radio-dot { border-color: var(--color-brand); }
+.strategy-card.selected .strategy-radio-dot::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--color-brand); }
+.strategy-card-title { font-size: 13px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
+.strategy-card-desc { font-size: 11.5px; color: var(--color-text-tertiary); line-height: 1.5; margin-top: 2px; }
+.strategy-recommend-tag { font-size: 10px; font-weight: 700; color: var(--color-brand-deep); background: var(--color-brand-tint-strong); border-radius: var(--radius-pill); padding: 1px 7px; }
+.staging-config-row { display: flex; gap: 10px; margin-top: 12px; align-items: flex-end; }
+.staging-config-field { display: flex; flex-direction: column; gap: 4px; }
+.staging-path-input { font-family: var(--font-family-monospace); font-size: 12px; padding: 6px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-element); width: 232px; }
+.staging-days-input { width: 76px; font-size: 13px; padding: 6px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-element); font-variant-numeric: tabular-nums; }
+
+.execution-confirm-zone {
+  margin-top: 0; padding: 20px 22px;
+  background:
+    radial-gradient(420px 130px at 15% 0%, rgba(245, 158, 11, 0.12), transparent 70%),
+    linear-gradient(180deg, #fffdf8, #fffaf1);
+  border: 1.5px solid var(--color-brand);
+  border-radius: var(--radius-card);
+  box-shadow: 0 4px 20px rgba(217, 119, 6, 0.10);
+}
+.execution-confirm-heading { font-size: 15px; font-weight: 750; display: flex; align-items: center; gap: 8px; color: var(--color-brand-deep); }
+.execution-confirm-summary { display: flex; gap: 22px; flex-wrap: wrap; margin: 12px 0 14px; }
+.execution-confirm-stat { display: flex; flex-direction: column; }
+.execution-confirm-stat-value { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.execution-confirm-stat-label { font-size: 12px; color: var(--color-text-secondary); }
+.execution-confirm-actions { display: flex; align-items: center; gap: 12px; }
+.confirm-primary-button {
+  font-size: 14.5px; font-weight: 700; color: var(--color-text-inverted);
+  padding: 11px 26px; border-radius: var(--radius-element);
+  background: linear-gradient(180deg, var(--color-brand-bright), var(--color-brand));
+  box-shadow: var(--shadow-brand);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.confirm-primary-button.button-disabled { background: #d8d3c9; box-shadow: none; color: #f6f4ef; cursor: not-allowed; }
+.execution-confirm-caption { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; }
+.execution-confirm-caption b { color: var(--color-brand-deep); }
+
+/* ============================================================
+   9. 视图⑤ 报告（目录树）
+   ============================================================ */
+.report-banner-row { display: flex; gap: 12px; align-items: stretch; margin-bottom: 14px; }
+.report-banner-row .banner { flex: 1; }
+.report-toolbar { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; padding: 12px 16px; margin-bottom: 14px; }
+.report-export-cluster { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.report-summary-chips { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+
+.report-layout { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 16px; align-items: start; }
+.report-tree-panel { padding: 10px 8px; max-height: 760px; overflow: auto; }
+.report-tree { list-style: none; font-size: 13px; }
+.tree-directory-children { list-style: none; margin-left: 15px; padding-left: 12px; border-left: 1px dashed #e2ddd3; }
+.tree-directory.collapsed > .tree-directory-children { display: none; }
+.tree-node-row { display: flex; align-items: center; gap: 7px; padding: 4px 8px; border-radius: 7px; cursor: pointer; transition: background-color 0.12s ease; }
+.tree-node-row:hover { background: var(--color-surface-hover); }
+.tree-node-row.selected { background: var(--color-brand-tint-strong); box-shadow: inset 0 0 0 1px var(--color-brand-border); }
+.tree-caret-button { display: grid; place-items: center; width: 16px; height: 16px; color: var(--color-text-tertiary); flex: none; border-radius: 4px; }
+.tree-caret-button:hover { color: var(--color-text-primary); background: var(--color-surface-sunken); }
+.tree-caret-button .icon { width: 13px; height: 13px; transition: transform 0.15s ease; }
+.tree-directory.collapsed .tree-caret-button .icon { transform: rotate(0deg); }
+.tree-directory:not(.collapsed) .tree-caret-button .icon { transform: rotate(90deg); }
+.tree-node-icon { width: 15px; height: 15px; color: var(--color-text-tertiary); flex: none; }
+.tree-directory > .tree-node-row > .tree-node-icon { color: var(--color-brand); }
+.tree-node-name { font-weight: 600; white-space: nowrap; }
+.tree-node-name.pathlike { font-family: var(--font-family-monospace); font-size: 12px; font-weight: 500; }
+.tree-link-target { font-family: var(--font-family-monospace); font-size: 11px; color: var(--color-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tree-aggregate { font-size: 11.5px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; margin-left: 8px; white-space: nowrap; }
+.tree-problem-chip { font-size: 10.5px; font-weight: 650; border-radius: var(--radius-pill); padding: 1px 8px; margin-left: 5px; white-space: nowrap; }
+.tree-problem-chip.exact-duplicate { color: var(--relation-exact-duplicate); background: var(--relation-exact-duplicate-background); }
+.tree-problem-chip.near-duplicate { color: var(--relation-near-duplicate); background: var(--relation-near-duplicate-background); }
+.tree-problem-chip.versioned { color: var(--relation-versioned); background: var(--relation-versioned-background); }
+.tree-problem-chip.renamed { color: var(--relation-renamed); background: var(--relation-renamed-background); }
+.tree-problem-chip.moved { color: var(--relation-moved); background: var(--relation-moved-background); }
+.tree-problem-chip.structural-sibling { color: var(--relation-structural-sibling); background: var(--relation-structural-sibling-background); }
+.tree-problem-chip.archive-pair { color: var(--relation-archive-pair); background: var(--relation-archive-pair-background); }
+.tree-problem-chip.link-reference { color: var(--relation-link-reference); background: var(--relation-link-reference-background); }
+.tree-problem-chip.partial-overlap { color: var(--relation-partial-overlap); background: var(--relation-partial-overlap-background); }
+.tree-problem-chip.out-of-scope { color: var(--relation-out-of-scope); background: var(--relation-out-of-scope-background); }
+.tree-problem-chip.broken { color: var(--relation-broken); background: var(--relation-broken-background); }
+.tree-problem-chip.circular { color: var(--relation-circular); background: var(--relation-circular-background); }
+.tree-confidence { font-size: 11px; color: var(--color-text-tertiary); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.tree-file-meta { margin-left: auto; font-size: 11px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; display: flex; gap: 8px; align-items: center; padding-right: 2px; }
+
+.node-detail-panel { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 76px; }
+.node-detail-header { display: flex; align-items: center; gap: 9px; }
+.node-detail-name { font-size: 15px; font-weight: 700; }
+.node-detail-path { font-family: var(--font-family-monospace); font-size: 11.5px; color: var(--color-text-secondary); word-break: break-all; margin-top: 3px; }
+.detail-metadata-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 16px; }
+.detail-metadata-item { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; border-bottom: 1px dashed #f0ede6; padding-bottom: 5px; }
+.detail-metadata-label { color: var(--color-text-tertiary); }
+.detail-metadata-value { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.detail-metadata-value.monospace { font-size: 11px; font-weight: 500; }
+.relation-member-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.relation-member-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.relation-member-item .monospace { font-size: 11px; color: var(--color-text-secondary); word-break: break-all; }
+
+.diff-view { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.diff-pane { border: 1px solid var(--color-border); border-radius: var(--radius-element); overflow: hidden; background: var(--color-surface); }
+.diff-pane-header {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11.5px; font-weight: 700; color: var(--color-text-secondary);
+  background: var(--color-surface-sunken); padding: 7px 11px; border-bottom: 1px solid var(--color-border);
+}
+.diff-pane-header .monospace { font-weight: 600; color: var(--color-text-primary); }
+.diff-pane-tag { font-size: 10px; font-weight: 600; color: var(--color-text-tertiary); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); padding: 1px 7px; margin-left: auto; white-space: nowrap; }
+.diff-pane-body { padding: 8px 0; font-family: var(--font-family-monospace); font-size: 11px; line-height: 1.9; }
+.diff-line { padding: 0 11px; white-space: nowrap; color: var(--color-text-secondary); }
+.diff-line-line-number { color: #c4bdb1; margin-right: 8px; user-select: none; }
+.diff-line.added { background: #eefaf1; color: #14532d; }
+.diff-line.removed { background: #fdf0f0; color: #7f1d1d; }
+.diff-line.changed { background: var(--color-brand-tint); color: var(--color-brand-deep); }
+.diff-footer-note { font-size: 11.5px; color: var(--color-text-tertiary); margin-top: 10px; line-height: 1.55; }
+
+/* ============================================================
+   10. 页脚
+   ============================================================ */
+.application-footer {
+  border-top: 1px solid var(--color-border);
+  padding: 14px 28px 20px; margin-top: 8px;
+  display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  font-size: 12px; color: var(--color-text-tertiary);
+}
+.application-footer .monospace { font-size: 11px; }
+.footer-design-note { margin-left: auto; color: #b3ac9f; }
+</style>
+</head>
+<body>
+
+<!-- 内联 SVG 图标库（无任何外部资源） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="brandGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+  </defs>
+  <symbol id="icon-brand-flower" viewBox="0 0 24 24">
+    <g fill="url(#brandGradient)">
+      <ellipse cx="12" cy="5.6" rx="2.2" ry="3.7"/>
+      <ellipse cx="12" cy="5.6" rx="2.2" ry="3.7" transform="rotate(45 12 12)"/>
+      <ellipse cx="12" cy="5.6" rx="2.2" ry="3.7" transform="rotate(90 12 12)"/>
+      <ellipse cx="12" cy="5.6" rx="2.2" ry="3.7" transform="rotate(135 12 12)"/>
+    </g>
+  </symbol>
+  <symbol id="icon-chevron-right" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="icon-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></symbol>
+  <symbol id="icon-archive-box" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></symbol>
+  <symbol id="icon-link" viewBox="0 0 24 24"><path d="M15 7h3a5 5 0 0 1 0 10h-3"/><path d="M9 17H6a5 5 0 0 1 0-10h3"/><path d="M8 12h8"/></symbol>
+  <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></symbol>
+  <symbol id="icon-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></symbol>
+  <symbol id="icon-list" viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></symbol>
+  <symbol id="icon-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M22 12h-4"/><path d="M6 12H2"/><path d="M12 6V2"/><path d="M12 22v-4"/></symbol>
+  <symbol id="icon-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="icon-clipboard" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></symbol>
+  <symbol id="icon-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="icon-x" viewBox="0 0 24 24"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></symbol>
+  <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+  <symbol id="icon-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></symbol>
+  <symbol id="icon-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
+  <symbol id="icon-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></symbol>
+  <symbol id="icon-alert-triangle" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="icon-info-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+  <symbol id="icon-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="icon-star" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></symbol>
+  <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+  <symbol id="icon-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></symbol>
+  <symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></symbol>
+  <symbol id="icon-sliders" viewBox="0 0 24 24"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></symbol>
+  <symbol id="icon-git-merge" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></symbol>
+  <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+  <symbol id="icon-rename" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+  <symbol id="icon-bookmark" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="icon-broken-link" viewBox="0 0 24 24"><path d="M15 7h3a5 5 0 0 1 0 10h-3"/><path d="M9 17H6a5 5 0 0 1 0-10h3"/><path d="M4 4l16 16"/></symbol>
+  <symbol id="icon-repeat" viewBox="0 0 24 24"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
+  <symbol id="icon-hard-drive" viewBox="0 0 24 24"><path d="M22 12H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M6 16h.01"/><path d="M10 16h.01"/></symbol>
+</svg>
+
+<!-- ======================= 顶部导航 ======================= -->
+<header class="application-bar">
+  <div class="brand-cluster">
+    <div class="brand-mark"><svg><use href="#icon-brand-flower"/></svg></div>
+    <div class="brand-name">Helichrysum <em>蜡菊</em></div>
+    <span class="version-chip" title="独立版本计数（SemVer）+ git commit hash（技术方案 §10.3）">v0.1.0 (abc1234)</span>
+  </div>
+
+  <nav class="view-switcher" aria-label="设计稿视图切换">
+    <button type="button" class="view-tab active" data-view-target="issue-list"><svg class="icon"><use href="#icon-list"/></svg>问题列表</button>
+    <button type="button" class="view-tab" data-view-target="scope-configuration"><svg class="icon"><use href="#icon-crosshair"/></svg>Scope 配置</button>
+    <button type="button" class="view-tab" data-view-target="scan-progress"><svg class="icon"><use href="#icon-activity"/></svg>扫描进度</button>
+    <button type="button" class="view-tab" data-view-target="plan-execution"><svg class="icon"><use href="#icon-clipboard"/></svg>计划与执行</button>
+    <button type="button" class="view-tab" data-view-target="report-tree"><svg class="icon"><use href="#icon-folder"/></svg>报告</button>
+  </nav>
+
+  <div class="snapshot-age-pill" title="manifest-2026-08-01.sqlite · created_at 2026-08-01 09:12 · scanned_at 2026-08-01 15:42（F-Report-12）">
+    <svg class="icon"><use href="#icon-clock"/></svg>
+    快照创建于 2 周前，数据可能已变化
+  </div>
+</header>
+
+<main>
+
+<!-- ============================================================
+     视图① 问题列表（默认主视图）
+     ============================================================ -->
+<section id="view-issue-list" class="application-view active">
+  <div class="view-container">
+
+    <div class="view-header">
+      <div>
+        <h1 class="view-title">问题列表</h1>
+        <p class="view-subtitle">基于快照 <span class="monospace">manifest-2026-08-01</span>（2 周前）· 按关系类型分组 · 自动化决策全程可见、可否决（F-Resolve-7）</p>
+      </div>
+      <div class="view-header-actions">
+        <button type="button" class="button"><svg class="icon"><use href="#icon-refresh"/></svg>重新扫描</button>
+        <button type="button" class="button button-primary"><svg class="icon"><use href="#icon-clipboard"/></svg>生成处理计划</button>
+      </div>
+    </div>
+
+    <!-- 汇总统计 -->
+    <div class="stat-tile-row">
+      <div class="stat-tile">
+        <span class="stat-tile-value numeric">16<span class="stat-tile-unit">组</span></span>
+        <span class="stat-tile-label">问题组（9 类关系 + Link 异常）</span>
+      </div>
+      <div class="stat-tile">
+        <span class="stat-tile-value numeric">32<span class="stat-tile-unit">个对象</span></span>
+        <span class="stat-tile-label">涉及文件 / 目录 / 链接</span>
+      </div>
+      <div class="stat-tile stat-tile-warning">
+        <span class="stat-tile-value numeric">6<span class="stat-tile-unit">组</span></span>
+        <span class="stat-tile-label">需人工决策（Conflict / 损坏嫌疑）</span>
+      </div>
+      <div class="stat-tile stat-tile-accent">
+        <span class="stat-tile-value numeric">42.7<span class="stat-tile-unit">GB</span></span>
+        <span class="stat-tile-label">预计可释放空间</span>
+      </div>
+    </div>
+
+    <!-- 筛选栏（F-Report-4 / F-Report-5） -->
+    <div class="filter-bar">
+      <div class="filter-field">
+        <span class="filter-field-label">问题类型</span>
+        <select class="filter-select" style="min-width: 150px;">
+          <option>全部类型（9 类关系 + Link 异常）</option>
+          <option>完全重复 ExactDuplicate</option>
+          <option>近似重复 NearDuplicate</option>
+          <option>版本演进 Versioned</option>
+          <option>重命名 Renamed</option>
+          <option>移动 Moved</option>
+          <option>结构相似 StructuralSibling</option>
+          <option>压缩包配对 ArchivePair</option>
+          <option>部分重叠 PartialOverlap</option>
+          <option>范围外链接 OutOfScope</option>
+          <option>断裂链接 Broken</option>
+          <option>循环链接 Circular</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <span class="filter-field-label">路径 / glob</span>
+        <input type="text" class="filter-input filter-input-wide" value="**\*.jpg; **\*.zip">
+      </div>
+      <div class="filter-field">
+        <span class="filter-field-label">大小范围</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <input type="text" class="filter-input" style="min-width:74px;" value="1 MB">
+          <span class="filter-range-separator">至</span>
+          <input type="text" class="filter-input" style="min-width:74px;" value="不限">
+        </div>
+      </div>
+      <div class="filter-field">
+        <span class="filter-field-label">mtime 范围</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <input type="date" class="filter-input" value="2023-01-01">
+          <span class="filter-range-separator">至</span>
+          <input type="date" class="filter-input" value="2025-06-20">
+        </div>
+      </div>
+      <div class="quick-chip-row">
+        <button type="button" class="quick-chip selected">仅需人工决策</button>
+        <button type="button" class="quick-chip">仅可自动处理</button>
+        <button type="button" class="quick-chip">仅压缩包</button>
+        <button type="button" class="button button-small"><svg class="icon icon-small"><use href="#icon-filter"/></svg>重置</button>
+      </div>
+    </div>
+
+    <div class="issues-layout">
+
+      <!-- 左侧类型导航 rail -->
+      <aside class="issue-type-rail card">
+        <div class="rail-heading">问题类型</div>
+        <a class="rail-item active" href="#issue-group-structural-sibling"><span class="rail-item-dot" style="background: var(--color-text-secondary);"></span>全部<span class="rail-item-count">16</span></a>
+        <a class="rail-item" href="#issue-group-structural-sibling"><span class="rail-item-dot" style="background: var(--relation-structural-sibling);"></span>结构相似<span class="rail-item-count">1</span></a>
+        <a class="rail-item" href="#issue-group-versioned-annual-report"><span class="rail-item-dot" style="background: var(--relation-versioned);"></span>版本演进<span class="rail-item-count">2</span></a>
+        <a class="rail-item" href="#issue-group-exact-duplicate-photo"><span class="rail-item-dot" style="background: var(--relation-exact-duplicate);"></span>完全重复<span class="rail-item-count">3</span></a>
+        <a class="rail-item" href="#issue-group-near-duplicate-notes"><span class="rail-item-dot" style="background: var(--relation-near-duplicate);"></span>近似重复<span class="rail-item-count">1</span></a>
+        <a class="rail-item" href="#issue-group-partial-overlap-sanya"><span class="rail-item-dot" style="background: var(--relation-partial-overlap);"></span>部分重叠<span class="rail-item-count">1</span></a>
+        <a class="rail-item" href="#issue-group-renamed-contract"><span class="rail-item-dot" style="background: var(--relation-renamed);"></span>重命名<span class="rail-item-count">1</span></a>
+        <a class="rail-item" href="#issue-group-moved-family-photo"><span class="rail-item-dot" style="background: var(--relation-moved);"></span>移动<span class="rail-item-count">1</span></a>
+        <a class="rail-item" href="#issue-group-archive-pair-photos"><span class="rail-item-dot" style="background: var(--relation-archive-pair);"></span>压缩包配对<span class="rail-item-count">2</span></a>
+        <a class="rail-item" href="#issue-group-link-reference-latest"><span class="rail-item-dot" style="background: var(--relation-link-reference);"></span>链接引用<span class="rail-item-count">1</span></a>
+        <a class="rail-item" href="#issue-group-out-of-scope-archive"><span class="rail-item-dot" style="background: var(--relation-out-of-scope);"></span>链接异常<span class="rail-item-count">3</span></a>
+      </aside>
+
+      <!-- 主列表 -->
+      <div>
+        <!-- 批量标记工具条（F-Plan-2 动作集） -->
+        <div class="batch-action-toolbar">
+          <span class="selected-count-badge">已选 6 个对象</span>
+          <button type="button" class="batch-action-button"><svg class="icon"><use href="#icon-bookmark"/></svg>保留 Keep</button>
+          <button type="button" class="batch-action-button"><svg class="icon"><use href="#icon-trash"/></svg>回收站 MoveToTrash</button>
+          <button type="button" class="batch-action-button"><svg class="icon"><use href="#icon-hard-drive"/></svg>移动到… MoveTo</button>
+          <button type="button" class="batch-action-button"><svg class="icon"><use href="#icon-rename"/></svg>重命名 Rename</button>
+          <button type="button" class="batch-action-button"><svg class="icon"><use href="#icon-link"/></svg>替换为链接 ReplaceWithLink</button>
+          <button type="button" class="batch-action-button"><svg class="icon"><use href="#icon-git-merge"/></svg>合并 Merge</button>
+          <span class="batch-action-note">标记将汇总生成处理计划，执行前仍需二次确认</span>
+        </div>
+
+        <div class="issue-group-list">
+
+          <!-- 1. StructuralSibling -->
+          <article class="issue-group card" id="issue-group-structural-sibling">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-structural-sibling" title="StructuralSibling：两个目录结构高度相似，推断为同一套数据的演进">结构相似 <span class="relation-code">StructuralSibling</span></span>
+              <div class="issue-group-title">backup0505 <span style="color:var(--color-text-tertiary);">↔</span> backup0620</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 86%;"></div></div><span class="confidence-value">86%</span></div>
+              <span class="resolution-badge resolution-compatibility" title="Compatibility：新版本完全覆盖旧版本（fast-forward）">兼容 · 以新为准 Compatibility</span>
+              <div class="issue-group-meta">2 目录 · 可释放 29.6 GB</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>角色</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-folder"/></svg>D:\Backup1\backup0505</div>
+                  <div class="member-path-detail">20,933 文件 · ctime 聚集 92%（批量拷贝痕迹，时间戳已降权）</div>
+                </div>
+                <span class="member-size">54.2 GB</span>
+                <span class="member-mtime">2025-05-05 18:40</span>
+                <span class="suggestion-chip suggestion-keep">并入新版</span>
+                <span class="member-mtime">旧 · 被包含</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-folder"/></svg><svg class="icon keep-candidate-star" title="保留候选"><use href="#icon-star"/></svg>D:\Backup2\backup0620</div>
+                  <div class="member-path-detail">22,411 文件 · 较旧版新增 1,478 个文件，相同项 SHA256 一致</div>
+                </div>
+                <span class="member-size">61.8 GB</span>
+                <span class="member-mtime">2025-06-20 21:07</span>
+                <span class="suggestion-chip suggestion-keep">保留基准</span>
+                <span class="member-mtime">新 · 超集</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+            <button type="button" class="issue-detail-toggle" data-expands="issue-detail-structural-sibling">
+              <span class="toggle-label">收起判定依据与处理链</span><span class="toggle-caret rotated"><svg class="icon icon-small"><use href="#icon-chevron-right"/></svg></span>
+            </button>
+            <div class="issue-detail" id="issue-detail-structural-sibling">
+              <div class="detail-grid">
+                <div>
+                  <div class="detail-panel-heading">判定依据（多证据综合 · F-Resolve-4）</div>
+                  <ul class="evidence-list">
+                    <li class="evidence-item"><svg class="icon icon-small evidence-marker"><use href="#icon-check"/></svg><span class="evidence-item-text"><b>内容包含关系（最强）</b>：backup0505 文件集合 ⊆ backup0620，相同项 SHA256 一致，旧数据零丢失</span></li>
+                    <li class="evidence-item"><svg class="icon icon-small evidence-marker"><use href="#icon-check"/></svg><span class="evidence-item-text"><b>目录命名序列</b>：backup0505 → backup0620，演化方向自证</span></li>
+                    <li class="evidence-item"><svg class="icon icon-small evidence-marker evidence-miss"><use href="#icon-x"/></svg><span class="evidence-item-text"><b>可信时间戳（降权）</b>：backup0505 内 92% 文件 ctime 聚集 → 判为批量拷贝痕迹，时间戳整体降权（F-Resolve-4a）</span></li>
+                    <li class="evidence-item"><svg class="icon icon-small evidence-marker"><use href="#icon-check"/></svg><span class="evidence-item-text"><b>父目录时间佐证</b>：backup0620 目录 mtime 晚于其全部子文件 → 之后仍有增删活动，佐证"活跃新版"</span></li>
+                  </ul>
+                  <div class="analysis-layer-chips" title="分层渐进分析命中层（F-Layered-1）">
+                    <span class="layer-chip hit">目录结构 ✓</span><span class="layer-chip hit">元数据 ✓</span><span class="layer-chip hit">快速 hash ✓</span><span class="layer-chip">全量 hash</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="detail-panel-heading">处理链（顺序约束 · F-Resolve-11 / F-Resolve-15）</div>
+                  <div class="process-chain-panel">
+                    <div class="process-chain-step state-done">
+                      <span class="process-chain-dot">✓</span>
+                      <div><div class="process-chain-name">文件级</div><div class="process-chain-meta">新旧冲突已解决 ×3（年报转人工 · 简历以新为准 · 合同重命名确认）</div></div>
+                    </div>
+                    <div class="process-chain-step state-active">
+                      <span class="process-chain-dot">2</span>
+                      <div><div class="process-chain-name">目录级 · 合并就绪<span class="chain-dependency-tag">← 文件级已解决 ×3</span></div><div class="process-chain-meta">新增 1,478 文件合并进新版 · 重复项入回收站</div></div>
+                    </div>
+                    <div class="process-chain-step state-pending">
+                      <span class="process-chain-dot">3</span>
+                      <div><div class="process-chain-name">结构级 · 待整合</div><div class="process-chain-meta">backup0505 并入 backup0620 后移入回收站</div></div>
+                    </div>
+                  </div>
+                  <div class="process-chain-note">下钻仅揭示链上依据，不改变处理链执行顺序（F-Resolve-14）；交织文件已在文件级独立解决，不用目录级判断覆盖（F-Resolve-12）</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- 2. Versioned · Conflict -->
+          <article class="issue-group card" id="issue-group-versioned-annual-report">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-versioned" title="Versioned：同一基础文件的多次修改版本">版本演进 <span class="relation-code">Versioned</span></span>
+              <div class="issue-group-title">2024年报.xlsx <span style="color:var(--color-text-tertiary);">·</span> 两版分叉</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 87%;"></div></div><span class="confidence-value">87%</span></div>
+              <span class="resolution-badge resolution-conflict" title="Conflict：新旧版本互不包含、彼此不同，必须人工确认">冲突 · 需人工决策 Conflict</span>
+              <div class="issue-group-meta">同名 · 内容部分相似 0.62</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>快照 hash</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg>D:\Backup1\backup0505\工作\2024年报.xlsx</div>
+                  <div class="member-path-detail">含工作表「2024Q1」· 1 条备注行（新版已删）</div>
+                </div>
+                <span class="member-size">1.18 MB</span>
+                <span class="member-mtime">2025-04-28 16:11</span>
+                <span class="suggestion-chip suggestion-manual">需人工决策</span>
+                <span class="member-mtime monospace">a3f8…c21e</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg>D:\Backup2\backup0620\工作\2024年报.xlsx</div>
+                  <div class="member-path-detail">「2024Q1」拆分为「2024Q1」「2024Q2」· 新增 3 行数据</div>
+                </div>
+                <span class="member-size">1.31 MB</span>
+                <span class="member-mtime">2025-06-18 09:36</span>
+                <span class="suggestion-chip suggestion-manual">需人工决策</span>
+                <span class="member-mtime monospace">7b0d…94af</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+            <button type="button" class="issue-detail-toggle" data-expands="issue-detail-versioned-annual-report">
+              <span class="toggle-label">查看参与方与差异摘要</span><span class="toggle-caret"><svg class="icon icon-small"><use href="#icon-chevron-right"/></svg></span>
+            </button>
+            <div class="issue-detail collapsed" id="issue-detail-versioned-annual-report">
+              <div class="conflict-parties">
+                <div class="conflict-party">
+                  <div class="conflict-party-label">参与方 A（旧候选）</div>
+                  <div class="monospace">D:\Backup1\backup0505\工作\2024年报.xlsx</div>
+                  <div class="conflict-party-meta">1.18 MB · 2025-04-28 · SHA256 a3f8…c21e</div>
+                </div>
+                <div class="conflict-party">
+                  <div class="conflict-party-label">参与方 B（新候选）</div>
+                  <div class="monospace">D:\Backup2\backup0620\工作\2024年报.xlsx</div>
+                  <div class="conflict-party-meta">1.31 MB · 2025-06-18 · SHA256 7b0d…94af</div>
+                </div>
+              </div>
+              <div class="conflict-summary">
+                <b>差异摘要</b>：新版将工作表「2024Q1」拆分为「2024Q1」「2024Q2」，新增 3 行数据；旧版含 1 条已被新版删除的备注。<br>
+                <b>证据链结论</b>：内容包含 ✗（互不包含，diverged）· 命名序列 → backup0620 更新（弱证据）· 可信时间 → backup0620 更新（ctime 已降权）。证据矛盾，无法自动裁定。
+              </div>
+              <span class="manual-decision-ribbon"><svg class="icon icon-small"><use href="#icon-alert-triangle"/></svg>所有证据链均无法给出明确方向 → 提升为人工确认（F-Resolve-17）</span>
+            </div>
+          </article>
+
+          <!-- 3. Versioned · Compatibility -->
+          <article class="issue-group card" id="issue-group-versioned-resume">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-versioned" title="Versioned：同一基础文件的多次修改版本">版本演进 <span class="relation-code">Versioned</span></span>
+              <div class="issue-group-title">简历.docx <span style="color:var(--color-text-tertiary);">·</span> 新版包含旧版</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 93%;"></div></div><span class="confidence-value">93%</span></div>
+              <span class="resolution-badge resolution-compatibility" title="Compatibility：旧版内容逐字包含于新版（fast-forward）">兼容 · 以新为准 Compatibility</span>
+              <div class="issue-group-meta">可释放 24 KB</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>快照 hash</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg>D:\Backup1\backup0505\求职\简历.docx</div>
+                  <div class="member-path-detail">旧版内容逐字包含于新版（文本级精确判定 · F-Resolve-3）</div>
+                </div>
+                <span class="member-size">24 KB</span>
+                <span class="member-mtime">2025-03-02 11:20</span>
+                <span class="suggestion-chip suggestion-trash">旧版可清理</span>
+                <span class="member-mtime monospace">d41c…88b2</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg><svg class="icon keep-candidate-star" title="保留候选"><use href="#icon-star"/></svg>D:\Backup2\backup0620\求职\简历.docx</div>
+                  <div class="member-path-detail">新增「项目经历」与「证书」两节</div>
+                </div>
+                <span class="member-size">26 KB</span>
+                <span class="member-mtime">2025-06-12 22:48</span>
+                <span class="suggestion-chip suggestion-keep">以新为准</span>
+                <span class="member-mtime monospace">09be…31d7</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- 4. ExactDuplicate 照片 -->
+          <article class="issue-group card" id="issue-group-exact-duplicate-photo">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-exact-duplicate" title="ExactDuplicate：内容完全一致（hash 相同）">完全重复 <span class="relation-code">ExactDuplicate</span></span>
+              <div class="issue-group-title">IMG_0412.jpg <span style="color:var(--color-text-tertiary);">·</span> 3 处副本</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 98%;"></div></div><span class="confidence-value">98%</span></div>
+              <span class="resolution-badge resolution-equality" title="Equality：内容摘要确认完全一致，可自动保留一份">相等 · 可自动处理 Equality</span>
+              <div class="issue-group-meta">4.2 MB × 3 · 可释放 8.4 MB</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>快照 hash</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg><svg class="icon keep-candidate-star" title="保留候选"><use href="#icon-star"/></svg>E:\Archive\Photos\2023\三亚\IMG_0412.jpg</div>
+                  <div class="member-path-detail">保留候选：路径最规范（标准归档区）· SHA256 一致 · size+mtime 一致</div>
+                </div>
+                <span class="member-size">4.2 MB</span>
+                <span class="member-mtime">2023-10-14 09:23</span>
+                <span class="suggestion-chip suggestion-keep">保留</span>
+                <span class="member-mtime monospace">7f3a…c21b</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox" checked>
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg>D:\Backup1\backup0505\照片\三亚\IMG_0412.jpg</div>
+                  <div class="member-path-detail">SHA256 一致 · size+mtime 一致</div>
+                </div>
+                <span class="member-size">4.2 MB</span>
+                <span class="member-mtime">2023-10-14 09:23</span>
+                <span class="suggestion-chip suggestion-trash">拟入回收站</span>
+                <span class="member-mtime monospace">7f3a…c21b</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox" checked>
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg>D:\Backup2\backup0620\照片\三亚\IMG_0412.jpg</div>
+                  <div class="member-path-detail">SHA256 一致 · size+mtime 一致</div>
+                </div>
+                <span class="member-size">4.2 MB</span>
+                <span class="member-mtime">2023-10-14 09:23</span>
+                <span class="suggestion-chip suggestion-trash">拟入回收站</span>
+                <span class="member-mtime monospace">7f3a…c21b</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- 5. ExactDuplicate 文档 -->
+          <article class="issue-group card" id="issue-group-exact-duplicate-medical-record">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-exact-duplicate" title="ExactDuplicate：内容完全一致（hash 相同）">完全重复 <span class="relation-code">ExactDuplicate</span></span>
+              <div class="issue-group-title">家庭医疗记录.pdf <span style="color:var(--color-text-tertiary);">·</span> 2 处副本</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 100%;"></div></div><span class="confidence-value">100%</span></div>
+              <span class="resolution-badge resolution-equality">相等 · 可自动处理 Equality</span>
+              <div class="issue-group-meta">2.1 MB × 2 · 可释放 2.1 MB</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>快照 hash</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg><svg class="icon keep-candidate-star" title="保留候选"><use href="#icon-star"/></svg>D:\Backup1\backup0505\文档\家庭医疗记录.pdf</div>
+                  <div class="member-path-detail">SHA256 一致 · size 一致 · mtime 相差 2 秒（拷贝痕迹）</div>
+                </div>
+                <span class="member-size">2.1 MB</span>
+                <span class="member-mtime">2024-06-02 10:15</span>
+                <span class="suggestion-chip suggestion-keep">保留</span>
+                <span class="member-mtime monospace">c891…0d43</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox" checked>
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg>D:\Backup2\backup0620\文档\家庭医疗记录.pdf</div>
+                  <div class="member-path-detail">SHA256 一致 · size 一致</div>
+                </div>
+                <span class="member-size">2.1 MB</span>
+                <span class="member-mtime">2024-06-02 10:15</span>
+                <span class="suggestion-chip suggestion-trash">拟入回收站</span>
+                <span class="member-mtime monospace">c891…0d43</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- 6. 多备份一致性投票 → Integrity_Suspected -->
+          <article class="issue-group card" id="issue-group-integrity-img-2201">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-exact-duplicate" title="组内投票发现孤立损坏副本">完全重复 <span class="relation-code">ExactDuplicate</span></span>
+              <div class="issue-group-title">IMG_2201.jpg <span style="color:var(--color-text-tertiary);">·</span> 3 处副本 · 一份可疑</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 100%;"></div></div><span class="confidence-value">100%</span></div>
+              <span class="resolution-badge resolution-integrity-suspected" title="Integrity_Suspected：多数派一致 + 孤立者不同 → 损坏嫌疑，默认转人工（F-Resolve-18）">损坏嫌疑 Integrity_Suspected</span>
+              <div class="issue-group-meta">3.8 MB × 3</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>快照 hash</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg><svg class="icon keep-candidate-star" title="保留候选"><use href="#icon-star"/></svg>D:\Backup1\backup0505\照片\IMG_2201.jpg</div>
+                  <div class="member-path-detail">多数派一致（2:1）· JPEG 结构校验通过</div>
+                </div>
+                <span class="member-size">3.8 MB</span>
+                <span class="member-mtime">2023-11-05 15:02</span>
+                <span class="suggestion-chip suggestion-keep">多数派 · 保留</span>
+                <span class="member-mtime monospace">e572…9a10</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg>E:\Archive\Photos\2023\IMG_2201.jpg</div>
+                  <div class="member-path-detail">多数派一致（2:1）· JPEG 结构校验通过</div>
+                </div>
+                <span class="member-size">3.8 MB</span>
+                <span class="member-mtime">2023-11-05 15:02</span>
+                <span class="suggestion-chip suggestion-keep">多数派 · 保留</span>
+                <span class="member-mtime monospace">e572…9a10</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox" checked>
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg>D:\Backup2\backup0620\照片\IMG_2201.jpg</div>
+                  <div class="member-path-detail">孤立者（hash 不同于多数派）· JPEG 缺少 EOI 结束标记</div>
+                </div>
+                <span class="member-size">3.7 MB</span>
+                <span class="member-mtime">2023-11-05 15:02</span>
+                <span class="suggestion-chip suggestion-integrity">损坏嫌疑 · 转人工</span>
+                <span class="member-mtime monospace">4419…bb7c</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+            <button type="button" class="issue-detail-toggle" data-expands="issue-detail-integrity-img-2201">
+              <span class="toggle-label">收起投票与校验依据</span><span class="toggle-caret rotated"><svg class="icon icon-small"><use href="#icon-chevron-right"/></svg></span>
+            </button>
+            <div class="issue-detail" id="issue-detail-integrity-img-2201">
+              <div class="detail-grid">
+                <div>
+                  <div class="detail-panel-heading">多备份一致性投票（F-Resolve-18）</div>
+                  <ul class="evidence-list">
+                    <li class="evidence-item"><svg class="icon icon-small evidence-marker"><use href="#icon-check"/></svg><span class="evidence-item-text">按内容摘要分组：<b>多数派 2 份一致</b>（backup0505 · E:\Archive\Photos）</span></li>
+                    <li class="evidence-item"><svg class="icon icon-small evidence-marker evidence-miss"><use href="#icon-x"/></svg><span class="evidence-item-text"><b>孤立者 1 份不同</b>：backup0620 副本 hash 与多数派不一致 → 标注 Integrity_Suspected</span></li>
+                    <li class="evidence-item"><svg class="icon icon-small evidence-marker evidence-miss"><use href="#icon-x"/></svg><span class="evidence-item-text">格式内建校验（F-Resolve-19）：JPEG 结束标记（EOI）缺失 → 校验失败，佐证损坏</span></li>
+                  </ul>
+                </div>
+                <div>
+                  <div class="detail-panel-heading">处理约束</div>
+                  <div class="conflict-summary">
+                    损坏嫌疑对象<b>默认不进入自动清理</b>，由处理链转为人工确认（F-Exec-12）；人工确认后决策持久化，同一决策不再重复询问（F-Resolve-10）。<br>
+                    工具只做<b>嫌疑标记</b>、不判死——若各副本皆由同一损坏源拷贝（同源自洽损坏），一致性手段无法发现（约束 §6.6）。
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- 7. NearDuplicate -->
+          <article class="issue-group card" id="issue-group-near-duplicate-notes">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-near-duplicate" title="NearDuplicate：内容几乎一致（仅 EOL / BOM / 元数据差异），需内容级比对">近似重复 <span class="relation-code">NearDuplicate</span></span>
+              <div class="issue-group-title">读书笔记.txt <span style="color:var(--color-text-tertiary);">·</span> EOL / BOM 差异</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 91%;"></div></div><span class="confidence-value">91%</span></div>
+              <span class="resolution-badge resolution-compatibility" title="规范化后语义一致，建议保留一份并经 Diff 确认">兼容 · 保留一份 Compatibility</span>
+              <div class="issue-group-meta">字节差异 0.03% · 14 KB</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>快照 hash</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg><svg class="icon keep-candidate-star" title="保留候选"><use href="#icon-star"/></svg>D:\Backup2\backup0620\文档\读书笔记.txt</div>
+                  <div class="member-path-detail">LF · UTF-8 带 BOM · 含 1 处新增行（见报告 Diff 视图）</div>
+                </div>
+                <span class="member-size">14,632 B</span>
+                <span class="member-mtime">2024-11-02 21:07</span>
+                <span class="suggestion-chip suggestion-keep">保留（含新增行）</span>
+                <span class="member-mtime monospace">a3f2…9c1d</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg>D:\Backup1\backup0505\文档\读书笔记.txt</div>
+                  <div class="member-path-detail">CRLF · UTF-8 无 BOM · 1 处行尾空白</div>
+                </div>
+                <span class="member-size">14,381 B</span>
+                <span class="member-mtime">2024-11-02 21:07</span>
+                <span class="suggestion-chip suggestion-neutral">经 Diff 确认后清理</span>
+                <span class="member-mtime monospace">7b84…e20a</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- 8. PartialOverlap -->
+          <article class="issue-group card" id="issue-group-partial-overlap-sanya">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-partial-overlap" title="PartialOverlap：两个目录内容部分重叠">部分重叠 <span class="relation-code">PartialOverlap</span></span>
+              <div class="issue-group-title">照片\三亚 <span style="color:var(--color-text-tertiary);">↔</span> 随手拍\三亚</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 74%;"></div></div><span class="confidence-value">74%</span></div>
+              <span class="resolution-badge resolution-conflict" title="双向各有独有文件，无包含关系">冲突 · 需人工决策 Conflict</span>
+              <div class="issue-group-meta">48 项中 12 项重叠 · 128 MB</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>独有文件</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-folder"/></svg>D:\Backup1\backup0505\照片\三亚</div>
+                  <div class="member-path-detail">12 项与右侧 SHA256 一致 · 36 项独有（精修版）</div>
+                </div>
+                <span class="member-size">96 MB</span>
+                <span class="member-mtime">2023-10-15 10:40</span>
+                <span class="suggestion-chip suggestion-manual">需人工决策</span>
+                <span class="member-mtime">36 项独有</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-folder"/></svg>E:\Photos\随手拍\三亚</div>
+                  <div class="member-path-detail">12 项与左侧一致 · 9 项独有（连拍原始档）</div>
+                </div>
+                <span class="member-size">32 MB</span>
+                <span class="member-mtime">2023-10-15 11:02</span>
+                <span class="suggestion-chip suggestion-manual">需人工决策</span>
+                <span class="member-mtime">9 项独有</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- 9. Renamed -->
+          <article class="issue-group card" id="issue-group-renamed-contract">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-renamed" title="Renamed：同一对象在不同路径以不同名字出现">重命名 <span class="relation-code">Renamed</span></span>
+              <div class="issue-group-title">合同扫描件.pdf <span style="color:var(--color-text-tertiary);">·</span> 同一对象两个名字</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 100%;"></div></div><span class="confidence-value">100%</span></div>
+              <span class="resolution-badge resolution-equality" title="file id 一致 + hash 一致 → 同一对象，非两份副本">相等 · 无需重复清理 Equality</span>
+              <div class="issue-group-meta">file id 48213377</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>快照 hash</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg><svg class="icon keep-candidate-star" title="保留候选"><use href="#icon-star"/></svg>D:\Backup1\backup0505\文档\合同扫描件.pdf</div>
+                  <div class="member-path-detail">file id 48213377 一致 · SHA256 一致 · mtime 一致</div>
+                </div>
+                <span class="member-size">5.6 MB</span>
+                <span class="member-mtime">2024-02-19 14:31</span>
+                <span class="suggestion-chip suggestion-keep">保留规范名</span>
+                <span class="member-mtime monospace">be20…7f62</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg>D:\Backup1\backup0505\杂项\2023合同扫描件.pdf</div>
+                  <div class="member-path-detail">旧名字（同一 inode）· 建议替换为符号链接或清理引用</div>
+                </div>
+                <span class="member-size">5.6 MB</span>
+                <span class="member-mtime">2024-02-19 14:31</span>
+                <span class="suggestion-chip suggestion-neutral">替换为链接 / 清理</span>
+                <span class="member-mtime monospace">be20…7f62</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- 10. Moved -->
+          <article class="issue-group card" id="issue-group-moved-family-photo">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-moved" title="Moved：同一对象在不同目录出现（内容与元数据一致）">移动 <span class="relation-code">Moved</span></span>
+              <div class="issue-group-title">全家福.jpg <span style="color:var(--color-text-tertiary);">·</span> 已归档仍有暂存副本</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 99%;"></div></div><span class="confidence-value">99%</span></div>
+              <span class="resolution-badge resolution-equality">相等 · 可自动处理 Equality</span>
+              <div class="issue-group-meta">6.8 MB × 2 · 可释放 6.8 MB</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>快照 hash</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg><svg class="icon keep-candidate-star" title="保留候选"><use href="#icon-star"/></svg>E:\Archive\Photos\2023\春节\全家福.jpg</div>
+                  <div class="member-path-detail">跨卷拷贝（inode 不同）· SHA256 一致 · size+mtime 一致</div>
+                </div>
+                <span class="member-size">6.8 MB</span>
+                <span class="member-mtime">2023-02-05 19:44</span>
+                <span class="suggestion-chip suggestion-keep">归档正本</span>
+                <span class="member-mtime monospace">31cc…d845</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-file"/></svg>E:\Photos\精选\2023\全家福.jpg</div>
+                  <div class="member-path-detail">暂存区遗留副本 · 整理后可清理</div>
+                </div>
+                <span class="member-size">6.8 MB</span>
+                <span class="member-mtime">2023-02-05 19:44</span>
+                <span class="suggestion-chip suggestion-trash">拟入回收站</span>
+                <span class="member-mtime monospace">31cc…d845</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- 11. ArchivePair · FullyExtracted -->
+          <article class="issue-group card" id="issue-group-archive-pair-photos">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-archive-pair" title="ArchivePair：压缩包与解压目录的对应关系">压缩包配对 <span class="relation-code">ArchivePair</span></span>
+              <div class="issue-group-title">photos-2023.zip <span style="color:var(--color-text-tertiary);">↔</span> photos-2023\</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 97%;"></div></div><span class="confidence-value">97%</span></div>
+              <span class="resolution-badge resolution-equality" title="清单完全一致（FullyExtracted），解压后无修改">相等 · 清单完全一致 Equality</span>
+              <span class="recommend-tag"><svg class="icon"><use href="#icon-star"/></svg>建议清理压缩包</span>
+              <div class="issue-group-meta">12.8 GB × 2 · 可释放 12.8 GB</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>清单比对</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox" checked>
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-archive-box"/></svg>E:\Photos\photos-2023.zip</div>
+                  <div class="member-path-detail">内部清单 1,842 条 · zip 中央目录完整</div>
+                </div>
+                <span class="member-size">12.8 GB</span>
+                <span class="member-mtime">2023-12-30 16:02</span>
+                <span class="suggestion-chip suggestion-trash">拟入回收站</span>
+                <span class="member-mtime">1,842 条</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-folder"/></svg><svg class="icon keep-candidate-star" title="保留候选"><use href="#icon-star"/></svg>E:\Photos\photos-2023\</div>
+                  <div class="member-path-detail">1,842 文件 · 与包内清单逐条一致（路径 / size / mtime）</div>
+                </div>
+                <span class="member-size">12.8 GB</span>
+                <span class="member-mtime">2023-12-30 16:24</span>
+                <span class="suggestion-chip suggestion-keep">保留解压目录</span>
+                <span class="member-mtime">1,842 / 1,842</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+            <button type="button" class="issue-detail-toggle" data-expands="issue-detail-archive-pair-photos">
+              <span class="toggle-label">收起解压锚点证据链</span><span class="toggle-caret rotated"><svg class="icon icon-small"><use href="#icon-chevron-right"/></svg></span>
+            </button>
+            <div class="issue-detail" id="issue-detail-archive-pair-photos">
+              <div class="detail-grid">
+                <div>
+                  <div class="detail-panel-heading">配对判定（F-Archive-4 / F-Archive-5）</div>
+                  <ul class="evidence-list">
+                    <li class="evidence-item"><svg class="icon icon-small evidence-marker"><use href="#icon-check"/></svg><span class="evidence-item-text"><b>FullyExtracted</b>：内部清单 1,842 / 1,842 与目录实际内容完全一致（无新增 / 修改 / 删除）</span></li>
+                    <li class="evidence-item"><svg class="icon icon-small evidence-marker"><use href="#icon-check"/></svg><span class="evidence-item-text"><b>解压锚点（F-Resolve-16）</b>：包内条目时间 2023-12-30 15:40~16:02，目录 mtime 聚集于同一窗口（偏差 22 分钟 &lt; 容差 1 小时）</span></li>
+                    <li class="evidence-item"><svg class="icon icon-small evidence-marker"><use href="#icon-check"/></svg><span class="evidence-item-text"><b>解压后无修改</b>：目录 mtime 未晚于锚点窗口 → 高可信"建议清理压缩包"标记</span></li>
+                  </ul>
+                </div>
+                <div>
+                  <div class="detail-panel-heading">处理链位置</div>
+                  <div class="process-chain-panel">
+                    <div class="process-chain-step state-done">
+                      <span class="process-chain-dot">✓</span>
+                      <div><div class="process-chain-name">文件级</div><div class="process-chain-meta">清单比对完成（无文件级冲突）</div></div>
+                    </div>
+                    <div class="process-chain-step state-done">
+                      <span class="process-chain-dot">✓</span>
+                      <div><div class="process-chain-name">目录级</div><div class="process-chain-meta">解压目录确认为保留基准</div></div>
+                    </div>
+                    <div class="process-chain-step state-active">
+                      <span class="process-chain-dot">3</span>
+                      <div><div class="process-chain-name">结构级 · 待执行<span class="chain-dependency-tag">← 依赖目录级已确认</span></div><div class="process-chain-meta">photos-2023.zip → MoveToTrash（进计划，待确认）</div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- 12. ArchivePair · ModifiedAfterExtraction -->
+          <article class="issue-group card" id="issue-group-archive-pair-work">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-archive-pair" title="ArchivePair：压缩包与解压目录的对应关系">压缩包配对 <span class="relation-code">ArchivePair</span></span>
+              <div class="issue-group-title">工作归档2024.7z <span style="color:var(--color-text-tertiary);">↔</span> 工作归档2024\</div>
+              <div class="confidence-indicator"><div class="confidence-track"><div class="confidence-fill" style="width: 89%;"></div></div><span class="confidence-value">89%</span></div>
+              <span class="resolution-badge resolution-conflict" title="解压后目录有新增 / 修改，不可自动清理">冲突 · 解压后有修改 Conflict</span>
+              <div class="issue-group-meta">356 MB × 2</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>大小</span><span>修改时间</span><span>建议</span><span>清单比对</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-archive-box"/></svg>E:\Photos\工作归档2024.7z</div>
+                  <div class="member-path-detail">内部清单 358 条 · 7z 头部完整</div>
+                </div>
+                <span class="member-size">356 MB</span>
+                <span class="member-mtime">2024-12-28 11:30</span>
+                <span class="suggestion-chip suggestion-manual">需人工决策</span>
+                <span class="member-mtime">358 条</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-folder"/></svg>E:\Photos\工作归档2024\</div>
+                  <div class="member-path-detail">ModifiedAfterExtraction：清单 356 / 358 一致，目录新增 2 文件（README.md · 交接备忘.txt）</div>
+                </div>
+                <span class="member-size">358 MB</span>
+                <span class="member-mtime">2025-01-06 09:15</span>
+                <span class="suggestion-chip suggestion-manual">需人工决策</span>
+                <span class="member-mtime">+2 新增</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- 13. LinkReference -->
+          <article class="issue-group card" id="issue-group-link-reference-latest">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-link-reference" title="LinkReference：链接与其目标之间的引用关系（目标在 Scope 内）">链接引用 <span class="relation-code">LinkReference</span></span>
+              <div class="issue-group-title">最新备份 <span style="color:var(--color-text-tertiary);">→</span> backup0620</div>
+              <span class="confidence-unavailable">置信度 —（确定性判定）</span>
+              <span class="resolution-badge resolution-equality" title="目标已 Resolve 到对象，不重复扫描">正常引用 · 无需处理</span>
+              <div class="issue-group-meta">目录符号链接 · 不重复统计</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>类型</span><span>创建时间</span><span>建议</span><span>目标</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-link"/></svg>D:\Backup2\最新备份</div>
+                  <div class="member-path-detail">目标在 Scope 内 → Resolve 到对象，建立引用关系（F-Link-2）</div>
+                </div>
+                <span class="member-size">Symlink</span>
+                <span class="member-mtime">2025-06-21 08:30</span>
+                <span class="suggestion-chip suggestion-neutral">保持现状</span>
+                <span class="member-mtime monospace">…\backup0620</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- 14. OutOfScope -->
+          <article class="issue-group card" id="issue-group-out-of-scope-archive">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-out-of-scope" title="目标不在 Scope 内：不递归、不统计、不参与重复分析（F-Link-2）">范围外链接 <span class="relation-code">OutOfScope</span></span>
+              <div class="issue-group-title">archive <span style="color:var(--color-text-tertiary);">→</span> F:\外接盘\Archive</div>
+              <span class="confidence-unavailable">置信度 —（Scope 判定）</span>
+              <span class="resolution-badge resolution-compatibility" title="标记但不处理；扩大 Scope 或显式忽略">已标记 · 不参与分析</span>
+              <div class="issue-group-meta">目录符号链接</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>类型</span><span>创建时间</span><span>建议</span><span>目标</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox" checked>
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-link"/></svg>D:\Backup2\archive</div>
+                  <div class="member-path-detail">目标 F:\外接盘\Archive 不在 Scope 根集合内 → 不递归、不统计、不参与重复分析</div>
+                </div>
+                <span class="member-size">Symlink</span>
+                <span class="member-mtime">2025-05-05 19:02</span>
+                <span class="suggestion-chip suggestion-manual">扩大 Scope 或忽略</span>
+                <span class="member-mtime monospace">F:\外接盘\…</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- 15. Broken -->
+          <article class="issue-group card" id="issue-group-broken-family">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-broken" title="目标不存在 → 标记 Broken（F-Link-2）">断裂链接 <span class="relation-code">Broken</span></span>
+              <div class="issue-group-title">family-2022-原盘 <span style="color:var(--color-text-tertiary);">→</span> G:\FamilyDisk\2022</div>
+              <span class="confidence-unavailable">置信度 —（确定性判定）</span>
+              <span class="resolution-badge resolution-conflict" title="目标卷不存在，链接失效">已标记 · 建议处置</span>
+              <div class="issue-group-meta">目录符号链接 · 目标卷已移除</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>类型</span><span>创建时间</span><span>建议</span><span>目标</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-broken-link"/></svg>E:\Photos\family-2022-原盘</div>
+                  <div class="member-path-detail">目标 G:\FamilyDisk\2022 不存在（卷未挂载或已移除）</div>
+                </div>
+                <span class="member-size">Symlink</span>
+                <span class="member-mtime">2024-03-12 20:18</span>
+                <span class="suggestion-chip suggestion-trash">建议删除链接</span>
+                <span class="member-mtime monospace">G:\FamilyDisk\2022</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- 16. Circular -->
+          <article class="issue-group card" id="issue-group-circular-album">
+            <div class="issue-group-header">
+              <span class="relation-badge relation-circular" title="A→B→A 的符号链接环 → 标记 Circular 并停止递归（F-Scan-6）">循环链接 <span class="relation-code">Circular</span></span>
+              <div class="issue-group-title">相册-现行 <span style="color:var(--color-text-tertiary);">⇄</span> 相册-归档</div>
+              <span class="confidence-unavailable">置信度 —（确定性判定）</span>
+              <span class="resolution-badge resolution-conflict" title="环检测命中，停止递归">已标记 · 建议解除</span>
+              <div class="issue-group-meta">环深度 2 · 已停止递归</div>
+            </div>
+            <div class="issue-member-list">
+              <div class="issue-member-list-header"><span></span><span>对象</span><span>类型</span><span>创建时间</span><span>建议</span><span>指向</span><span></span></div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-repeat"/></svg>D:\Backup2\backup0620\相册-现行</div>
+                  <div class="member-path-detail">环检测：相册-现行 → 相册-归档 → 现行（回到起点）</div>
+                </div>
+                <span class="member-size">Symlink</span>
+                <span class="member-mtime">2025-06-20 22:10</span>
+                <span class="suggestion-chip suggestion-trash">建议解除循环</span>
+                <span class="member-mtime monospace">…\相册-归档</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+              <div class="issue-member">
+                <input type="checkbox" class="issue-member-checkbox">
+                <div class="member-path-cell">
+                  <div class="member-path"><svg class="icon"><use href="#icon-repeat"/></svg>D:\Backup2\backup0620\相册-归档\现行</div>
+                  <div class="member-path-detail">构成环的第二条边</div>
+                </div>
+                <span class="member-size">Symlink</span>
+                <span class="member-mtime">2025-06-20 22:11</span>
+                <span class="suggestion-chip suggestion-trash">建议解除循环</span>
+                <span class="member-mtime monospace">…\相册-现行</span>
+                <button type="button" class="member-more-button" title="单个对象操作">⋯</button>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     视图② Scope 配置
+     ============================================================ -->
+<section id="view-scope-configuration" class="application-view">
+  <div class="view-container">
+
+    <div class="view-header">
+      <div>
+        <h1 class="view-title">Scope 配置</h1>
+        <p class="view-subtitle">分析世界的边界：扫描器、分析器、报告器、执行器的所有行为都基于此范围推理（严格不主动扩大 · F-Scope-5）</p>
+      </div>
+      <div class="view-header-actions">
+        <button type="button" class="button"><svg class="icon"><use href="#icon-eye"/></svg>快速预览目录层</button>
+        <button type="button" class="button button-primary"><svg class="icon"><use href="#icon-activity"/></svg>保存并开始扫描</button>
+      </div>
+    </div>
+
+    <div class="scope-layout">
+      <div class="scope-layout-column">
+
+        <!-- 根路径集合 -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-hard-drive"/></svg>
+            <span class="card-title">根路径集合</span>
+            <span class="card-title-note">多路径 · F-Scope-1 · Canonical Path 校验（F-Scope-4）</span>
+          </div>
+          <div class="card-body">
+            <div class="path-chip-row">
+              <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>D:\Backup1<button type="button" class="path-chip-remove" title="移除该根路径"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+              <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>D:\Backup2<button type="button" class="path-chip-remove" title="移除该根路径"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+              <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>E:\Archive\Photos<button type="button" class="path-chip-remove" title="移除该根路径"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+              <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>E:\Photos<button type="button" class="path-chip-remove" title="移除该根路径"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+            </div>
+            <div class="add-path-row">
+              <input type="text" class="add-path-input" placeholder="添加根路径（如 F:\NewDisk\Backup）">
+              <button type="button" class="button"><svg class="icon icon-small"><use href="#icon-plus"/></svg>添加根路径</button>
+            </div>
+            <div class="banner banner-info" style="margin-top: 12px;">
+              <svg class="icon"><use href="#icon-check-circle"/></svg>
+              <span><b>4 个根路径均已通过规范化校验</b>（realpath / GetFinalPathNameByHandle）：未检测到嵌套与重叠；D:\Backup1 与 D:\Backup2 同卷不同目录，E:\Archive\Photos 与 E:\Photos 同卷不同目录。</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 排除规则 -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-filter"/></svg>
+            <span class="card-title">排除规则</span>
+            <span class="card-title-note">glob / regex / 文件名 / 目录名 · F-Scope-2</span>
+          </div>
+          <div class="card-body">
+            <div class="rule-row"><span class="rule-type-badge">glob</span><span class="rule-pattern">*.tmp</span><span class="rule-purpose">临时文件</span><button type="button" class="rule-remove" title="移除规则"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></div>
+            <div class="rule-row"><span class="rule-type-badge">目录名</span><span class="rule-pattern">node_modules</span><span class="rule-purpose">前端依赖</span><button type="button" class="rule-remove" title="移除规则"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></div>
+            <div class="rule-row"><span class="rule-type-badge">目录名</span><span class="rule-pattern">$RECYCLE.BIN</span><span class="rule-purpose">回收站</span><button type="button" class="rule-remove" title="移除规则"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></div>
+            <div class="rule-row"><span class="rule-type-badge">regex</span><span class="rule-pattern">(?i)^thumbs\.db$</span><span class="rule-purpose">缩略图缓存</span><button type="button" class="rule-remove" title="移除规则"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></div>
+            <div class="rule-row"><span class="rule-type-badge">glob</span><span class="rule-pattern">**\.git\objects\**</span><span class="rule-purpose">Git 对象库</span><button type="button" class="rule-remove" title="移除规则"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></div>
+            <div class="add-rule-row">
+              <select class="filter-select" style="width: 96px;"><option>glob</option><option>regex</option><option>文件名</option><option>目录名</option></select>
+              <input type="text" class="add-path-input" style="flex: 1;" placeholder="输入排除模式…">
+              <button type="button" class="button"><svg class="icon icon-small"><use href="#icon-plus"/></svg>添加规则</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 扫描开关 -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-sliders"/></svg>
+            <span class="card-title">扫描行为</span>
+            <span class="card-title-note">Link 语义与边界 · F-Scope-3 / F-Link-1 / F-Scan-9</span>
+          </div>
+          <div class="card-body">
+            <div class="setting-row">
+              <div class="setting-row-main">
+                <div class="setting-row-title">跨设备 / 挂载点递归 <span class="default-tag">默认关</span></div>
+                <div class="setting-row-hint">遇到新的挂载点 / 设备边界即停止，防止误入系统卷与其他磁盘 <span class="requirement-reference">F-Scope-3</span></div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-main">
+                <div class="setting-row-title">跟随符号链接 <span class="default-tag">默认关</span></div>
+                <div class="setting-row-hint">默认只记录 (source, target) 引用关系，不递归进入；可显式启用 <span class="requirement-reference">F-Link-1 / F-Link-5</span></div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-main">
+                <div class="setting-row-title">跳过常见虚拟目录 <span class="default-tag">默认开</span></div>
+                <div class="setting-row-hint">以下目录不进入扫描世界，列表可配置 <span class="requirement-reference">F-Scan-9</span></div>
+                <div class="virtual-directory-chips">
+                  <span class="virtual-directory-chip">$RECYCLE.BIN</span>
+                  <span class="virtual-directory-chip">System Volume Information</span>
+                  <span class="virtual-directory-chip">.git/objects</span>
+                  <span class="virtual-directory-chip">node_modules</span>
+                  <span class="virtual-directory-chip">.DS_Store</span>
+                  <span class="virtual-directory-chip">Thumbs.db</span>
+                  <button type="button" class="quick-chip" style="padding: 2px 10px;">编辑列表…</button>
+                </div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-main">
+                <div class="setting-row-title">快速预览模式</div>
+                <div class="setting-row-hint">数秒内生成目录层概览，适合先"看一眼里面有什么" <span class="requirement-reference">F-Layered-5</span></div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scope-layout-column">
+
+        <!-- 分析深度 -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-activity"/></svg>
+            <span class="card-title">分析深度</span>
+            <span class="card-title-note">分层渐进 · 显式指定深度（F-Layered-4）· 上层未命中冲突，下层不启动（F-Layered-2）</span>
+          </div>
+          <div class="card-body">
+            <div class="depth-choice-grid">
+              <label class="depth-choice">
+                <span class="depth-choice-title">仅目录结构<span class="layer-chip">第 1 层</span></span>
+                <span class="depth-choice-hint">只读目录元数据，秒级建立结构索引，适合圈定可疑子集</span>
+              </label>
+              <label class="depth-choice">
+                <span class="depth-choice-title">元数据层<span class="layer-chip">第 2 层</span></span>
+                <span class="depth-choice-hint">路径 / size / mtime / ctime，不读文件内容</span>
+              </label>
+              <label class="depth-choice">
+                <span class="depth-choice-title">快速 hash 层<span class="layer-chip">第 3 层</span></span>
+                <span class="depth-choice-hint">size+mtime 命中后采样（头 16KB + 中 32KB + 尾 16KB，xxhash）</span>
+              </label>
+              <label class="depth-choice selected">
+                <span class="depth-choice-title">全量内容 hash<span class="layer-chip hit">第 4 层</span></span>
+                <span class="depth-choice-hint">SHA256 最终判据，仅对采样层仍碰撞的少数文件计算</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 性能与指纹 -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-sliders"/></svg>
+            <span class="card-title">性能与指纹索引</span>
+            <span class="card-title-note">F-Scan-10 / F-Layered-7</span>
+          </div>
+          <div class="card-body">
+            <div class="setting-row">
+              <div class="setting-row-main">
+                <div class="setting-row-title">并发度</div>
+                <div class="setting-row-hint">目录遍历与 hash 计算的并行度（本机逻辑核数 16）</div>
+                <div class="parallelism-row" style="margin-top: 8px;">
+                  <input type="range" class="parallelism-slider" min="1" max="32" value="8">
+                  <span class="parallelism-value">8</span>
+                </div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-main">
+                <div class="setting-row-title">指纹索引强度</div>
+                <div class="setting-row-hint">指纹随 manifest 持久化，作为执行前验证、增量扫描、完整性校验的统一基线；未存指纹的对象执行时视为"基线缺失"，默认中止动作</div>
+                <select class="strength-select" style="margin-top: 8px;">
+                  <option>L0 · 不存储指纹（最省空间，执行阶段受限）</option>
+                  <option>L1 · 快速摘要（CRC32 / xxhash）</option>
+                  <option selected>L2 · 快速 + 强摘要（默认推荐 · CRC32 → MD5 升级路径）</option>
+                  <option>L3 · 全量元数据 + 双摘要（最大安全冗余）</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 保存 / 加载 / 命名 -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-bookmark"/></svg>
+            <span class="card-title">配置档案</span>
+            <span class="card-title-note">保存 / 加载 / 命名 · F-Scope-6</span>
+          </div>
+          <div class="card-body">
+            <div class="scope-profile-row">
+              <input type="text" class="scope-profile-input" value="三盘备份整合">
+              <button type="button" class="button button-primary button-small">保存配置</button>
+              <button type="button" class="button button-small">另存为…</button>
+              <button type="button" class="button button-small">加载…</button>
+            </div>
+            <div class="scope-profile-list">
+              <div class="scope-profile-item current"><svg class="icon icon-small" style="color: var(--color-brand);"><use href="#icon-check-circle"/></svg><span class="scope-profile-name">三盘备份整合</span><span class="scope-profile-meta">当前 · 上次保存 2026-08-10</span></div>
+              <div class="scope-profile-item"><svg class="icon icon-small" style="color: var(--color-text-tertiary);"><use href="#icon-bookmark"/></svg><span class="scope-profile-name">default</span><span class="scope-profile-meta">上次使用 2026-08-01</span></div>
+              <div class="scope-profile-item"><svg class="icon icon-small" style="color: var(--color-text-tertiary);"><use href="#icon-bookmark"/></svg><span class="scope-profile-name">相册专项清理</span><span class="scope-profile-meta">上次使用 2026-07-22</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     视图③ 扫描进度
+     ============================================================ -->
+<section id="view-scan-progress" class="application-view">
+  <div class="view-container">
+
+    <div class="view-header">
+      <div>
+        <h1 class="view-title">扫描进度</h1>
+        <p class="view-subtitle">任务 scan-2026-08-15-01 · Scope「三盘备份整合」（4 根路径）· 全程只读，无任何写动作（N-Safe-3）</p>
+      </div>
+      <div class="view-header-actions">
+        <span class="resolution-badge resolution-equality" style="font-size: 12.5px;"><svg class="icon icon-small"><use href="#icon-shield"/></svg>只读阶段</span>
+      </div>
+    </div>
+
+    <div class="scan-layout">
+      <div class="scan-main-column">
+
+        <!-- 总进度 -->
+        <div class="card progress-hero">
+          <div class="progress-title-row">
+            <span class="progress-percentage">62<span class="progress-percentage-unit">%</span></span>
+            <div class="progress-title-meta">
+              已扫描 <b class="numeric">1,284,301</b> / <b class="numeric">2,071,463</b> 个对象<br>
+              已进行 18 分 06 秒 · 任务启动于 16:24:09
+            </div>
+          </div>
+          <div class="progress-track-large"><div class="progress-fill-large"></div></div>
+          <div class="progress-caption-row"><span>开始 16:24</span><span>当前 D:\Backup2\backup0620</span><span>预计总量 2,071,463</span></div>
+          <div class="progress-stat-grid">
+            <div class="progress-stat">
+              <div class="progress-stat-value">18,420<span class="progress-stat-unit">对象/秒</span></div>
+              <div class="progress-stat-label">当前速率</div>
+            </div>
+            <div class="progress-stat">
+              <div class="progress-stat-value">00:47:12</div>
+              <div class="progress-stat-label">预计剩余 ETA</div>
+            </div>
+            <div class="progress-stat">
+              <div class="progress-stat-value">1,284,301</div>
+              <div class="progress-stat-label">已扫描对象</div>
+            </div>
+            <div class="progress-stat">
+              <div class="progress-stat-value">431,207<span class="progress-stat-unit">次</span></div>
+              <div class="progress-stat-label">快速摘要预筛命中</div>
+            </div>
+          </div>
+          <div class="current-path-line">
+            <span class="current-path-label">当前路径</span>
+            D:\Backup2\backup0620\视频\2024\DV_0231.MOV<span class="current-path-cursor">▊</span>
+          </div>
+          <div class="scan-controls">
+            <button type="button" class="button"><svg class="icon"><use href="#icon-pause"/></svg>暂停</button>
+            <button type="button" class="button"><svg class="icon"><use href="#icon-stop"/></svg>中断扫描</button>
+            <span class="scan-resume-hint">中断不丢失已完成结果：进度定期写入 manifest，可随时断点续扫（F-Scan-7 / N-Perf-4）</span>
+          </div>
+        </div>
+
+        <!-- 分层渐进 stepper -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-activity"/></svg>
+            <span class="card-title">分层渐进分析</span>
+            <span class="card-title-note">从轻到重逐层加深 · F-Layered-1 / F-Layered-2</span>
+          </div>
+          <div class="scan-layer-stepper">
+            <div class="layer-step state-done">
+              <span class="layer-step-dot">✓</span>
+              <div style="flex:1;">
+                <div class="layer-step-name">① 目录结构层<span class="layer-step-state">完成</span></div>
+                <div class="layer-step-meta">41.6 万对象 · 耗时 12 秒</div>
+              </div>
+            </div>
+            <div class="layer-step state-done">
+              <span class="layer-step-dot">✓</span>
+              <div style="flex:1;">
+                <div class="layer-step-name">② 文件元数据层<span class="layer-step-state">完成</span></div>
+                <div class="layer-step-meta">size / mtime / ctime · 耗时 4 分 32 秒</div>
+              </div>
+            </div>
+            <div class="layer-step state-done">
+              <span class="layer-step-dot">✓</span>
+              <div style="flex:1;">
+                <div class="layer-step-name">③ 快速 hash 层<span class="layer-step-state">完成</span></div>
+                <div class="layer-step-meta">431,207 次采样（xxhash）· 耗时 11 分 08 秒</div>
+              </div>
+            </div>
+            <div class="layer-step state-running">
+              <span class="layer-step-dot">●</span>
+              <div style="flex:1;">
+                <div class="layer-step-name">④ 全量内容 hash 层<span class="layer-step-state">进行中 · 62%</span></div>
+                <div class="layer-step-meta">SHA256 · 仅对采样层仍碰撞的 84,216 个文件</div>
+                <div class="layer-step-progress-track"><div class="layer-step-progress-fill" style="width: 62%;"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 实时日志 -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-list"/></svg>
+            <span class="card-title">结构化日志</span>
+            <span class="card-title-note">最近事件 · 完整日志见 manifest（N-Obs-1）</span>
+          </div>
+          <div class="card-body">
+            <div class="scan-log scrollable">
+              <div class="log-line"><span class="log-time">16:42:15</span> <span class="log-tag-warning">[warn]</span> 隔离: E:\Photos\老照片-1998.zip（zip 中央目录校验失败，跳过并标记）</div>
+              <div class="log-line"><span class="log-time">16:42:14</span> <span class="log-tag-hash">[hash]</span> 快速摘要命中 431,207 / 2,071,463，升级全量 hash 候选 84,216</div>
+              <div class="log-line"><span class="log-time">16:42:13</span> <span class="log-tag-link">[link]</span> 符号链接 D:\Backup2\archive → F:\外接盘\Archive（OutOfScope，不递归）</div>
+              <div class="log-line"><span class="log-time">16:42:12</span> <span class="log-tag-hash">[hash]</span> SHA256 完成 DV_0230.MOV（2.4 GB · 8.1 秒 · 硬件加速）</div>
+              <div class="log-line"><span class="log-time">16:42:11</span> <span class="log-tag-info">[scan]</span> 目录枚举 D:\Backup2\backup0620\视频\2024（1,204 项）</div>
+              <div class="log-line"><span class="log-time">16:42:09</span> <span class="log-tag-info">[scan]</span> 检测到硬链接组 inode 48213377（2 路径，内容仅统计一次）</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scan-side-column">
+
+        <!-- 速率曲线 -->
+        <div class="card">
+          <div class="card-header"><svg class="icon" style="color: var(--color-brand);"><use href="#icon-activity"/></svg><span class="card-title">速率曲线</span><span class="card-title-note">近 5 分钟</span></div>
+          <div class="card-body" style="padding-top: 8px;">
+            <svg class="scan-rate-spark" viewBox="0 0 280 56" preserveAspectRatio="none" aria-label="扫描速率曲线">
+              <polyline points="0,44 20,40 40,42 60,34 80,36 100,28 120,30 140,24 160,26 180,18 200,20 220,14 240,16 260,10 280,12" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="0,44 20,40 40,42 60,34 80,36 100,28 120,30 140,24 160,26 180,18 200,20 220,14 240,16 260,10 280,12 280,56 0,56" fill="rgba(245,158,11,0.10)" stroke="none"/>
+            </svg>
+            <div class="progress-caption-row" style="margin: 6px 0 0;"><span>16:37</span><span>峰值 24,180 对象/秒</span><span>16:42</span></div>
+          </div>
+        </div>
+
+        <!-- 韧性隔离 -->
+        <div class="card">
+          <div class="card-header"><svg class="icon" style="color: var(--color-brand);"><use href="#icon-shield"/></svg><span class="card-title">韧性隔离</span><span class="card-title-note">F-Scan-11</span></div>
+          <div class="card-body">
+            <div class="quarantine-count-row"><span class="quarantine-count">7</span><span style="font-size: 12.5px; color: var(--color-text-secondary);">个对象被跳过并标记<br>单对象失败绝不终止整体扫描</span></div>
+            <div class="quarantine-reason-row"><svg class="icon icon-small" style="color: var(--relation-broken);"><use href="#icon-alert-triangle"/></svg>损坏（解析失败）<span class="quarantine-reason-count">2</span></div>
+            <div class="quarantine-reason-row"><svg class="icon icon-small" style="color: var(--relation-out-of-scope);"><use href="#icon-alert-triangle"/></svg>权限拒绝<span class="quarantine-reason-count">3</span></div>
+            <div class="quarantine-reason-row"><svg class="icon icon-small" style="color: var(--relation-partial-overlap);"><use href="#icon-alert-triangle"/></svg>畸形输入（路径超长等）<span class="quarantine-reason-count">2</span></div>
+            <div class="banner banner-warning" style="margin-top: 12px; font-size: 12px;">
+              <svg class="icon icon-small"><use href="#icon-info-circle"/></svg>
+              <span>隔离对象已记录日志并保留在报告中，可在扫描结束后逐个查看处置。</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 发现摘要 -->
+        <div class="card">
+          <div class="card-header"><svg class="icon" style="color: var(--color-brand);"><use href="#icon-search"/></svg><span class="card-title">实时发现</span><span class="card-title-note">随扫描增量更新</span></div>
+          <div class="card-body">
+            <div class="quarantine-reason-row"><span class="rail-item-dot" style="background: var(--relation-exact-duplicate);"></span>完全重复组<span class="quarantine-reason-count">1,203</span></div>
+            <div class="quarantine-reason-row"><span class="rail-item-dot" style="background: var(--relation-archive-pair);"></span>压缩包配对<span class="quarantine-reason-count">45</span></div>
+            <div class="quarantine-reason-row"><span class="rail-item-dot" style="background: var(--relation-out-of-scope);"></span>范围外链接<span class="quarantine-reason-count">3</span></div>
+            <div class="quarantine-reason-row"><span class="rail-item-dot" style="background: var(--relation-broken);"></span>断裂链接<span class="quarantine-reason-count">12</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     视图④ 计划与执行确认
+     ============================================================ -->
+<section id="view-plan-execution" class="application-view">
+  <div class="view-container">
+
+    <div class="view-header">
+      <div>
+        <h1 class="view-title">计划与执行确认</h1>
+        <p class="view-subtitle">计划 <span class="monospace">plan-2026-08-15-01</span> · 由问题列表 12 处标记汇总生成 · 可保存 / 加载 / 多次迭代（F-Plan-4）· 基于 manifest 可独立验证（F-Plan-6）</p>
+      </div>
+      <div class="view-header-actions">
+        <button type="button" class="button"><svg class="icon"><use href="#icon-refresh"/></svg>重新生成</button>
+        <button type="button" class="button"><svg class="icon"><use href="#icon-download"/></svg>保存计划</button>
+      </div>
+    </div>
+
+    <div class="plan-layout">
+      <div class="plan-main-column">
+
+        <!-- 计划项列表 -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-clipboard"/></svg>
+            <span class="card-title">计划项</span>
+            <span class="card-title-note">动作类型 · F-Plan-2 · 每项含回滚信息（F-Plan-7）</span>
+          </div>
+          <div class="plan-summary-chips" style="padding: 14px 16px 0;">
+            <span class="plan-summary-chip emphasis">共 18 项动作</span>
+            <span class="plan-summary-chip">回收站 ×9</span>
+            <span class="plan-summary-chip">保留 ×4</span>
+            <span class="plan-summary-chip">移动 ×2</span>
+            <span class="plan-summary-chip">替换为链接 ×1</span>
+            <span class="plan-summary-chip">重命名 ×1</span>
+            <span class="plan-summary-chip">合并 ×1</span>
+            <span class="plan-summary-chip emphasis">预计释放 42.7 GB</span>
+          </div>
+          <div class="plan-action-table-header"><span>动作</span><span>对象</span><span>目标</span><span style="text-align:right;">释放空间</span></div>
+          <div class="plan-action-row">
+            <span class="action-type-badge action-merge">合并 Merge</span>
+            <div><div class="plan-action-object">D:\Backup1\backup0505</div><div class="plan-action-object-sub">结构级 · 依赖：文件级已解决 ×3 · 目录级已确认</div></div>
+            <div class="plan-action-target">并入 D:\Backup2\backup0620<br>新增 1,478 文件保留 · 重复 19,455 项入回收站</div>
+            <span class="plan-action-space reclaimed">29.6 GB</span>
+          </div>
+          <div class="plan-action-row">
+            <span class="action-type-badge action-trash">回收站 MoveToTrash</span>
+            <div><div class="plan-action-object">E:\Photos\photos-2023.zip</div><div class="plan-action-object-sub">ArchivePair · FullyExtracted · 建议清理标记</div></div>
+            <div class="plan-action-target">回收站（保留解压目录 photos-2023\）</div>
+            <span class="plan-action-space reclaimed">12.8 GB</span>
+          </div>
+          <div class="plan-action-row">
+            <span class="action-type-badge action-keep">保留 Keep</span>
+            <div><div class="plan-action-object">E:\Archive\Photos\2023\三亚\IMG_0412.jpg</div><div class="plan-action-object-sub">路径最规范 · 保留候选</div></div>
+            <div class="plan-action-target">保持原位（Equality 基准副本）</div>
+            <span class="plan-action-space" style="color: var(--color-text-tertiary);">—</span>
+          </div>
+          <div class="plan-action-row">
+            <span class="action-type-badge action-trash">回收站 MoveToTrash</span>
+            <div><div class="plan-action-object">D:\Backup1\backup0505\照片\三亚\IMG_0412.jpg</div><div class="plan-action-object-sub">SHA256 一致副本</div></div>
+            <div class="plan-action-target">回收站</div>
+            <span class="plan-action-space reclaimed">4.2 MB</span>
+          </div>
+          <div class="plan-action-row">
+            <span class="action-type-badge action-trash">回收站 MoveToTrash</span>
+            <div><div class="plan-action-object">D:\Backup2\backup0620\照片\三亚\IMG_0412.jpg</div><div class="plan-action-object-sub">SHA256 一致副本</div></div>
+            <div class="plan-action-target">回收站</div>
+            <span class="plan-action-space reclaimed">4.2 MB</span>
+          </div>
+          <div class="plan-action-row">
+            <span class="action-type-badge action-keep">保留 Keep</span>
+            <div><div class="plan-action-object">E:\Archive\Photos\2023\IMG_2201.jpg</div><div class="plan-action-object-sub">多数派一致副本</div></div>
+            <div class="plan-action-target">保持原位</div>
+            <span class="plan-action-space" style="color: var(--color-text-tertiary);">—</span>
+          </div>
+          <div class="plan-action-row">
+            <span class="action-type-badge action-manual">人工确认</span>
+            <div><div class="plan-action-object">D:\Backup2\backup0620\照片\IMG_2201.jpg</div><div class="plan-action-object-sub">Integrity_Suspected · 不参与自动清理（F-Exec-12）</div></div>
+            <div class="plan-action-target">等待人工决策（JPEG EOI 缺失）</div>
+            <span class="plan-action-space" style="color: var(--color-text-tertiary);">—</span>
+          </div>
+          <div class="plan-action-row conflict-flagged">
+            <span class="action-type-badge action-move">移动 MoveTo</span>
+            <div><div class="plan-action-object">E:\Photos\随手拍\三亚\IMG_0704.jpg</div><div class="plan-action-object-sub">与保留项同 hash</div></div>
+            <div class="plan-action-target">E:\Archive\Photos\2023\随手拍\IMG_0704.jpg<br><span class="conflict-inline-flag">⚠ 目标路径已存在</span></div>
+            <span class="plan-action-space" style="color: var(--resolution-conflict);">冲突</span>
+          </div>
+          <div class="plan-action-row">
+            <span class="action-type-badge action-link">替换为链接 ReplaceWithLink</span>
+            <div><div class="plan-action-object">D:\Backup1\backup0505\杂项\2023合同扫描件.pdf</div><div class="plan-action-object-sub">Renamed · 同一 inode 的旧名字</div></div>
+            <div class="plan-action-target">→ D:\Backup1\backup0505\文档\合同扫描件.pdf</div>
+            <span class="plan-action-space" style="color: var(--color-text-tertiary);">—</span>
+          </div>
+          <div class="plan-folded-row">
+            <svg class="icon icon-small"><use href="#icon-chevron-right"/></svg>
+            其余 9 项动作已折叠（回收站 ×6 · 移动 ×1 · 保留 ×2 · 重命名 ×1）—— <button type="button" style="color: var(--color-brand-deep); font-weight: 600;">展开全部</button>
+          </div>
+        </div>
+
+        <!-- 冲突检测 -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--resolution-conflict);"><use href="#icon-alert-triangle"/></svg>
+            <span class="card-title">冲突检测</span>
+            <span class="card-title-note">F-Plan-5 · 存在 2 项待解决冲突，解决后方可执行</span>
+          </div>
+          <div class="card-body" style="padding-top: 6px;">
+            <div class="conflict-alert-item">
+              <svg class="icon icon-small conflict-alert-icon"><use href="#icon-alert-triangle"/></svg>
+              <div>
+                <div class="conflict-alert-text"><b>目标路径已存在</b>：<span class="monospace">E:\Archive\Photos\2023\随手拍\IMG_0704.jpg</span> 与计划保留项为同一文件（SHA256 一致），移动将覆盖歧义。</div>
+                <div class="conflict-alert-suggestion">建议：将该项改为 MoveToTrash（源文件），保留归档区现有副本。</div>
+              </div>
+            </div>
+            <div class="conflict-alert-item">
+              <svg class="icon icon-small conflict-alert-icon"><use href="#icon-alert-triangle"/></svg>
+              <div>
+                <div class="conflict-alert-text"><b>对象被多个动作引用</b>：<span class="monospace">D:\Backup1\backup0505</span> 同时出现在 Merge（结构级）与其中 2 个文件级 MoveToTrash。</div>
+                <div class="conflict-alert-suggestion">已按处理链自动排序：文件级先执行，目录级合并随后（F-Resolve-11），无需手动处理。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- dry-run 预览 -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-eye"/></svg>
+            <span class="card-title">dry-run 预览</span>
+            <span class="card-title-note">执行后状态对比 · F-Plan-3（不写任何数据，纯推演）</span>
+          </div>
+          <div class="card-body">
+            <div class="dry-run-compare">
+              <div class="compare-column">
+                <div class="compare-column-heading">执行前（当前快照）</div>
+                <div class="compare-stat"><span class="compare-stat-label">Scope 内对象</span><span class="compare-stat-value numeric">57,609</span></div>
+                <div class="compare-stat"><span class="compare-stat-label">总大小</span><span class="compare-stat-value numeric">225.9 GB</span></div>
+                <div class="compare-stat"><span class="compare-stat-label">问题组</span><span class="compare-stat-value numeric">16</span></div>
+              </div>
+              <div class="compare-arrow"><svg class="icon"><use href="#icon-arrow-right"/></svg></div>
+              <div class="compare-column column-after">
+                <div class="compare-column-heading">执行后（推演结果）</div>
+                <div class="compare-stat"><span class="compare-stat-label">Scope 内对象</span><span class="compare-stat-value numeric">36,742</span></div>
+                <div class="compare-stat"><span class="compare-stat-label">总大小</span><span class="compare-stat-value numeric">183.2 GB</span></div>
+                <div class="compare-stat"><span class="compare-stat-label">问题组</span><span class="compare-stat-value numeric">2（仅剩人工确认项）</span></div>
+              </div>
+            </div>
+            <ul class="transform-list">
+              <li class="transform-item"><span class="transform-arrow">→</span><span class="monospace">E:\Photos\photos-2023.zip</span><span class="transform-result">移入回收站，释放 12.8 GB</span></li>
+              <li class="transform-item"><span class="transform-arrow">→</span><span class="monospace">D:\Backup1\backup0505\</span><span class="transform-result">新增文件并入 backup0620 后，整目录移入回收站</span></li>
+              <li class="transform-item"><span class="transform-arrow">→</span><span class="monospace">D:\Backup1\backup0505\杂项\2023合同扫描件.pdf</span><span class="transform-result">变为指向规范名的符号链接</span></li>
+              <li class="transform-item"><span class="transform-arrow">→</span><span class="monospace">E:\Archive\Photos\</span><span class="transform-result">保持不变（保留基准，重校验 hash 通过后写入新 manifest）</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="plan-side-column">
+
+        <!-- 保底策略 -->
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-shield"/></svg>
+            <span class="card-title">保底策略</span>
+            <span class="card-title-note">三档可配 · F-Exec-9</span>
+          </div>
+          <div class="card-body">
+            <div class="safety-strategy-grid">
+              <label class="strategy-card selected">
+                <span class="strategy-radio-dot"></span>
+                <span>
+                  <span class="strategy-card-title">双保险 <span class="strategy-recommend-tag">默认</span></span>
+                  <span class="strategy-card-desc" style="display:block;">Trash + Staging 双原：清理对象同时进回收站与保底区，清理后校验失败可自动回滚（F-Exec-8）</span>
+                </span>
+              </label>
+              <label class="strategy-card">
+                <span class="strategy-radio-dot"></span>
+                <span>
+                  <span class="strategy-card-title">仅回收站</span>
+                  <span class="strategy-card-desc" style="display:block;">信任判定、容量敏感场景；回收站清空后不可恢复（需显式开启）</span>
+                </span>
+              </label>
+              <label class="strategy-card">
+                <span class="strategy-radio-dot"></span>
+                <span>
+                  <span class="strategy-card-title">仅 Staging</span>
+                  <span class="strategy-card-desc" style="display:block;">大文件 / 高风险场景；不占用回收站容量</span>
+                </span>
+              </label>
+            </div>
+            <div class="staging-config-row">
+              <div class="staging-config-field">
+                <span class="filter-field-label">Staging 位置</span>
+                <input type="text" class="staging-path-input" value="~/.helichrysum/staging/">
+              </div>
+              <div class="staging-config-field">
+                <span class="filter-field-label">保留天数</span>
+                <input type="text" class="staging-days-input" value="30">
+              </div>
+            </div>
+            <div class="setting-row-hint" style="margin-top: 8px;">保底副本独立于回收站，不受清空回收站影响；到期自动清理，期间可随时恢复（F-Exec-7 / F-Exec-10）</div>
+          </div>
+        </div>
+
+        <!-- 身份重校验说明 -->
+        <div class="banner banner-info">
+          <svg class="icon"><use href="#icon-shield"/></svg>
+          <span><b>执行前身份重校验（防 TOCTOU · F-Exec-11）</b><br>
+          扫描与执行之间文件可能被替换，执行每个动作前将重新校验对象身份，并与 manifest 基线比对（realpath 解析后的 inode / file id，防 symlink 替换绕过）：<br>
+          ① 时间校验：mtime / ctime 一致<br>
+          ② 摘要校验：CRC32 快速摘要 → MD5 强摘要（先快后强）<br>
+          ③ 身份校验：inode / file id 一致<br>
+          校验通过后使用已校验句柄执行；任何维度不符 → 中止该动作并转人工。</span>
+        </div>
+
+        <!-- 执行确认区 -->
+        <div class="execution-confirm-zone">
+          <div class="execution-confirm-heading"><svg class="icon"><use href="#icon-shield"/></svg>执行前二次确认</div>
+          <div class="execution-confirm-summary">
+            <div class="execution-confirm-stat"><span class="execution-confirm-stat-value numeric">18</span><span class="execution-confirm-stat-label">项动作</span></div>
+            <div class="execution-confirm-stat"><span class="execution-confirm-stat-value numeric">42.7 GB</span><span class="execution-confirm-stat-label">预计释放</span></div>
+            <div class="execution-confirm-stat"><span class="execution-confirm-stat-value">可回滚</span><span class="execution-confirm-stat-label">回收站 + Staging 双保险</span></div>
+          </div>
+          <div class="banner banner-danger" style="margin-bottom: 12px; font-size: 12px;">
+            <svg class="icon icon-small"><use href="#icon-alert-triangle"/></svg>
+            <span>存在 <b>2 项未解决冲突</b>，解决后方可执行。<button type="button" style="color:#b91c1c; font-weight:700; text-decoration:underline;">去解决冲突 →</button></span>
+          </div>
+          <div class="execution-confirm-actions">
+            <button type="button" class="confirm-primary-button button-disabled" title="解决全部冲突后可用"><svg class="icon"><use href="#icon-check"/></svg>我已确认，开始执行</button>
+            <button type="button" class="button"><svg class="icon"><use href="#icon-eye"/></svg>再次 dry-run</button>
+          </div>
+          <p class="execution-confirm-caption" style="margin-top: 12px;">
+            <b>执行前必须再次确认，Helichrysum 不提供"自动执行"模式</b>（F-Exec-1）。默认删除走回收站而非直接删除（F-Exec-2），每步动作记录执行日志、中断可恢复（F-Exec-3/4），完成后生成新 manifest 反映整理后的归档状态（F-Exec-5）。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     视图⑤ 报告界面（目录树）
+     ============================================================ -->
+<section id="view-report-tree" class="application-view">
+  <div class="view-container">
+
+    <div class="view-header">
+      <div>
+        <h1 class="view-title">报告 · 目录树</h1>
+        <p class="view-subtitle">manifest 的精简投影（只含目录结构、关系结果、标签）· 未参与关系的普通文件仅以聚合计数存在（F-Report-6a）</p>
+      </div>
+      <div class="view-header-actions">
+        <button type="button" class="button" data-goto-view="issue-list"><svg class="icon"><use href="#icon-list"/></svg>前往问题列表处理</button>
+      </div>
+    </div>
+
+    <!-- 只读提示 + 快照年龄 -->
+    <div class="report-banner-row">
+      <div class="banner banner-readonly">
+        <svg class="icon"><use href="#icon-info-circle"/></svg>
+        <span><b>本报告为只读视图</b>：报告无任何写能力，标记 / 否决 / 计划操作一律经操作界面进行（F-Report-6b）；下一份报告将反映操作界面的标签修订结果。</span>
+      </div>
+      <div class="snapshot-age-pill report-snapshot-pill" title="manifest-2026-08-01.sqlite · scanned_at 2026-08-01 15:42">
+        <svg class="icon"><use href="#icon-clock"/></svg>快照创建于 2 周前，数据可能已变化
+      </div>
+    </div>
+
+    <!-- 汇总 chips -->
+    <div class="report-summary-chips">
+      <span class="plan-summary-chip">4 个 Scope 根</span>
+      <span class="plan-summary-chip">57,609 个对象</span>
+      <span class="plan-summary-chip">225.9 GB</span>
+      <span class="plan-summary-chip emphasis">16 个问题组</span>
+      <span class="plan-summary-chip">工具版本 v0.1.0 (abc1234)</span>
+    </div>
+
+    <!-- 筛选 + 导出 -->
+    <div class="report-toolbar card" style="box-shadow: none;">
+      <div class="filter-field">
+        <span class="filter-field-label">问题类型</span>
+        <select class="filter-select" style="min-width: 130px;">
+          <option>全部问题</option><option>仅完全重复</option><option>仅压缩包配对</option><option>仅范围外链接</option><option>仅断链</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <span class="filter-field-label">路径 / glob</span>
+        <input type="text" class="filter-input filter-input-wide" value="E:\Photos\**">
+      </div>
+      <div class="filter-field">
+        <span class="filter-field-label">大小 ≥</span>
+        <input type="text" class="filter-input" style="min-width: 74px;" value="1 MB">
+      </div>
+      <div class="filter-field">
+        <span class="filter-field-label">mtime ≥</span>
+        <input type="date" class="filter-input" value="2023-01-01">
+      </div>
+      <div class="report-export-cluster" title="报告支持导出为 HTML（单文件自包含）/ JSON（机器可读）/ SQLite（查询友好）· F-Report-10">
+        <span style="font-size: 11px; font-weight: 600; color: var(--color-text-tertiary); letter-spacing: 0.4px;">导出（F-Report-10）</span>
+        <button type="button" class="button button-small"><svg class="icon icon-small"><use href="#icon-download"/></svg>HTML（当前形态）</button>
+        <button type="button" class="button button-small"><svg class="icon icon-small"><use href="#icon-download"/></svg>JSON</button>
+        <button type="button" class="button button-small"><svg class="icon icon-small"><use href="#icon-database"/></svg>SQLite</button>
+      </div>
+    </div>
+
+    <div class="report-layout">
+
+      <!-- 目录树 -->
+      <div class="card report-tree-panel scrollable">
+        <ul class="report-tree">
+          <li class="tree-directory">
+            <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name pathlike">D:\Backup1</span><span class="tree-aggregate">54.3 GB · 20,933 文件</span><span class="tree-problem-chip structural-sibling">结构相似</span><span class="tree-problem-chip exact-duplicate">×5</span></div>
+            <ul class="tree-directory-children">
+              <li class="tree-directory">
+                <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">backup0505</span><span class="tree-aggregate">54.2 GB · 20,933 文件 · 5 组问题</span></div>
+                <ul class="tree-directory-children">
+                  <li class="tree-directory">
+                    <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">工作</span><span class="tree-aggregate">2.1 GB · 342 文件 · 2 组</span></div>
+                    <ul class="tree-directory-children">
+                      <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">2024年报.xlsx</span><span class="tree-problem-chip versioned">Versioned · 冲突</span><span class="tree-confidence">87%</span><span class="tree-file-meta"><span>1.18 MB</span><span>2025-04-28</span></span></div></li>
+                    </ul>
+                  </li>
+                  <li class="tree-directory">
+                    <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">文档</span><span class="tree-aggregate">860 MB · 214 文件 · 4 组</span></div>
+                    <ul class="tree-directory-children">
+                      <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">家庭医疗记录.pdf</span><span class="tree-problem-chip exact-duplicate">完全重复</span><span class="tree-confidence">100%</span><span class="tree-file-meta"><span>2.1 MB</span><span>2024-06-02</span></span></div></li>
+                      <li><div class="tree-node-row selected"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">读书笔记.txt</span><span class="tree-problem-chip near-duplicate">近似重复</span><span class="tree-confidence">91%</span><span class="tree-file-meta"><span>14 KB</span><span>2024-11-02</span></span></div></li>
+                      <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">合同扫描件.pdf</span><span class="tree-problem-chip renamed">重命名</span><span class="tree-confidence">100%</span><span class="tree-file-meta"><span>5.6 MB</span><span>2024-02-19</span></span></div></li>
+                    </ul>
+                  </li>
+                  <li class="tree-directory">
+                    <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">照片</span><span class="tree-aggregate">48.9 GB · 18,304 文件 · 2 组</span></div>
+                    <ul class="tree-directory-children">
+                      <li class="tree-directory">
+                        <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">三亚</span><span class="tree-aggregate">96 MB · 48 文件</span><span class="tree-problem-chip partial-overlap">部分重叠</span><span class="tree-confidence">74%</span></div>
+                        <ul class="tree-directory-children">
+                          <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">IMG_0412.jpg</span><span class="tree-problem-chip exact-duplicate">完全重复</span><span class="tree-confidence">98%</span><span class="tree-file-meta"><span>4.2 MB</span><span>2023-10-14</span></span></div></li>
+                        </ul>
+                      </li>
+                      <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">IMG_2201.jpg</span><span class="tree-problem-chip exact-duplicate">投票多数派</span><span class="tree-confidence">100%</span><span class="tree-file-meta"><span>3.8 MB</span><span>2023-11-05</span></span></div></li>
+                    </ul>
+                  </li>
+                  <li class="tree-directory">
+                    <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">杂项</span><span class="tree-aggregate">1.2 GB · 728 文件 · 1 组</span></div>
+                    <ul class="tree-directory-children">
+                      <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">2023合同扫描件.pdf</span><span class="tree-problem-chip renamed">重命名 · 旧名</span><span class="tree-confidence">100%</span><span class="tree-file-meta"><span>5.6 MB</span><span>2024-02-19</span></span></div></li>
+                    </ul>
+                  </li>
+                  <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">求职\简历.docx</span><span class="tree-problem-chip versioned">Versioned · 旧版</span><span class="tree-confidence">93%</span><span class="tree-file-meta"><span>24 KB</span><span>2025-03-02</span></span></div></li>
+                </ul>
+              </li>
+              <li><div class="tree-node-row" style="color: var(--color-text-tertiary);"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name" style="font-weight:400;">（其余 311 个目录已按聚合折叠 · 惰性加载）</span></div></li>
+            </ul>
+          </li>
+
+          <li class="tree-directory">
+            <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name pathlike">D:\Backup2</span><span class="tree-aggregate">61.8 GB · 22,411 文件</span><span class="tree-problem-chip structural-sibling">结构相似 · 新版</span><span class="tree-problem-chip exact-duplicate">×4</span></div>
+            <ul class="tree-directory-children">
+              <li class="tree-directory">
+                <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">backup0620</span><span class="tree-aggregate">61.8 GB · 22,411 文件 · 6 组问题</span></div>
+                <ul class="tree-directory-children">
+                  <li class="tree-directory">
+                    <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">工作</span><span class="tree-aggregate">2.3 GB · 351 文件 · 1 组</span></div>
+                    <ul class="tree-directory-children">
+                      <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">2024年报.xlsx</span><span class="tree-problem-chip versioned">Versioned · 冲突</span><span class="tree-confidence">87%</span><span class="tree-file-meta"><span>1.31 MB</span><span>2025-06-18</span></span></div></li>
+                    </ul>
+                  </li>
+                  <li class="tree-directory">
+                    <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">文档</span><span class="tree-aggregate">862 MB · 216 文件 · 2 组</span></div>
+                    <ul class="tree-directory-children">
+                      <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">家庭医疗记录.pdf</span><span class="tree-problem-chip exact-duplicate">完全重复</span><span class="tree-confidence">100%</span><span class="tree-file-meta"><span>2.1 MB</span><span>2024-06-02</span></span></div></li>
+                      <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">读书笔记.txt</span><span class="tree-problem-chip near-duplicate">近似重复 · 保留候选</span><span class="tree-confidence">91%</span><span class="tree-file-meta"><span>14 KB</span><span>2024-11-02</span></span></div></li>
+                    </ul>
+                  </li>
+                  <li class="tree-directory">
+                    <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">照片</span><span class="tree-aggregate">52.1 GB · 18,631 文件 · 2 组</span></div>
+                    <ul class="tree-directory-children">
+                      <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">三亚\IMG_0412.jpg</span><span class="tree-problem-chip exact-duplicate">完全重复</span><span class="tree-confidence">98%</span><span class="tree-file-meta"><span>4.2 MB</span><span>2023-10-14</span></span></div></li>
+                      <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">IMG_2201.jpg</span><span class="tree-problem-chip broken" style="background: var(--resolution-integrity-suspected-background); color: var(--resolution-integrity-suspected);">损坏嫌疑</span><span class="tree-file-meta"><span>3.7 MB</span><span>2023-11-05</span></span></div></li>
+                    </ul>
+                  </li>
+                  <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-link"/></svg><span class="tree-node-name">最新备份</span><span class="tree-link-target">→ D:\Backup2\backup0620</span><span class="tree-problem-chip link-reference">链接引用</span></div></li>
+                  <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-link"/></svg><span class="tree-node-name">archive</span><span class="tree-link-target">→ F:\外接盘\Archive（Scope 外）</span><span class="tree-problem-chip out-of-scope">OutOfScope</span></div></li>
+                  <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-repeat"/></svg><span class="tree-node-name">相册-现行</span><span class="tree-link-target">→ 相册-归档 ⇄ 环</span><span class="tree-problem-chip circular">Circular</span></div></li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li class="tree-directory collapsed">
+            <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name pathlike">E:\Archive\Photos</span><span class="tree-aggregate">38.6 GB · 12,208 文件</span><span class="tree-problem-chip exact-duplicate">×3</span><span style="font-size:10.5px; color: var(--action-keep); font-weight:650; margin-left:5px;">标准归档区 · 保留基准</span></div>
+            <ul class="tree-directory-children">
+              <li class="tree-directory">
+                <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">2023</span><span class="tree-aggregate">38.6 GB · 12,208 文件 · 3 组</span></div>
+                <ul class="tree-directory-children">
+                  <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">三亚\IMG_0412.jpg</span><span class="tree-problem-chip exact-duplicate">完全重复 · 保留</span><span class="tree-confidence">98%</span><span class="tree-file-meta"><span>4.2 MB</span><span>2023-10-14</span></span></div></li>
+                  <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">IMG_2201.jpg</span><span class="tree-problem-chip exact-duplicate">投票多数派</span><span class="tree-confidence">100%</span><span class="tree-file-meta"><span>3.8 MB</span><span>2023-11-05</span></span></div></li>
+                  <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">春节\全家福.jpg</span><span class="tree-problem-chip moved">移动 · 正本</span><span class="tree-confidence">99%</span><span class="tree-file-meta"><span>6.8 MB</span><span>2023-02-05</span></span></div></li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li class="tree-directory">
+            <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name pathlike">E:\Photos</span><span class="tree-aggregate">71.2 GB · 2,057 文件</span><span class="tree-problem-chip archive-pair">配对 ×2</span><span class="tree-problem-chip broken">断链 ×1</span></div>
+            <ul class="tree-directory-children">
+              <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-archive-box"/></svg><span class="tree-node-name">photos-2023.zip</span><span class="tree-problem-chip archive-pair">配对 · 建议清理</span><span class="tree-confidence">97%</span><span class="tree-file-meta"><span>12.8 GB</span><span>2023-12-30</span></span></div></li>
+              <li class="tree-directory">
+                <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">photos-2023</span><span class="tree-aggregate">12.8 GB · 1,842 文件 · FullyExtracted</span><span class="tree-problem-chip archive-pair">解压目录 · 保留</span></div>
+                <ul class="tree-directory-children">
+                  <li><div class="tree-node-row" style="color: var(--color-text-tertiary);"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name" style="font-weight:400;">（1,842 个文件与包内清单一致 · 已聚合）</span></div></li>
+                </ul>
+              </li>
+              <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-archive-box"/></svg><span class="tree-node-name">工作归档2024.7z</span><span class="tree-problem-chip archive-pair">配对 · 解压后有修改</span><span class="tree-confidence">89%</span><span class="tree-file-meta"><span>356 MB</span><span>2024-12-28</span></span></div></li>
+              <li class="tree-directory collapsed">
+                <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">工作归档2024</span><span class="tree-aggregate">358 MB · 358 文件 · +2 新增</span></div>
+                <ul class="tree-directory-children">
+                  <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">README.md</span><span class="tree-file-meta"><span>2 KB</span><span>2025-01-06</span></span></div></li>
+                </ul>
+              </li>
+              <li class="tree-directory collapsed">
+                <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">精选</span><span class="tree-aggregate">18.4 GB · 96 文件 · 1 组</span></div>
+                <ul class="tree-directory-children">
+                  <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">2023\全家福.jpg</span><span class="tree-problem-chip moved">移动 · 暂存副本</span><span class="tree-confidence">99%</span><span class="tree-file-meta"><span>6.8 MB</span><span>2023-02-05</span></span></div></li>
+                </ul>
+              </li>
+              <li class="tree-directory collapsed">
+                <div class="tree-node-row"><button type="button" class="tree-caret-button" title="展开 / 收起"><svg class="icon"><use href="#icon-chevron-right"/></svg></button><svg class="icon tree-node-icon"><use href="#icon-folder"/></svg><span class="tree-node-name">随手拍</span><span class="tree-aggregate">26.9 GB · 612 文件 · 1 组</span><span class="tree-problem-chip partial-overlap">部分重叠</span></div>
+                <ul class="tree-directory-children">
+                  <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-file"/></svg><span class="tree-node-name">三亚\IMG_0704.jpg</span><span class="tree-problem-chip exact-duplicate">完全重复</span><span class="tree-confidence">100%</span><span class="tree-file-meta"><span>5.1 MB</span><span>2023-10-15</span></span></div></li>
+                </ul>
+              </li>
+              <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-broken-link"/></svg><span class="tree-node-name">family-2022-原盘</span><span class="tree-link-target">→ G:\FamilyDisk\2022（不存在）</span><span class="tree-problem-chip broken">Broken</span></div></li>
+              <li><div class="tree-node-row"><span style="width:16px;"></span><svg class="icon tree-node-icon"><use href="#icon-archive-box"/></svg><span class="tree-node-name" style="color: var(--color-text-tertiary);">老照片-1998.zip</span><span class="tree-problem-chip out-of-scope">已隔离 · 中央目录损坏</span><span class="tree-file-meta"><span>412 MB</span></span></div></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 选中节点详情 + Diff -->
+      <div class="node-detail-panel">
+        <div class="card">
+          <div class="card-body">
+            <div class="node-detail-header">
+              <svg class="icon" style="color: var(--relation-near-duplicate);"><use href="#icon-file"/></svg>
+              <span class="node-detail-name">读书笔记.txt</span>
+              <span class="relation-badge relation-near-duplicate" style="margin-left:auto;">近似重复 <span class="relation-code">NearDuplicate</span></span>
+            </div>
+            <div class="node-detail-path">D:\Backup1\backup0505\文档\读书笔记.txt</div>
+            <div class="detail-metadata-grid" style="margin-top: 12px;">
+              <div class="detail-metadata-item"><span class="detail-metadata-label">大小</span><span class="detail-metadata-value">14,381 B</span></div>
+              <div class="detail-metadata-item"><span class="detail-metadata-label">修改时间</span><span class="detail-metadata-value">2024-11-02 21:07</span></div>
+              <div class="detail-metadata-item"><span class="detail-metadata-label">所属关系组</span><span class="detail-metadata-value">#R-1042（2 成员）</span></div>
+              <div class="detail-metadata-item"><span class="detail-metadata-label">置信度</span><span class="detail-metadata-value">91%</span></div>
+              <div class="detail-metadata-item"><span class="detail-metadata-label">SHA256</span><span class="detail-metadata-value monospace">7b84…e20a</span></div>
+              <div class="detail-metadata-item"><span class="detail-metadata-label">Resolution</span><span class="detail-metadata-value" style="color: var(--resolution-compatibility);">Compatibility</span></div>
+            </div>
+            <div style="margin-top: 14px;">
+              <div class="detail-panel-heading">关系组成员</div>
+              <ul class="relation-member-list">
+                <li class="relation-member-item"><span class="rail-item-dot" style="background: var(--action-keep);"></span><span class="monospace">D:\Backup2\backup0620\文档\读书笔记.txt</span><span style="margin-left:auto; font-size:11px; color: var(--color-text-tertiary);">保留候选</span></li>
+                <li class="relation-member-item"><span class="rail-item-dot" style="background: var(--color-text-tertiary);"></span><span class="monospace">D:\Backup1\backup0505\文档\读书笔记.txt（本节点）</span><span style="margin-left:auto; font-size:11px; color: var(--color-text-tertiary);">Diff 确认后清理</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <svg class="icon" style="color: var(--color-brand);"><use href="#icon-eye"/></svg>
+            <span class="card-title">并排差异视图</span>
+            <span class="card-title-note">Diff · F-Report-7 / F-Preview-10</span>
+          </div>
+          <div class="card-body">
+            <div class="diff-view">
+              <div class="diff-pane">
+                <div class="diff-pane-header"><span class="monospace">backup0505</span><span class="diff-pane-tag">CRLF · 无 BOM</span></div>
+                <div class="diff-pane-body">
+                  <div class="diff-line"><span class="diff-line-line-number">11</span>《思考，快与慢》第 3 章笔记</div>
+                  <div class="diff-line removed"><span class="diff-line-line-number">12</span>（空行）</div>
+                  <div class="diff-line"><span class="diff-line-line-number">13</span>摘要：锚定效应在日常决策中的…</div>
+                  <div class="diff-line"><span class="diff-line-line-number">…</span></div>
+                  <div class="diff-line changed"><span class="diff-line-line-number">45</span>待办：整理读书清单␣␣␣（行尾空白）</div>
+                </div>
+              </div>
+              <div class="diff-pane">
+                <div class="diff-pane-header"><span class="monospace">backup0620</span><span class="diff-pane-tag">LF · UTF-8 BOM</span></div>
+                <div class="diff-pane-body">
+                  <div class="diff-line"><span class="diff-line-line-number">11</span>《思考，快与慢》第 3 章笔记</div>
+                  <div class="diff-line added"><span class="diff-line-line-number">12</span>+ 2024-01-08 补充：第 3 章时间线整理</div>
+                  <div class="diff-line"><span class="diff-line-line-number">13</span>摘要：锚定效应在日常决策中的…</div>
+                  <div class="diff-line"><span class="diff-line-line-number">…</span></div>
+                  <div class="diff-line changed"><span class="diff-line-line-number">45</span>待办：整理读书清单</div>
+                </div>
+              </div>
+            </div>
+            <p class="diff-footer-note">
+              字节差异 0.03%：EOL（CRLF/LF）×218 处 · BOM ×1 · 行尾空白 ×1 · 新增行 ×1。规范化文本后语义一致。<br>
+              本面板为设计占位——正式版将提供完整并排对比、图片缩略图对比、压缩包清单 vs 目录清单差异表，并可调用第三方比较工具（F-Preview-9）。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ======================= 页脚 ======================= -->
+<footer class="application-footer">
+  <span><b>Helichrysum</b> v0.1.0 (abc1234) · GPL-3.0</span>
+  <span>本地服务 <span class="monospace">127.0.0.1:3000</span> · 仅绑定回环地址，无任何外网依赖（N-Safe-5）</span>
+  <span>manifest <span class="monospace">manifest-2026-08-01.sqlite</span>（快照 2026-08-01 15:42）</span>
+  <span class="footer-design-note">＊ 顶部视图切换器仅用于本设计稿导航 · 非产品功能</span>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  function switchActiveView(viewName) {
+    var views = document.querySelectorAll(".application-view");
+    views.forEach(function (view) { view.classList.toggle("active", view.id === "view-" + viewName); });
+    var tabs = document.querySelectorAll(".view-tab");
+    tabs.forEach(function (tab) { tab.classList.toggle("active", tab.dataset.viewTarget === viewName); });
+    window.scrollTo(0, 0);
+  }
+
+  function toggleIssueDetail(detailToggle) {
+    var detailPanel = document.getElementById(detailToggle.dataset.expands);
+    if (!detailPanel) return;
+    var isCollapsed = detailPanel.classList.toggle("collapsed");
+    var toggleLabel = detailToggle.querySelector(".toggle-label");
+    var toggleCaret = detailToggle.querySelector(".toggle-caret");
+    var expandLabel = detailToggle.dataset.expandLabel || "查看判定依据";
+    if (toggleLabel) toggleLabel.textContent = isCollapsed ? expandLabel : "收起判定依据";
+    if (toggleCaret) toggleCaret.classList.toggle("rotated", !isCollapsed);
+  }
+
+  function toggleTreeDirectory(caretButton) {
+    caretButton.closest(".tree-directory").classList.toggle("collapsed");
+  }
+
+  function selectTreeNode(nodeRow) {
+    document.querySelectorAll(".tree-node-row.selected").forEach(function (row) { row.classList.remove("selected"); });
+    nodeRow.classList.add("selected");
+  }
+
+  function expandEntireTree(expanded) {
+    document.querySelectorAll(".tree-directory").forEach(function (directoryNode) { directoryNode.classList.toggle("collapsed", !expanded); });
+  }
+
+  document.addEventListener("click", function (event) {
+    var viewTab = event.target.closest(".view-tab");
+    if (viewTab) { switchActiveView(viewTab.dataset.viewTarget); return; }
+
+    var gotoButton = event.target.closest("[data-goto-view]");
+    if (gotoButton) { switchActiveView(gotoButton.dataset.gotoView); return; }
+
+    var detailToggle = event.target.closest(".issue-detail-toggle");
+    if (detailToggle) { toggleIssueDetail(detailToggle); return; }
+
+    var caretButton = event.target.closest(".tree-caret-button");
+    if (caretButton) { toggleTreeDirectory(caretButton); return; }
+
+    var nodeRow = event.target.closest(".tree-node-row");
+    if (nodeRow) { selectTreeNode(nodeRow); return; }
+
+    var expandAllButton = event.target.closest("[data-tree-expand-all]");
+    if (expandAllButton) { expandEntireTree(expandAllButton.dataset.treeExpandAll === "true"); }
+  });
+})();
+</script>
+</body>
+</html>
