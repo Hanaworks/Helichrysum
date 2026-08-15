@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Helichrysum.Cli/Helichrysum.Cli.csproj" />
+    <Project Path="src/Helichrysum.Core/Helichrysum.Core.csproj" />
+    <Project Path="src/Helichrysum.Filesystem/Helichrysum.Filesystem.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Helichrysum.Core.Tests/Helichrysum.Core.Tests.csproj" />
+    <Project Path="tests/Helichrysum.Integration.Tests/Helichrysum.Integration.Tests.csproj" />
+  </Folder>
+</Solution>
