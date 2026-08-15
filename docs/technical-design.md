@@ -21,7 +21,7 @@
 3. **只读扫描与写入执行严格分离**：扫描阶段绝对零写动作；所有写动作必须经过 Plan → Exec 流水线。
 4. **Manifest 是事实来源**：所有阶段产物都基于或生成 manifest；manifest 可独立审计、独立复用。
 5. **分层渐进**：从目录层到 hash 层逐级加深，上层未命中冲突时下层不启动。
-6. **命名不使用缩写**：一般情况下，代码命名（类型、成员、变量、文件名、配置键、表名/列名）一律使用完整、自描述的命名而非缩写形式（如 `manifestRepository` 而非 `manifRepo`、`scanCompletedCount` 而非 `scanCnt`）。例外仅限业界通用标准术语（`IO` / `SQL` / `HTTP` / `JSON` / `GUI` / `CLI` 等）与既有固定术语（`Fs`、`Manifest` 本身已是完整词）。
+6. **命名不使用缩写**：一般情况下，代码命名（类型、成员、变量、文件名、配置键、表名/列名）一律使用完整、自描述的命名而非缩写形式（如 `manifestRepository` 而非 `manifRepo`、`scanCompletedCount` 而非 `scanCnt`）。例外仅限业界通用标准术语（`IO` / `SQL` / `HTTP` / `JSON` / `GUI` / `CLI` 等）——`Fs` 这类项目内缩写一律展开为完整词（`Helichrysum.Filesystem`、`FilesystemObject`）。
 
 ### 1.2 解决方案结构（.sln）
 
@@ -40,7 +40,7 @@ helichrysum/
 │   │   ├── Execution/                    # 执行器（Trash、Move、Link 替换）
 │   │   ├── Manifest/                     # manifest schema + 迁移
 │   │   └── Contracts/                    # 公共 DTO / 接口 / 事件
-│   ├── Helichrysum.Fs/                   # 平台抽象（P/Invoke 按平台条件编译）
+│   ├── Helichrysum.Filesystem/                   # 平台抽象（P/Invoke 按平台条件编译）
 │   │   ├── Windows/
 │   │   ├── Linux/
 │   │   └── macOS/
@@ -56,7 +56,7 @@ helichrysum/
 │   └── helichrysum-web-ui/               # 前端工程（Vite + 轻量框架）
 ├── tests/
 │   ├── Helichrysum.Core.Tests/
-│   ├── Helichrysum.Fs.Tests/
+│   ├── Helichrysum.Filesystem.Tests/
 │   ├── Helichrysum.Integration.Tests/
 │   └── Helichrysum.Cli.Tests/
 ├── docs/
@@ -88,7 +88,7 @@ helichrysum/
 │  └───────────────────────────────┬───────────────────────────────┘  │
 │                                  │                                  │
 │  ┌───────────────────────────────┴───────────────────────────────┐  │
-│  │ 平台抽象层 (Helichrysum.Fs)                                   │  │
+│  │ 平台抽象层 (Helichrysum.Filesystem)                                   │  │
 │  │ Windows(NTFS)/ Linux / macOS：fs 操作、link 语义、路径规范化   │  │
 │  └───────────────────────────────┬───────────────────────────────┘  │
 │                                  │                                  │
@@ -167,7 +167,7 @@ helichrysum/
 | Linux / macOS | inode / nlink | P/Invoke `stat` / `lstat` |
 | macOS | firmlink / APFS | `getattrlist` |
 
-> 均为少量 P/Invoke 代码（`LibraryImport` source generator），封装在 `Helichrysum.Fs` 层，平台行为不泄漏到 Core。
+> 均为少量 P/Invoke 代码（`LibraryImport` source generator），封装在 `Helichrysum.Filesystem` 层，平台行为不泄漏到 Core。
 
 ### 2.4 分层选型与可替换接口（Polyglot Architecture）
 
@@ -201,11 +201,11 @@ helichrysum/
 因此策略是：**现在不跨语言，但让架构允许未来跨**。遍历层定义为接口并独立程序集，不依赖 Core 内部结构：
 
 ```csharp
-/// 扫描驱动程序契约：路径 → FsObject 流
+/// 扫描驱动程序契约：路径 → FilesystemObject 流
 /// 输出基于协议（Path/Size/Mtime/InodeGroup...），与实现语言无关
 public interface IScannerDriver
 {
-    IAsyncEnumerable<FsObject> ScanAsync(
+    IAsyncEnumerable<FilesystemObject> ScanAsync(
         ScanOptions options,
         CancellationToken cancellationToken = default);
 }
@@ -214,7 +214,7 @@ public interface IScannerDriver
 internal sealed class DotNetScannerDriver : IScannerDriver { ... }
 
 // v2（如遇性能瓶颈）：Rust 独立扫描器子进程，通过 stdout 协议流式输出
-//   helichrysum-scan (Rust 二进制) → 结构化流 → FsObject
+//   helichrysum-scan (Rust 二进制) → 结构化流 → FilesystemObject
 // 仅新增一个 driver 实现，Core 分析逻辑零改动
 ```
 
@@ -299,7 +299,7 @@ public enum ScopeRelation
     Circular
 }
 
-public sealed record FsObject
+public sealed record FilesystemObject
 {
     public required ObjectId Id { get; init; }
     public required long ScopeId { get; init; }
@@ -416,7 +416,7 @@ CREATE INDEX idx_relation_members_obj ON relation_members(object_id);
 **职责：**
 
 - 输入：Scope + 排除规则（glob/regex，`FileSystemName.MatchesSimpleExpression`）
-- 输出：`FsObject` 流（`IAsyncEnumerable<FsObject>` 或 chunked channel）
+- 输出：`FilesystemObject` 流（`IAsyncEnumerable<FilesystemObject>` 或 chunked channel）
 - 并发：`Parallel.ForEachAsync` 按目录分派并行处理；`Channel` 背压
 - Link 处理：见 4.3
 - Mount Point 检测：非根卷作为边界对象，默认不跨越
@@ -427,7 +427,7 @@ CREATE INDEX idx_relation_members_obj ON relation_members(object_id);
 ```csharp
 public interface IScanner
 {
-    IAsyncEnumerable<FsObject> ScanAsync(
+    IAsyncEnumerable<FilesystemObject> ScanAsync(
         ScanRequest request,
         CancellationToken cancellationToken = default);
 }
@@ -702,7 +702,7 @@ GET  /api/preview/{objectId}    # 文件预览（文本/图片/PDF 元数据）
 ### 6.1 扫描并发
 
 - 目录遍历 + `Parallel.ForEachAsync`（`MaxDegreeOfParallelism = 逻辑核数`）
-- `Channel<FsObject>`（bounded）做生产者-消费者，SQLite 单 writer 批量事务写入（每 1000 条提交）
+- `Channel<FilesystemObject>`（bounded）做生产者-消费者，SQLite 单 writer 批量事务写入（每 1000 条提交）
 - `ConcurrentDictionary` 去重（hardlink group、循环检测）
 
 ### 6.2 Hash 优化
@@ -728,7 +728,7 @@ cmd.ExecuteNonQuery();
 
 ### 6.4 内存预算
 
-- `IAsyncEnumerable` / `Channel` 流式处理，不将全量 FsObject 载入内存
+- `IAsyncEnumerable` / `Channel` 流式处理，不将全量 FilesystemObject 载入内存
 - Analyzer 按 chunk（10 万条）加载
 - 报告前端虚拟滚动（DOM 上限 5 万节点）
 
@@ -802,7 +802,7 @@ public interface ITrashProvider
 
 ### Phase 0：基础设施（2 周）
 
-- .sln 骨架 + `Helichrysum.Fs` 平台抽象（三平台基础 P/Invoke）
+- .sln 骨架 + `Helichrysum.Filesystem` 平台抽象（三平台基础 P/Invoke）
 - CI（GitHub Actions：Windows / Linux / macOS 三平台构建 + 测试）
 - 日志（Serilog）+ DI + 配置基础设施
 

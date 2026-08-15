@@ -90,7 +90,7 @@ fixture 以脚本或 `git` 方式维护（目录结构、mtime 可控制），�
 
 **功能清单：**
 - `Helichrysum.sln`（src/ + tests/ 结构，见技术方案 §1.2）
-- `Helichrysum.Core` / `Helichrysum.Fs` / `Helichrysum.Cli` 三个空壳项目 + xUnit 测试项目
+- `Helichrysum.Core` / `Helichrysum.Filesystem` / `Helichrysum.Cli` 三个空壳项目 + xUnit 测试项目
 - Serilog + DI + 配置（`Microsoft.Extensions.Configuration`）基础设施
 - GitHub Actions：Windows / Linux / macOS 三平台 build + test
 - `tests/fixtures/` 目录树建立（脚本生成，含 mtime 控制）
@@ -368,7 +368,7 @@ helichrysum exec <id>             # 确认后执行
 | U-4 | **确定性**：同一 fixture 跑任意次结果一致（无随机、无时间戳漂移、无并发竞态） | 偶发性失败 = 不合格 |
 | U-5 | **单断言组**：一个测试聚焦一个行为断言（可多 assert 但必须同主题） | 一个测试验证多个无关行为 = 不合格 |
 | U-6 | **异常路径覆盖**：涉及 IO/解析的逻辑必须同时测成功与失败路径 | 只测 happy path = 不合格 |
-| U-7 | **平台抽象 mock 化**：`Helichrysum.Fs` 的 P/Invoke 用接口 mock 注入，测试不真调 Windows API | 测试跑真实系统调用 = 不合格 |
+| U-7 | **平台抽象 mock 化**：`Helichrysum.Filesystem` 的 P/Invoke 用接口 mock 注入，测试不真调 Windows API | 测试跑真实系统调用 = 不合格 |
 
 ### 4.5.2 集成测试（切片层）—— 必须满足
 
@@ -392,7 +392,7 @@ helichrysum exec <id>             # 确认后执行
 | 指标 | 门槛 |
 |---|---|
 | 核心逻辑（Scope / Relation / Resolve / Plan）行覆盖率 | ≥ 80% |
-| 平台抽象层（Helichrysum.Fs） | ≥ 60%（P/Invoke 部分尽力） |
+| 平台抽象层（Helichrysum.Filesystem） | ≥ 60%（P/Invoke 部分尽力） |
 | 集成测试对每个切片的验收命令 | 100% 跑通 |
 
 ---
