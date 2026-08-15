@@ -1,6 +1,6 @@
 using Helichrysum.Core;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 using Serilog;
 using Spectre.Console;
 
@@ -16,11 +16,13 @@ public static class Program
 
         try
         {
-            var services = new ServiceCollection();
-            services.AddHelichrysumCore();
-            services.AddLogging(builder => builder.AddSerilog(dispose: true));
-
-            var serviceProvider = services.BuildServiceProvider();
+            var host = Host.CreateDefaultBuilder(arguments)
+                .UseSerilog()
+                .ConfigureServices((context, services) =>
+                {
+                    services.AddHelichrysumCore();
+                })
+                .Build();
 
             AnsiConsole.Write(new FigletText("Helichrysum")
                 .Color(Color.Gold3));
