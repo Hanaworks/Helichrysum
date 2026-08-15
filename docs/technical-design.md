@@ -915,16 +915,24 @@ public interface ITrashProvider
 
 ### 10.3 版本号方案（已定）
 
-工具版本号遵循**语义化版本（SemVer）传统逻辑**：`MAJOR.MINOR.PATCH`，递增规则如下：
+工具版本号**双轨展示**：独立版本计数（SemVer）+ git commit hash，同时呈现，各司其职：
 
 ```text
-MAJOR：破坏性变更 / 功能集确定（v1.0 = 首个正式版）
-MINOR：新增向后兼容的功能
-PATCH：向后兼容的缺陷修复（开发期使用 git commit hash 短哈希作为修正号，
-       保证每个构建唯一可追溯；正式版起切回语义化 PATCH 递增）
-开发期：0.x + commit-hash（如 0.1-25f62f9 → 0.2-abc1234）
+展示格式：v0.1.0 (git 1634a0c)
+           │         └─ git commit hash（精确可追溯到具体代码）
+           └─ SemVer 独立版本计数（里程碑叙事）
+
+独立计数：遵循语义化版本递增
+  MAJOR：破坏性变更 / 功能集确定（v1.0 = 首个正式版）
+  MINOR：新增向后兼容的功能
+  PATCH：向后兼容的缺陷修复
+  （开发期 0.x.y 逐步递增；不受 commit 次数影响）
+
+git 信息：随每个构建附带当前 commit hash（构建准出那一刻的 git HEAD）
+
+来源：
+  AssemblyInformationalVersion = SemVer 计数；git 信息由构建脚本注入（Scripts/build 读取 git rev-parse）
 显示：helichrysum --version（CLI）、WebUI 页脚、报告头部
-来源：AssemblyInformationalVersion + git commit hash
 ```
 
 ---
