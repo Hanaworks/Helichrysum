@@ -5,8 +5,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Helichrysum.Core.Links;
 using Helichrysum.Core.Manifest;
 using Helichrysum.Core.Scope;
+using Helichrysum.Filesystem;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
@@ -44,6 +46,9 @@ public sealed class Scanner
         int filesScanned = 0;
         int dirsScanned = 0;
         var visitedCanonicalPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var linkInspector = new PlatformLinkInspector();
+        var linkResolver = new LinkResolver(_scope, linkInspector, visitedCanonicalPaths,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<LinkResolver>.Instance);
 
         // Use a stack for iterative directory traversal to avoid deep recursion.
         var directoryStack = new Stack<string>();
@@ -53,6 +58,7 @@ public sealed class Scanner
             if (Directory.Exists(root))
             {
                 directoryStack.Push(root);
+                visitedCanonicalPaths.Add(root);
             }
             else
             {
@@ -124,30 +130,13 @@ public sealed class Scanner
                     continue;
                 }
 
-                // Check if this is a symlink or junction.
-                bool isLink = entry.Attributes.HasFlag(FileAttributes.ReparsePoint);
-                string? linkTarget = null;
-                string? resolvedTarget = null;
+                // Use LinkResolver to detect and classify links.
+                var linkResult = linkResolver.Resolve(entry.FullName);
 
-                if (isLink && entry is DirectoryInfo dirInfo)
+                if (linkResult.IsLink)
                 {
-                    linkTarget = dirInfo.LinkTarget;
-                }
-                else if (isLink && entry is FileInfo fileInfo)
-                {
-                    linkTarget = fileInfo.LinkTarget;
-                }
-
-                // Resolve the link target if it's a symlink within scope.
-                if (linkTarget != null)
-                {
-                    resolvedTarget = Path.GetFullPath(Path.Combine(currentDirectory, linkTarget));
-                }
-
-                // Skip symlinks that point outside the scope.
-                if (linkTarget != null && !_scope.Contains(resolvedTarget!))
-                {
-                    var outOfScopeLink = new FilesystemObject
+                    // Handle based on the link's scope relation.
+                    yield return new FilesystemObject
                     {
                         Id = 0,
                         ScopeId = 0,
@@ -157,54 +146,29 @@ public sealed class Scanner
                         Size = null,
                         ModifiedTime = entry.LastWriteTimeUtc,
                         CreatedTime = entry.CreationTimeUtc,
-                        InodeGroup = null,
+                        InodeGroup = (long?)linkResult.InodeGroup,
                         DeviceId = 0,
-                        ScopeRelation = "OutOfScope",
-                        LinkTarget = linkTarget,
-                        ResolvedLinkTarget = resolvedTarget,
+                        ScopeRelation = linkResult.ScopeRelation,
+                        LinkTarget = linkResult.LinkTarget,
+                        ResolvedLinkTarget = linkResult.ResolvedLinkTarget,
                     };
 
-                    yield return outOfScopeLink;
-                    continue;
-                }
-
-                // Skip symlinks that form cycles (already visited canonical path).
-                if (resolvedTarget != null && visitedCanonicalPaths.Contains(resolvedTarget))
-                {
-                    var circularLink = new FilesystemObject
+                    // For in-scope directory symlinks, push to the traversal stack.
+                    if (linkResult.ScopeRelation == "InScope"
+                        && linkResult.ResolvedLinkTarget != null
+                        && Directory.Exists(linkResult.ResolvedLinkTarget))
                     {
-                        Id = 0,
-                        ScopeId = 0,
-                        Path = entry.FullName,
-                        CanonicalPath = entry.FullName,
-                        Kind = "Symlink",
-                        Size = null,
-                        ModifiedTime = entry.LastWriteTimeUtc,
-                        CreatedTime = entry.CreationTimeUtc,
-                        InodeGroup = null,
-                        DeviceId = 0,
-                        ScopeRelation = "Circular",
-                        LinkTarget = linkTarget,
-                        ResolvedLinkTarget = resolvedTarget,
-                    };
+                        visitedCanonicalPaths.Add(linkResult.ResolvedLinkTarget);
+                        directoryStack.Push(entry.FullName);
+                    }
 
-                    yield return circularLink;
                     continue;
                 }
 
+                // Not a link: handle as regular file or directory.
                 if ((entry.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
-                    // Recurse into subdirectories.
-                    if (resolvedTarget != null)
-                    {
-                        // Symlink directory within scope: follow it.
-                        visitedCanonicalPaths.Add(resolvedTarget);
-                        directoryStack.Push(entry.FullName);
-                    }
-                    else
-                    {
-                        directoryStack.Push(entry.FullName);
-                    }
+                    directoryStack.Push(entry.FullName);
                 }
                 else
                 {
@@ -212,7 +176,7 @@ public sealed class Scanner
                     var fileInfo = new FileInfo(entry.FullName);
                     filesScanned++;
 
-                    var fileObject = new FilesystemObject
+                    yield return new FilesystemObject
                     {
                         Id = 0,
                         ScopeId = 0,
@@ -225,11 +189,9 @@ public sealed class Scanner
                         InodeGroup = null,
                         DeviceId = 0,
                         ScopeRelation = "InScope",
-                        LinkTarget = linkTarget,
-                        ResolvedLinkTarget = isLink ? resolvedTarget : null,
+                        LinkTarget = null,
+                        ResolvedLinkTarget = null,
                     };
-
-                    yield return fileObject;
 
                     progress?.Report(new ScanProgress
                     {
