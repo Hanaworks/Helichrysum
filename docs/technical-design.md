@@ -206,7 +206,7 @@ helichrysum/
 
 | 层 | 选型 | 通信模式 | 决策理由 |
 |---|---|---|---|
-| **UI 层** | WebUI（Vite + Svelte/Solid）+ WPF（桌面壳 Windows 优先） | HTTP 3000 / 进程内 | **初版 WebUI 验证交互**：初版窗口期交互先经 WebUI 验证，定稿后 WPF 复刻（设计原则 6a） |
+| **UI 层** | WebUI（Vite + React）+ WPF（桌面壳 Windows 优先） | HTTP 3000 / 进程内 | **初版 WebUI 验证交互**：初版窗口期交互先经 WebUI 验证，定稿后 WPF 复刻（设计原则 6a） |
 | **报告渲染** | 前端渲染 JSON 数据 + 虚拟滚动 | HTTP | 大报告（数十万文件）前端虚拟化 |
 | **分析 / 计划 / 执行** | .NET（C# 12） | **进程内** | 与核心逻辑深度耦合，多语 = 灾难 |
 | **文件遍历 + 元数据** | .NET 起步，**接口隔离可替换**（IScannerDriver） | 进程内，预留切换 | 见 2.4.2 |
@@ -281,7 +281,7 @@ public interface IPreviewProvider
 └────────────┬──────────────────────────────────────┘
              │ HTTP (3000)
      ┌───────┴────────┐
-     │ Vite+Svelte UI │   ← 独立前端工程
+     │ Vite+React UI │   ← 独立前端工程
      └────────────────┘
      + WPF 桌面壳（Windows）
 ```
@@ -667,7 +667,7 @@ GET  /api/preview/{objectId}    # 文件预览（文本/图片/PDF 元数据）
 
 **报告界面**是一个独立的阅览模式，可从操作界面中的"查看报告"入口进入，也可通过 `helichrysum report view` 命令直接打开。它呈现的是完整的目录树结构，问题的标记在树中可视化（类似 Git 冲突查看器），供用户从全局视角理解数据结构。
 
-**前端：** Vite + 轻量框架（Svelte/Solid/React），构建产物输出到 `wwwroot/`，由 ASP.NET Core 静态托管。
+**前端：** Vite + React，构建产物输出到 `wwwroot/`，由 ASP.NET Core 静态托管。
 
 **安全：** 默认绑定 `127.0.0.1`；写操作（plan/exec）必须经显式 API 且服务端确认；无任何外网依赖。
 
@@ -864,7 +864,7 @@ public interface ITrashProvider
 ### Phase 5：WebUI（3 周）
 
 - ASP.NET Core API（操作接口 + 报告接口两套端点）
-- 前端（Vite + Svelte/Solid）：操作界面（Scope 配置、问题列表、标记、计划） + 报告界面（目录树导航）
+- 前端（Vite + React）：操作界面（Scope 配置、问题列表、标记、计划） + 报告界面（目录树导航）
 - 标记管理 / Plan 编辑器
 - 文件预览
 - 配置 UI
@@ -907,11 +907,24 @@ public interface ITrashProvider
 ### 10.2 未决问题
 
 1. **桌面壳主框架**：WPF（已有决定）；WinUI 3 在 Fluent 2 成熟后评估迁移；跨平台桌面壳在 v1.x 于 Tauri + .NET sidecar 与 Avalonia 之间评估，v1.0 不引入 Rust。
-2. **Web 前端框架**：Svelte / Solid / React？（Vite 统一）— 倾向 Svelte（体积小）。
-3. **是否引入 EF Core？** — 倾向不用，手写 `Microsoft.Data.Sqlite`，manifest 是 schema 稳定的"数据仓库"，手写 SQL 并配合 migrations 更可控。
+2. **Web 前端框架（已定）**：**Vite（构建）+ React（框架）**——社区热度最高、最熟悉、生态最大；Vite 提供标准模板，构建产物入 `wwwroot/`。
+3. **数据访问（已定）**：不引入 EF Core，手写 `Microsoft.Data.Sqlite`——manifest 是 schema 稳定的"数据仓库"，手写 SQL 配合版本转换（F-Report-11）更可控。
 4. **CLI 退出码与 Spectre 展示**：是否需要完整 TUI 报表模式（类似 `lazygit`）？暂定 CLI 报表走 HTML 导出 + 终端摘要。
-5. **Hash 算法终选**：SHA256（内置硬件加速）vs Blake3（更快但引入 NuGet）— 倾向 SHA256 起步，预留 hash 字段可扩展。
-6. **`helichrysum verify` 命令**（归档完整性 hash 校验）— 强烈建议有，v1.0 包含。
+5. **Hash 算法（已定）**：**SHA256（内置硬件加速）起步**，预留 hash 字段可扩展（未来可按需切 Blake3）。
+6. **`helichrysum verify` 命令（已定）**：v1.0 包含——归档完整性 hash 校验。
+
+### 10.3 版本号方案（已定）
+
+工具版本号遵循**语义化版本（SemVer）传统逻辑**：`MAJOR.MINOR.PATCH`，递增规则如下：
+
+```text
+MAJOR：破坏性变更 / 功能集确定（v1.0 = 首个正式版）
+MINOR：新增向后兼容的功能
+PATCH：向后兼容的缺陷修复
+开发期：0.x.y 阶段逐步递增（如 0.1.0 → 0.1.1 → 0.2.0）
+显示：helichrysum --version（CLI）、WebUI 页脚、报告头部
+来源：AssemblyInformationalVersion + git 提交计数（可选 Build 号）
+```
 
 ---
 
