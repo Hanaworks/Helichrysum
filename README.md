@@ -49,7 +49,7 @@
 | 核心引擎 | .NET 8 / C#（NativeAOT 可选） |
 | 存储 | SQLite（manifest 可跨语言、可审计） |
 | CLI | Spectre.Console |
-| WebUI | ASP.NET Core + Vite（React） |
+| WebUI | ASP.NET Core + Vite（Vue） |
 | 桌面壳 | WPF（Windows 优先）；Avalonia / Tauri 为 v1.x 候选 |
 
 详见 [docs/technical-design.md](docs/technical-design.md)（含分层选型与可替换接口设计）。
