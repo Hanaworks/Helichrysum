@@ -503,6 +503,7 @@ public class ScanTests
 - [ ] CLI `--json` 输出机器可读且稳定
 - [ ] 代码符合技术方案（§2.4 接口隔离：IScannerDriver / IHashProvider / IPreviewProvider 不违背）
 - [ ] 不引入 `as` 强转 / 吞异常 / 未处理空引用（.NET 分析器开启）
+- [ ] **命名不使用缩写**（技术方案 §1.1 原则 6）：类型/成员/变量/文件名/配置键/表名列名用完整自描述命名，仅限业界标准术语例外
 
 ---
 
