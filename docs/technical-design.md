@@ -22,6 +22,28 @@
 4. **Manifest 是事实来源**：所有阶段产物都基于或生成 manifest；manifest 可独立审计、独立复用。
 5. **分层渐进**：从目录层到 hash 层逐级加深，上层未命中冲突时下层不启动。
 6. **命名不使用缩写**：一般情况下，代码命名（类型、成员、变量、文件名、配置键、表名/列名）一律使用完整、自描述的命名而非缩写形式（如 `manifestRepository` 而非 `manifRepo`、`scanCompletedCount` 而非 `scanCnt`）。例外仅限业界通用标准术语（`IO` / `SQL` / `HTTP` / `JSON` / `GUI` / `CLI` 等）——`Fs` 这类项目内缩写一律展开为完整词（`Helichrysum.Filesystem`、`FilesystemObject`）。
+7. **复杂度控制第一原则**：原则上不应增加系统复杂度，**简单优先**。优先利用现有架构能力，而非创建新的抽象层/中间层；仅当确实能降低整体复杂度时，才考虑增加复杂度的方案；禁止重复造轮子——现有框架/架构已提供的功能绝不重复实现。
+8. **代码美学与换行规范（强制执行）**：
+   - **完全禁止 120 字符自动换行限制**：不因行长度超过 120 字符就强行折行
+   - 仅在确实能提高可读性时才换行：链式调用、Builder 模式、参数过多、长表达式等场景
+   - 简单代码、初始化配置、日志语句、短方法调用等优先保持单行，不做无意义拆分
+   - **链式调用对齐**：Lambda/builder 链式调用中，第一个方法调用紧跟在变量后不换行，后续每个 `.Method()` 的 `.` 与第一个方法调用的 `.` 严格垂直对齐：
+
+     ```csharp
+     // 正确：首调不换行，后续 . 垂直对齐
+     services.AddDataflow(options => options.AddTrigger<TestTrigger>("trigger1")
+                                            .AddTrigger<TestTrigger>("trigger2")
+                                            .AddStep<CollectorStep>("collector")
+                                            .AddLink("trigger1", "collector")
+                                            .AddLink("trigger2", "collector"));
+
+     // 错误（禁止）：首调即折行 + 后续缩进不对齐
+     services.AddDataflow(options => options
+         .AddTrigger<TestTrigger>("trigger1")
+         .AddStep<CollectorStep>("collector")
+         .AddLink("trigger1", "collector"));
+     ```
+   - 代码应当像艺术品一样漂亮、干净、整洁、优雅。
 
 ### 1.2 解决方案结构（.sln）
 
