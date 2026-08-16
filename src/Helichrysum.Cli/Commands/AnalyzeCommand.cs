@@ -4,6 +4,7 @@ using System.ComponentModel;
 using Helichrysum.Core.Analysis;
 using Helichrysum.Core.Hashing;
 using Helichrysum.Core.Manifest;
+using Helichrysum.Core.Planning;
 using Helichrysum.Core.Reporting;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -46,10 +47,7 @@ public sealed class AnalyzeCommand : Command<AnalyzeCommand.Settings>
 
         foreach (var file in allFiles)
         {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
+            if (cancellationToken.IsCancellationRequested) break;
 
             try
             {
@@ -70,11 +68,23 @@ public sealed class AnalyzeCommand : Command<AnalyzeCommand.Settings>
             }
         }
 
-        // Phase 2: Run duplicate detection.
-        var detector = new ExactDuplicateDetector(repository);
-        var relations = detector.Detect();
+        // Phase 2: Run all detectors.
+        AnsiConsole.MarkupLine("  [dim]正在检测重复文件...[/]");
+        var exactDetector = new ExactDuplicateDetector(repository);
+        var exactRelations = exactDetector.Detect();
 
-        AnsiConsole.MarkupLine($"[green]✓[/] 分析完成。发现 [bold]{relations.Count}[/] 个重复组。");
+        // Phase 3: Generate plan from results.
+        var duplicateGroups = repository.GetDuplicateGroups();
+        var plan = PlanGenerator.Generate(duplicateGroups, repository);
+
+        string planJson = plan.ToJson();
+        string planPath = Path.Combine(
+            Path.GetDirectoryName(manifestPath)!,
+            "plan_" + plan.Id + ".json");
+        File.WriteAllText(planPath, planJson);
+
+        AnsiConsole.MarkupLine($"[green]✓[/] 分析完成。发现 [bold]{exactRelations.Count}[/] 个重复组，[bold]{plan.Actions.Count}[/] 个待处理动作。");
+        AnsiConsole.MarkupLine($"[dim]计划已保存: {planPath}[/]");
         return 0;
     }
 }
@@ -113,8 +123,7 @@ public sealed class ReportCommand : Command<ReportCommand.Settings>
         using var repository = ManifestRepository.Open(manifestPath);
         var builder = new ReportBuilder(repository);
 
-        string outputPath = settings.OutputPath
-            ?? $"helichrysum_report.{settings.Format}";
+        string outputPath = settings.OutputPath ?? $"helichrysum_report.{settings.Format}";
 
         if (settings.Format.Equals("json", StringComparison.OrdinalIgnoreCase))
         {
