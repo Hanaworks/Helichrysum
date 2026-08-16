@@ -66,7 +66,15 @@ public sealed class ExecCommand : Command<ExecCommand.Settings>
         var pathMap = allFiles.ToDictionary(f => f.Id, f => f.CanonicalPath);
 
         var executor = new Executor();
-        int successCount = executor.ExecutePlan(plan, id => pathMap.TryGetValue(id, out var path) ? path : null);
+        int successCount = executor.ExecutePlan(plan, id =>
+        {
+            if (pathMap.TryGetValue(id, out var path))
+            {
+                string hash = Helichrysum.Core.Hashing.HashService.ComputeSha256(path);
+                return (path, hash);
+            }
+            return null;
+        });
 
         // Log results.
         var table = new Table();

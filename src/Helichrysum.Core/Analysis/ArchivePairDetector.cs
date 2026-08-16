@@ -2,6 +2,8 @@ namespace Helichrysum.Core.Analysis;
 
 using System.IO;
 using System.IO.Compression;
+using SharpCompress.Common;
+using SharpCompress.Readers;
 
 /// <summary>
 /// Result of an archive pair detection.
@@ -138,11 +140,24 @@ public static class ArchivePairDetector
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
             }
 
-            // For tar/7z/rar, use SharpCompress (not yet wired).
+            // For tar/7z/rar, use SharpCompress.
             if (extension is ".tar" or ".tar.gz" or ".tgz" or ".7z" or ".rar")
             {
-                // Placeholder: SharpCompress support in future slice.
-                return [];
+                using var stream = File.OpenRead(archivePath);
+                using var reader = ReaderFactory.OpenReader(stream);
+                var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                while (reader.MoveToNextEntry())
+                {
+                    if (!reader.Entry.IsDirectory)
+                    {
+                        string? name = Path.GetFileName(reader.Entry.Key);
+                        if (name != null)
+                        {
+                            entries.Add(name);
+                        }
+                    }
+                }
+                return entries;
             }
 
             return [];
