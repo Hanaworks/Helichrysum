@@ -54,7 +54,7 @@ helichrysum/
 ├── src/
 │   ├── Helichrysum.Core/                 # SDK + 业务逻辑（class library）
 │   │   ├── Scope/
-│   │   ├── Scanning/                     # 扫描器（并行、断点续扫、增量）
+│   │   ├── Scanning/                     # 扫描器（并行、断点续扫、全量快照）
 │   │   ├── Links/                        # Link 处理（按平台分流）
 │   │   ├── Analysis/                     # 关系分析（duplicate/sibling/archive）
 │   │   ├── Hashing/                      # 分层 hash 策略
@@ -445,7 +445,7 @@ CREATE INDEX idx_relation_members_obj ON relation_members(object_id);
 - Mount Point 检测：非根卷作为边界对象，默认不跨越
 - 循环引用：维护已访问 Canonical Path 的 `ConcurrentDictionary`
 - 断点续扫：定期写 `scan_state` 表
-- 增量：对比上次 manifest，仅扫描新增/修改
+- 全量快照：每次扫描重建全新 manifest（不做跨快照增量追踪）；断点续扫保留
 
 ```csharp
 public interface IScanner
@@ -881,9 +881,9 @@ public interface ITrashProvider
 
 **跨平台桌面壳（Avalonia）作为后续里程碑，v1.0 不包含。**
 
-### Phase 7：增量与性能（持续）
+### Phase 7：扫描优化与性能（持续）
 
-- 增量扫描
+- 全量快照重扫优化（并行遍历、批量写、hash 缓存）
 - Hash 缓存
 - 大规模调优（100 万+ 文件）
 
