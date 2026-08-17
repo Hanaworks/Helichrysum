@@ -72,6 +72,7 @@ public sealed class ReportBuilder
 
         int totalFiles = _repository.GetAllFiles().Count;
         string groupsHtml = BuildGroupsHtml(duplicateGroups, totalFiles);
+        string treeHtml = BuildDirectoryTreeHtml(_repository);
 
         // Check truncation threshold.
         bool truncated = false;
@@ -121,10 +122,9 @@ public sealed class ReportBuilder
         sb.AppendLine("</div>");
 
         // Directory tree.
+        sb.AppendLine("<h2>目录结构</h2>");
         sb.AppendLine("<div id=\"treeView\">");
-        sb.AppendLine("<div class=\"tree-root\">📁 扫描根目录</div>");
-        sb.AppendLine("<div class=\"tree-node\">📁 backup1 <span style=\"color:#888;font-size:0.8em\">(2 文件)</span></div>");
-        sb.AppendLine("<div class=\"tree-node\">📁 backup2 <span style=\"color:#888;font-size:0.8em\">(2 文件)</span></div>");
+        sb.Append(treeHtml);
         sb.AppendLine("</div>");
 
         sb.AppendLine("<h2>重复组</h2>");
@@ -195,6 +195,38 @@ public sealed class ReportBuilder
             html.AppendLine("</div>");
         }
         return html.ToString();
+    }
+
+    /// <summary>
+    /// Builds an HTML directory tree from the manifest, showing each directory
+    /// with its aggregate file count.
+    /// </summary>
+    private static string BuildDirectoryTreeHtml(ManifestRepository repository)
+    {
+        var dirCounts = repository.GetDirectoryTree();
+
+        if (dirCounts.Count == 0) return "<p>无目录信息。</p>";
+
+        // Sort directories by segment depth so parents appear before children.
+        var orderedDirs = dirCounts.Keys
+            .OrderBy(d => d.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries).Length)
+            .ToList();
+
+        var html = new System.Text.StringBuilder();
+
+        foreach (var dir in orderedDirs)
+        {
+            // Emit full path as a tree node with folder icon and count.
+            string display = dir.Length > 60 ? "..." + dir[^57..] : dir;
+            html.AppendLine($"<div class=\"tree-node\">📁 {EscapeHtml(display)} <span style=\"color:#888;font-size:0.8em\">({dirCounts[dir]} 文件)</span></div>");
+        }
+
+        return html.ToString();
+    }
+
+    private static string EscapeHtml(string text)
+    {
+        return System.Net.WebUtility.HtmlEncode(text);
     }
 }
 

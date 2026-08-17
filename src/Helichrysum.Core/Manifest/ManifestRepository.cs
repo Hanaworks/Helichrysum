@@ -292,7 +292,7 @@ public sealed class ManifestRepository : IDisposable
     public List<FilesystemObject> GetAllFiles()
     {
         using var command = _connection.CreateCommand();
-        command.CommandText = "SELECT id, scope_id, path, canonical_path, kind, size, scope_relation FROM objects WHERE kind = 'RegularFile';";
+        command.CommandText = "SELECT id, scope_id, path, canonical_path, kind, size, scope_relation FROM objects WHERE kind = 'RegularFile' ORDER BY path;";
 
         var results = new List<FilesystemObject>();
         using var reader = command.ExecuteReader();
@@ -317,6 +317,34 @@ public sealed class ManifestRepository : IDisposable
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Gets all directory objects with their child counts.
+    /// </summary>
+    /// <returns>A dictionary mapping directory path to a count of its direct regular-file children.</returns>
+    public Dictionary<string, int> GetDirectoryTree()
+    {
+        var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        // Get all regular file paths and derive directory structure.
+        var allFiles = GetAllFiles();
+        foreach (var file in allFiles)
+        {
+            string? dir = System.IO.Path.GetDirectoryName(file.Path);
+
+            // Mark each ancestor directory with +1 file count.
+            while (!string.IsNullOrEmpty(dir))
+            {
+                result.TryGetValue(dir, out int count);
+                result[dir] = count + 1;
+                string? parent = System.IO.Path.GetDirectoryName(dir);
+                if (parent == dir) break;
+                dir = parent;
+            }
+        }
+
+        return result;
     }
 
     /// <summary>
