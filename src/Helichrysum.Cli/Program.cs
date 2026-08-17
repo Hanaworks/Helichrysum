@@ -59,6 +59,9 @@ public static class Program
 
                 config.AddCommand<ExecCommand>("exec")
                       .WithDescription("执行处理计划（需 --confirm 确认）");
+
+                config.AddCommand<VerifyCommand>("verify")
+                      .WithDescription("验证归档完整性（重新 hash 对比 manifest）");
             });
 
             return app.Run(arguments);

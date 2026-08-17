@@ -273,6 +273,19 @@ public sealed class ManifestRepository : IDisposable
     }
 
     /// <summary>
+    /// Gets the hash value for a specific object by its ID.
+    /// </summary>
+    public string? GetHashByObjectId(long objectId)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT hash_value FROM hashes WHERE object_id = $oid;";
+        command.Parameters.AddWithValue("$oid", objectId);
+
+        object? result = command.ExecuteScalar();
+        return result as string;
+    }
+
+    /// <summary>
     /// Gets all filesystem objects that are regular files.
     /// </summary>
     /// <returns>List of all regular file objects.</returns>
