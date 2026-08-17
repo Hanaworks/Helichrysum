@@ -172,6 +172,57 @@ public sealed class ExecutorTests : IDisposable
         ObjectId = id,
     };
 
+    [Fact]
+    public void SaveAndLoadExecutionLog_RoundTrips()
+    {
+        string filePath = Path.Combine(_tempDir, "resume.txt");
+        File.WriteAllText(filePath, "content");
+        string hash = HashService.ComputeSha256(filePath);
+
+        var action = new PlannedAction { ActionType = "MoveToTrash", ObjectId = 7 };
+        Assert.True(_executor.ExecuteAction(action, filePath, hash));
+
+        string logPath = Path.Combine(_tempDir, "exec_log.json");
+        _executor.SaveExecutionLog(logPath);
+
+        var completed = Executor.LoadCompletedObjectIds(logPath);
+
+        Assert.Contains(7L, completed);
+    }
+
+    [Fact]
+    public void ExecutePlan_WithSkipSet_SkipsCompletedObjects()
+    {
+        string filePath = Path.Combine(_tempDir, "skip.txt");
+        File.WriteAllText(filePath, "content");
+        string hash = HashService.ComputeSha256(filePath);
+
+        var plan = new ProcessingPlan
+        {
+            Id = "resume-plan",
+            CreatedAt = DateTimeOffset.UtcNow,
+            Actions =
+            [
+                new PlannedAction { ActionType = "MoveToTrash", ObjectId = 10 },
+                new PlannedAction { ActionType = "MoveToTrash", ObjectId = 11 },
+            ],
+        };
+
+        var skipSet = new HashSet<long> { 10 };
+        var executor = new Executor(_trashDir, _stagingDir);
+
+        int success = executor.ExecutePlan(plan, id =>
+        {
+            if (id == 10) return (filePath, hash);
+            if (id == 11) return (filePath, hash);
+            return null;
+        }, skipSet);
+
+        // Object 10 skipped (resume), object 11 executed → 1 success.
+        Assert.Equal(1, success);
+        Assert.Contains(executor.Log, e => e.Status == "Skipped" && e.Message.Contains("resume"));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDir)) TestFileHelper.DeleteDirectoryWithRetry(_tempDir);

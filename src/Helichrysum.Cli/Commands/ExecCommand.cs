@@ -69,6 +69,16 @@ public sealed class ExecCommand : Command<ExecCommand.Settings>
 
         using var repository = ManifestRepository.Open(manifestPath);
 
+        // F-Exec-4: Resume support — load previously completed object IDs if this plan
+        // was already partially executed (interrupted run).
+        string resumeLogPath = GetResumeLogPath(settings.PlanId, manifestPath);
+        var completedIds = Executor.LoadCompletedObjectIds(resumeLogPath);
+
+        if (completedIds.Count > 0)
+        {
+            AnsiConsole.MarkupLine($"[yellow]检测到上次执行记录（{completedIds.Count} 个已完成对象），将续跑跳过。[/]");
+        }
+
         // Resolve object IDs to file paths.
         var allFiles = repository.GetAllFiles();
         var pathMap = allFiles.ToDictionary(f => f.Id, f => f.CanonicalPath);
@@ -81,7 +91,7 @@ public sealed class ExecCommand : Command<ExecCommand.Settings>
                 return (path, hash);
             }
             return null;
-        });
+        }, completedIds);
 
         // Log results.
         var table = new Table();
@@ -111,7 +121,21 @@ public sealed class ExecCommand : Command<ExecCommand.Settings>
         repository.SetManifestMeta("last_plan_executed", plan.Id);
         repository.SetManifestMeta("last_execution_at", DateTimeOffset.UtcNow.ToString("O"));
 
+        // F-Exec-4: Persist the execution log so an interrupted run can resume.
+        executor.SaveExecutionLog(resumeLogPath);
+
         return 0;
+    }
+
+    private static string GetResumeLogPath(string planId, string manifestPath)
+    {
+        string baseDir = manifestPath != null
+            ? Path.GetDirectoryName(manifestPath)!
+            : Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".helichrysum", "manifests");
+
+        return Path.Combine(baseDir, $"exec_resume_{planId}.json");
     }
 
     private static string GetPlanPath(string planId, string? manifestPath)

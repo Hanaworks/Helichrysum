@@ -104,13 +104,25 @@ public sealed class Executor
 
     /// <summary>
     /// Executes a complete processing plan with integrity verification.
+    /// Optional <paramref name="skipObjectIds"/> excludes already-completed objects
+    /// so an interrupted execution can resume (F-Exec-4).
     /// </summary>
-    public int ExecutePlan(ProcessingPlan plan, Func<long, (string? path, string? hash)?> resolveObject)
+    public int ExecutePlan(
+        ProcessingPlan plan,
+        Func<long, (string? path, string? hash)?> resolveObject,
+        ISet<long>? skipObjectIds = null)
     {
         int successCount = 0;
 
         foreach (var action in plan.Actions)
         {
+            if (skipObjectIds != null && skipObjectIds.Contains(action.ObjectId))
+            {
+                // Already completed in a previous run — skip.
+                LogAction(action, "unknown", null, "Skipped", "Already completed (resume)");
+                continue;
+            }
+
             var resolved = resolveObject(action.ObjectId);
 
             if (resolved == null)
@@ -134,6 +146,49 @@ public sealed class Executor
         }
 
         return successCount;
+    }
+
+    /// <summary>
+    /// Gets the set of object IDs that completed with "Completed" status —
+    /// used to build the resume skip-set for the next invocation (F-Exec-4).
+    /// </summary>
+    public HashSet<long> GetCompletedObjectIds()
+    {
+        return _log
+            .Where(entry => entry.Status == "Completed")
+            .Select(entry => entry.ObjectId)
+            .ToHashSet();
+    }
+
+    /// <summary>
+    /// Persists the execution log to a JSON file for resumption (F-Exec-4).
+    /// </summary>
+    public void SaveExecutionLog(string outputPath)
+    {
+        var serialized = Helichrysum.Core.Serialization.JsonService.SerializeIndented(_log);
+        File.WriteAllText(outputPath, serialized);
+    }
+
+    /// <summary>
+    /// Loads a previously-persisted execution log to build the resume skip-set.
+    /// </summary>
+    public static HashSet<long> LoadCompletedObjectIds(string logPath)
+    {
+        if (!File.Exists(logPath)) return [];
+
+        try
+        {
+            var entries = Helichrysum.Core.Serialization.JsonService
+                .Deserialize<List<ExecutionLogEntry>>(File.ReadAllText(logPath));
+            return entries?
+                .Where(e => e.Status == "Completed")
+                .Select(e => e.ObjectId)
+                .ToHashSet() ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private bool MoveToTrash(PlannedAction action, string sourcePath, string? expectedHash)
