@@ -1,6 +1,6 @@
 namespace Helichrysum.Core.Configuration;
 
-using System.Text.Json;
+using Newtonsoft.Json;
 
 /// <summary>
 /// Deletion backup strategies (F-Exec-9).
@@ -75,8 +75,7 @@ public sealed class HelichrysumConfiguration
         try
         {
             string json = File.ReadAllText(configPath);
-            var config = JsonSerializer.Deserialize<HelichrysumConfiguration>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var config = JsonConvert.DeserializeObject<HelichrysumConfiguration>(json);
 
             return config ?? new HelichrysumConfiguration();
         }

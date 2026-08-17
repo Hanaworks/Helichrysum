@@ -1,8 +1,6 @@
 namespace Helichrysum.Core.Reporting;
 
 using System.Collections.Generic;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Helichrysum.Core.Manifest;
 
 /// <summary>
@@ -59,14 +57,14 @@ public sealed class ReportBuilder
             DuplicateGroups = groupSummaries,
         };
 
-        var options = new JsonSerializerOptions
+        var options = new Newtonsoft.Json.JsonSerializerSettings
         {
-            WriteIndented = true,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Formatting = Newtonsoft.Json.Formatting.Indented,
+            NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
         };
+        options.ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver();
 
-        return JsonSerializer.Serialize(report, options);
+        return Newtonsoft.Json.JsonConvert.SerializeObject(report, options);
     }
 
     /// <summary>

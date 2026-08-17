@@ -36,13 +36,13 @@ public sealed record ResolutionResult
     /// <summary>Serializes the result to a string for manifest storage.</summary>
     public string ToStorageString()
     {
-        return System.Text.Json.JsonSerializer.Serialize(this);
+        return Newtonsoft.Json.JsonConvert.SerializeObject(this);
     }
 
     /// <summary>Deserializes from a storage string.</summary>
     public static ResolutionResult FromStorageString(string json)
     {
-        return System.Text.Json.JsonSerializer.Deserialize<ResolutionResult>(json)
+        return Newtonsoft.Json.JsonConvert.DeserializeObject<ResolutionResult>(json)
             ?? new ResolutionResult { Kind = ResolutionKind.Unknown, Confidence = 0, Evidence = "deserialization failed" };
     }
 }

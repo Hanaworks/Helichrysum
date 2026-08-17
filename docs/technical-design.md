@@ -171,7 +171,7 @@ helichrysum/
 | 异步运行时 | `System.Threading.Tasks`（TPL / `Parallel.ForEachAsync`） | 内建，无额外依赖 |
 | Web | `ASP.NET Core`（Minimal API / Controllers） | 官方，性能顶尖 |
 | 桌面 GUI | `WPF`（WinUI 3 可选） | Windows 原生、MVVM 生态成熟 |
-| 序列化 | `System.Text.Json` | 内置；source generation 高性能 |
+| 序列化 | `Newtonsoft.Json`（禁止 System.Text.Json） | 统一用 Newtonsoft.Json；不引入 System.Text.Json |
 | 错误处理 | 异常 + `Result` 模式（自建轻量） | CLI 层转友好错误 |
 | 日志 | `Serilog` + Console/File sink | 结构化日志、低开销 |
 | 配置 | `Microsoft.Extensions.Configuration`（JSON/环境变量） | 官方，标准化 |
@@ -539,7 +539,7 @@ public interface IRelationDetector
 **三种输出（与 Rust 版一致）：**
 
 1. **HTML 交互报告**：单文件自包含（内嵌 JSON + 轻量前端框架产物），可离线打开
-2. **JSON**：机器可读，`System.Text.Json` source generation
+2. **JSON**：机器可读，`Newtonsoft.Json`
 3. **SQLite 视图**：在 manifest 数据库上建视图
 
 ### 4.8 Plan Generator

@@ -4,7 +4,7 @@
 
 ---
 
-## 硬性规则（5 条，不可违反）
+## 硬性规则（6 条，不可违反）
 
 ### 规则 1：命名不使用缩写
 
@@ -54,6 +54,13 @@ scanCnt
   ```
 
 - 代码应当像艺术品一样漂亮、干净、整洁、优雅。
+
+### 规则 3.5：序列化统一使用 Newtonsoft.Json
+
+- **禁止使用 System.Text.Json**（含其 source generation 特性）
+- JSON 序列化/反序列化一律使用 **Newtonsoft.Json**（`JsonConvert.SerializeObject` / `JsonConvert.DeserializeObject`）
+- 使用 `JsonSerializerSettings` 控制缩进、命名策略
+- 与 `docs/technical-design.md` §2.2 序列化选型保持一致
 
 ### 规则 4：初版 WebUI 验证交互（WebUI-First，限初版窗口期）
 
