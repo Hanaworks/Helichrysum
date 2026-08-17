@@ -540,76 +540,156 @@ public class ScanTests
 
 ---
 
-## 7. 待实现功能项（切片 0-10 完成后的补充）
+## 7. 切片 11-14：v1 后补充功能
 
-### 7.1 高优（7 项）
+### 切片 11：报告完善
 
-| # | 名称 | 状态 | 说明 | 关联 F-xxx | 工作量 |
-|---|---|---|---|---|---|
-| v1 | verify 命令 | ✅ 已完成 | 归档完整性重新 hash 对比 manifest | F-Exec-5 | 0.5 天 |
-| v2 | CI 实跑 | ⏳ | GitHub Actions 验证三平台构建+测试绿 | — | 0.5 天 |
-| v3 | 报告目录树渲染 | ⏳ | F-Report-1 HTML 目录树可展开 | F-Report-1 | 1-2 天 |
-| v4 | 快照年龄展示 | ⏳ | F-Report-12 报告头部显示创建时间 | F-Report-12 | 0.5 天 |
-| v5 | CONFIG 配置化 | ⏳ | 保底策略/报告阈值/分析深度做成配置读取 | 配置哲学 | 1 天 |
-| v6 | CLI 端到端集成测试 | ⏳ | Scan→Analyze→Plan→Exec 全流程自动化测试 | — | 1 天 |
-| v7 | AOT 单文件发布验证 | ⏳ | dotnet publish NativeAOT | — | 0.5-1 天 |
+**目标：** 报告从"JSON/HTML 数据导出"升级为"可读、可浏览、可筛选"，增加快照年龄、目录树、筛选、Diff、SQLite 导出。
 
-### 7.2 中优（14 项）
+**功能清单：**
+- 报告目录树渲染（F-Report-1）：HTML 内目录结构从根逐层展开
+- 快照年龄展示（F-Report-12）：报告头部显示"快照创建于 X 天前"
+- 筛选视图（F-Report-4/5）：按问题类型、路径、size、mtime 范围筛选
+- Diff 视图（F-Report-7）：重复组内并排查看差异
+- 超限截断（F-Report-6c）：大报告详情截断保留摘要
+- SQLite 导出（F-Report-10）：报告可导出 SQLite 格式
 
-| # | 名称 | 状态 | 说明 | 关联 F-xxx | 工作量 |
-|---|---|---|---|---|---|
-| v8 | NearDuplicate | ⏳ | 文本 EOL/BOM 归一化比较 | F-Relation-2 | 1 天 |
-| v9 | 报告筛选+Diff | ⏳ | 按问题类型/路径/size/mtime 筛选 + Diff 视图 | F-Report-4/5/7 | 2 天 |
-| v10 | 报告超限截断 | ⏳ | 大报告详情截断保留摘要 | F-Report-6c | 1 天 |
-| v11 | SQLite 导出 | ⏳ | 报告可导出 SQLite 格式 | F-Report-10 | 1 天 |
-| v12 | 保底三策略 | ⏳ | 双保险/仅回收站/仅Staging 可配 | F-Exec-9 | 1 天 |
-| v13 | 新 manifest 生成 | ⏳ | 执行完成后生成新 manifest 反映归档状态 | F-Exec-5 | 1 天 |
-| v14 | 中断恢复 | ⏳ | 执行中断后可续跑 | F-Exec-4 | 1 天 |
-| v15 | 回滚信息 | ⏳ | 每个动作的逆操作信息 | F-Plan-7 | 1 天 |
-| v16 | 一致性投票 | ⏳ | 多数派检测孤立者标 Integrity_Suspected | F-Resolve-18 | 1 天 |
-| v17 | 时间可信度检验 | ⏳ | ctime 聚集检测拷贝痕迹降权 | F-Resolve-4a | 1 天 |
-| v18 | 压缩包锚点 | ⏳ | 包内时间戳作为解压锚点证据链 | F-Resolve-16 | 1 天 |
-| v19 | 同层仲裁 | ⏳ | 意图冲突优先级裁决（Moved>StructuralSibling>ArchivePair>Duplicate） | F-Resolve-13 | 1 天 |
-| v20 | 自动项可见可否决 | ⏳ | 自动处理项在报告中可查可被否决 | F-Resolve-7 | 1 天 |
-| v21 | 依赖链可视化 | ⏳ | 报告标注处理链层级依赖关系 | F-Resolve-15 | 1 天 |
+**TDD 红线：**
+- 报告 JSON 含 `snapshot_age` 字段
+- 目录树根节点显示聚合统计
+- 按问题类型筛选后结果正确
+- Diff 视图对文本文件可正常渲染
+- 超限截断后文件大小 < 阈值
+- SQLite 导出可被 `sqlite3` 打开查询
 
-### 7.3 低优（3 项 + 2 UI）
-
-| # | 名称 | 状态 | 说明 | 关联 F-xxx | 前提 |
-|---|---|---|---|---|---|
-| v22 | Hardlink inode 检测 | ⏳ | P/Invoke 跨平台 | F-Link-3 | 有真实 hardlink 需求 |
-| v23 | Mount Point 边界 | ⏳ | Linux 挂载点检测不跨设备 | F-Link-4 | 非阻塞 |
-| v24 | 交互式确认流 | ⏳ | 交互式确认替换 --confirm 参数 | F-Exec-1 | WebUI 阶段 |
-| UI-7 | WebUI（切片 7） | ⏳ | 操作界面+报告界面 | F-Preview, F-Form | 你单独线 |
-| UI-8 | WPF 桌面壳（切片 8） | ⏳ | Windows 优先 | F-Form | 等 WebUI 定稿 |
+**验收命令：**
+```bash
+helichrysum report --format html --out report.html
+# 打开报告：目录树可展开、快照年龄显示、筛选下拉生效
+helichrysum report --format json | grep snapshot_age
+helichrysum report --format sqlite --out report.db
+```
 
 ---
 
-## 8. F-xxx 模块覆盖进度
+### 切片 12：安全与配置
+
+**目标：** CI 验证、配置化、安全层完整（Staging 保留期、新 manifest、中断恢复）、发布构建。
+
+**功能清单：**
+- CI 实跑：GitHub Actions 三平台构建+测试绿
+- CONFIG 配置化：保底策略/报告阈值/分析深度/etc 从 JSON 配置文件读取
+- CLI 端到端集成测试：Scan→Analyze→Plan→Exec→Verify 全流程自动化
+- AOT 单文件发布验证：`dotnet publish -a nativeaot` 可用
+- 保底三策略可配（F-Exec-9）：双保险/仅回收站/仅Staging，从 config 读取
+- 新 manifest 生成（F-Exec-5）：执行完成后新 manifest 反映归档状态
+- 中断恢复（F-Exec-4）：执行中断后可续跑
+
+**TDD 红线：**
+- 配置文件存在时读取正确值，不存在时使用默认值
+- 端到端集成测试：fixture 上跑通 scan→analyze→plan→exec→verify
+- AOT 发布产物可执行且版本号正确
+- 切换保底策略后 Executor 行为改变
+- 执行完成后新 manifest 存在且不含已清理文件
+- 模拟中断后扫描状态可恢复
+
+**验收命令：**
+```bash
+dotnet test  # 测试全绿
+helichrysum --version  # 输出双轨版本号
+helichrysum verify     # 归档完整性验证
+```
+
+---
+
+### 切片 13：决策模型补全
+
+**目标：** 将 F-Resolve 设计文档中的高级决策规则落地：一致性投票、时间可信度检验、压缩包锚点、同层仲裁、自动项可见可否决、依赖链可视化。
+
+**功能清单：**
+- 一致性投票（F-Resolve-18）：多数派一致 vs 孤立者 → 孤立者标 Integrity_Suspected
+- 时间可信度检验（F-Resolve-4a）：ctime 聚集检测拷贝痕迹，降权 mtime 证据
+- 压缩包锚点（F-Resolve-16）：包内时间戳作为解压目录内容的时间基准
+- 同层仲裁（F-Resolve-13）：意图冲突优先级裁决（Moved > StructuralSibling > ArchivePair > Duplicate）
+- 自动项可见可否决（F-Resolve-7）：自动处理项在报告中可查可被否决
+- 依赖链可视化（F-Resolve-15）：报告标注"目录级判定 ← 文件级已解决 ×N"
+- 回滚信息（F-Plan-7）：每个动作的逆操作信息
+
+**TDD 红线：**
+- 多数派一致 + 孤立者 → 孤立者标 Integrity_Suspected
+- ctime 聚集的目录 → 时间戳降权，不参与新旧投票
+- 压缩包解压锚点时间早于目录 → 判定目录更新
+- Moved 保留意图 > Duplicate 清理意图 → 仲裁判保留
+- 自动项显示在报告中且可被否决
+- 报告含 `based_on` 字段指向依赖链
+
+**验收命令：**
+```bash
+dotnet test  # 测试全绿
+# 具体场景需 fixture 构造特殊数据
+```
+
+---
+
+### 切片 14：边缘补全
+
+**目标：** 补全 NearDuplicate 文本比较、Hardlink inode 检测、Mount Point 边界、交互式确认。
+
+**功能清单：**
+- NearDuplicate（F-Relation-2）：文本文件 EOL/BOM/尾部空白归一化后比较
+- Hardlink inode 检测（F-Link-3）：P/Invoke 跨平台（Linux stat、macOS getattrlist、Windows FileId）
+- Mount Point 边界（F-Link-4）：Linux 挂载点检测不跨设备
+- 交互式确认流（F-Exec-1）：CLI 交互式确认替换 `--confirm` 参数（WebUI 阶段）
+
+**TDD 红线：**
+- 仅 EOL 不同的文本文件 → NearDuplicate
+- 归一化后内容相同 → NearDuplicate
+- Hardlink 同一 inode 两个路径 → 只统计一次内容
+- 挂载点目录不跨设备
+- 无 `--confirm`/`-y` 时交互式提示
+
+**验收命令：**
+```bash
+dotnet test  # 测试全绿
+```
+
+---
+
+## 8. 切片地图更新
+
+| 切片 | 名称 | 对应 Phase | 交付物 | 状态 |
+|---|---|---|---|---|
+| **11** | 报告完善 | — | 目录树/筛选/Diff/快照年龄/SQLite导出/超限截断 | ⏳ |
+| **12** | 安全与配置 | — | CI/CONFIG/集成测试/AOT/保底策略/新manifest/中断恢复 | ⏳ |
+| **13** | 决策模型补全 | — | 一致性投票/时间可信度/压缩包锚点/仲裁/自动项可见/依赖链 | ⏳ |
+| **14** | 边缘补全 | — | NearDuplicate/Hardlink/MountPoint/交互式确认 | ⏳ |
+
+---
+
+## 9. F-xxx 模块覆盖进度
 
 | 模块 | 总数 | 已完成 | 待完成 | 完成率 |
 |---|---|---|---|---|
 | F-Scope | 7 | 7 | 0 | 100% |
-| F-Scan | 11 | 10 | 1（v6） | 91% |
-| F-Link | 6 | 5 | 1（v22/v23） | 83% |
+| F-Scan | 11 | 10 | 1（切片 12） | 91% |
+| F-Link | 6 | 5 | 1（切片 14） | 83% |
 | F-Layered | 7 | 7 | 0 | 100% |
-| F-Relation | 8 | 7 | 1（v8） | 88% |
-| F-Resolve | 17 | 6 | 11（v16-v21 等） | 35% |
+| F-Relation | 8 | 7 | 1（切片 14） | 88% |
+| F-Resolve | 17 | 6 | 11（切片 13） | 35% |
 | F-Archive | 7 | 7 | 0 | 100% |
-| F-Report | 12 | 3 | 9（v3/v4/v9/v10/v11 等） | 25% |
+| F-Report | 12 | 3 | 9（切片 11） | 25% |
 | F-Preview | 10 | 0 | 10 | 0%（依赖 UI） |
-| F-Plan | 7 | 5 | 2（v14/v15） | 71% |
-| F-Exec | 12 | 8 | 4（v12/v13/v14/v24） | 67% |
+| F-Plan | 7 | 5 | 2（切片 13） | 71% |
+| F-Exec | 12 | 8 | 4（切片 12/14） | 67% |
 | F-Form | 6 | 1 | 5 | 17%（依赖 UI） |
 
 ---
 
-## 9. 里程碑
+## 10. 里程碑
 
 | 里程碑 | 条件 | 预计 |
 |---|---|---|
-| Beta CLI 可用 | v1-v7 完成（71→78 测试） | ~1 周 |
-| 报告完善 | v3/v4/v9/v10/v11 完成（78→85 测试） | ~2 周 |
-| 决策模型完整 | v16-v21 完成（85→95 测试） | ~2 周 |
-| 安全层完整 | v12/v13/v14 完成（95→100 测试） | ~1 周 |
-| v1.0 Release | 全部非 UI 完成 + UI 线合流 | 待定 |
+| Beta CLI 可用 | 切片 0-12 完成（71→~85 测试） | ~1 周 |
+| 决策模型完整 | 切片 13 完成（~85→95 测试） | ~2 周 |
+| 边缘补全 | 切片 14 完成（~95→100 测试） | ~1 周 |
+| v1.0 Release | 切片 0-14 + UI 线合流 | 待定 |
