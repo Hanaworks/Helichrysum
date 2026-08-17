@@ -177,7 +177,7 @@ public sealed class PlanDryRunCommand : Command<PlanDryRunCommand.Settings>
         }
 
         AnsiConsole.Write(table);
-        AnsiConsole.MarkupLine($"[dim]共 {plan.Actions.Count} 个动作。执行 --confirm 确认执行。[/]");
+        AnsiConsole.MarkupLine($"[dim]共 {plan.Actions.Count} 个动作。执行 [bold]exec {settings.PlanId}[/] 进行交互式确认。[/]");
         return 0;
     }
 

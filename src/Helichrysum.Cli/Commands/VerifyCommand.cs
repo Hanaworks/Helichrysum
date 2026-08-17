@@ -41,12 +41,21 @@ public sealed class VerifyCommand : Command<VerifyCommand.Settings>
         int passed = 0;
         int failed = 0;
         int missing = 0;
+        int removed = 0;
 
         var failedFiles = new List<(string Path, string ExpectedHash, string ActualHash)>();
 
         foreach (var file in allFiles)
         {
             if (cancellationToken.IsCancellationRequested) break;
+
+            // F-Exec-5: Objects already archived (removed to trash/staging by exec)
+            // are expected to be absent from the source tree — count them separately.
+            if (!string.IsNullOrEmpty(file.ScopeRelation) && file.ScopeRelation == "Removed")
+            {
+                removed++;
+                continue;
+            }
 
             string? storedHash = repository.GetHashByObjectId(file.Id);
 
@@ -88,6 +97,7 @@ public sealed class VerifyCommand : Command<VerifyCommand.Settings>
             Align.Left(new Markup(
                 $"[bold]总文件:[/] {total}\n" +
                 $"[green]✓ 完好:[/] {passed}\n" +
+                (removed > 0 ? $"[dim]↦ 已归档:[/] {removed}\n" : "") +
                 (failed > 0 ? $"[red]✗ 损坏:[/] {failed}\n" : "") +
                 (missing > 0 ? $"[yellow]⚠ 缺失:[/] {missing}\n" : ""))))
         {
