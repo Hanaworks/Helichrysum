@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Helichrysum WebUI · 4 种 UX 范式探索</title>
+<style>
+:root {
+  --color-canvas: #faf9f7; --color-surface: #ffffff; --color-surface-sunken: #f3f1ec;
+  --color-surface-hover: #f7f5f0; --color-border: #e9e5de; --color-border-strong: #d8d2c8;
+  --color-text-primary: #292524; --color-text-secondary: #6f6963; --color-text-tertiary: #a49e95;
+  --color-text-inverted: #ffffff;
+  --color-brand: #d97706; --color-brand-deep: #b45309; --color-brand-bright: #f59e0b;
+  --color-brand-tint: #fffbeb; --color-brand-tint-strong: #fef3c7; --color-brand-border: #f5d9a8;
+  --relation-exact-duplicate: #2563eb; --relation-exact-duplicate-bg: #eff6ff;
+  --relation-near-duplicate: #0e7490; --relation-near-duplicate-bg: #ecfeff;
+  --relation-versioned: #16a34a; --relation-versioned-bg: #f0fdf4;
+  --relation-renamed: #52627a; --relation-renamed-bg: #f1f5f9;
+  --relation-moved: #64748b; --relation-moved-bg: #f4f6f8;
+  --relation-structural-sibling: #4f46e5; --relation-structural-sibling-bg: #eef2ff;
+  --relation-archive-pair: #9333ea; --relation-archive-pair-bg: #faf5ff;
+  --relation-link-reference: #475569; --relation-link-reference-bg: #f1f5f9;
+  --relation-partial-overlap: #ea580c; --relation-partial-overlap-bg: #fff7ed;
+  --relation-out-of-scope: #b45309; --relation-out-of-scope-bg: #fef3c7;
+  --relation-broken: #dc2626; --relation-broken-bg: #fef2f2;
+  --relation-circular: #9f1239; --relation-circular-bg: #ffe4e6;
+  --resolution-equality: #15803d; --resolution-equality-bg: #dcfce7;
+  --resolution-compatibility: #0369a1; --resolution-compatibility-bg: #e0f2fe;
+  --resolution-conflict: #dc2626; --resolution-conflict-bg: #fee2e2;
+  --resolution-integrity: #7f1d1d; --resolution-integrity-bg: #f7dcdc;
+  --font-ui: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+  --radius-card: 12px; --radius-el: 8px; --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(41,37,36,.04), 0 4px 16px rgba(41,37,36,.05);
+  --shadow-raised: 0 1px 3px rgba(41,37,36,.08), 0 8px 24px rgba(41,37,36,.09);
+  --shadow-brand: 0 2px 10px rgba(217,119,6,.32);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--font-ui); font-size:14px; line-height:1.55; color:var(--color-text-primary); background:var(--color-canvas); min-width:1180px; }
+button { font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
+input, select { font:inherit; color:inherit; }
+.icon { width:16px; height:16px; flex:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; fill:none; vertical-align:-3px; }
+.icon-sm { width:13px; height:13px; vertical-align:-2px; }
+.mono { font-family:var(--font-mono); font-size:12px; }
+.num { font-variant-numeric:tabular-nums; }
+
+/* === 范式切换器 === */
+.pd-bar { position:sticky; top:0; z-index:200; display:flex; align-items:center; gap:20px; padding:10px 28px; background:rgba(255,255,255,.94); backdrop-filter:blur(12px); border-bottom:1px solid var(--color-border); }
+.pd-brand { display:flex; align-items:center; gap:10px; min-width:260px; }
+.pd-brand-mark { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; background:linear-gradient(145deg,var(--color-brand-bright),var(--color-brand)); box-shadow:var(--shadow-brand); }
+.pd-brand-mark svg { width:18px; height:18px; }
+.pd-brand-name { font-size:15px; font-weight:700; }
+.pd-brand-name em { font-style:normal; color:var(--color-brand-deep); }
+.pd-brand-sub { font-size:11px; color:var(--color-text-tertiary); }
+.pd-tabs { display:flex; gap:3px; margin:0 auto; background:var(--color-surface-sunken); border:1px solid var(--color-border); border-radius:var(--radius-pill); padding:3px; }
+.pd-tab { display:flex; align-items:center; gap:6px; padding:6px 14px; border-radius:var(--radius-pill); font-size:13px; color:var(--color-text-secondary); transition:all .18s; }
+.pd-tab:hover { color:var(--color-text-primary); }
+.pd-tab.on { background:var(--color-surface); color:var(--color-brand-deep); font-weight:600; box-shadow:0 1px 3px rgba(41,37,36,.12); }
+.pd-tab .icon { width:14px; height:14px; }
+.pd-note { font-size:12px; color:var(--color-text-tertiary); min-width:260px; text-align:right; }
+
+.pd-intro { max-width:1280px; margin:0 auto; padding:14px 28px; }
+.pd-intro-card { display:flex; gap:24px; padding:14px 20px; background:var(--color-brand-tint); border:1px dashed var(--color-brand-border); border-radius:var(--radius-card); font-size:12.5px; line-height:1.6; }
+.pd-intro-label { flex:none; font-weight:700; color:var(--color-brand-deep); font-size:13px; }
+.pd-intro-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; flex:1; }
+.pd-intro-item b { color:var(--color-brand-deep); }
+
+.pd-stage { display:none; }
+.pd-stage.on { display:block; animation:pdIn .25s ease; }
+@keyframes pdIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+/* === 共享组件 === */
+.stat-row { display:flex; gap:14px; }
+.stat-tile { flex:1; padding:14px 18px; background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-card); box-shadow:var(--shadow-card); }
+.stat-val { display:block; font-size:24px; font-weight:700; line-height:1.2; }
+.stat-unit { font-size:13px; font-weight:400; color:var(--color-text-secondary); }
+.stat-lbl { display:block; font-size:12px; color:var(--color-text-secondary); margin-top:2px; }
+.stat-warn .stat-val { color:var(--resolution-conflict); }
+.stat-acc .stat-val { color:var(--color-brand-deep); }
+
+.rel-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:var(--radius-pill); font-size:12px; font-weight:600; white-space:nowrap; }
+.rel-code { font-family:var(--font-mono); font-size:10.5px; font-weight:400; opacity:.75; }
+.rel-exact-duplicate { color:var(--relation-exact-duplicate); background:var(--relation-exact-duplicate-bg); }
+.rel-near-duplicate { color:var(--relation-near-duplicate); background:var(--relation-near-duplicate-bg); }
+.rel-versioned { color:var(--relation-versioned); background:var(--relation-versioned-bg); }
+.rel-renamed { color:var(--relation-renamed); background:var(--relation-renamed-bg); }
+.rel-moved { color:var(--relation-moved); background:var(--relation-moved-bg); }
+.rel-structural-sibling { color:var(--relation-structural-sibling); background:var(--relation-structural-sibling-bg); }
+.rel-archive-pair { color:var(--relation-archive-pair); background:var(--relation-archive-pair-bg); }
+.rel-link-reference { color:var(--relation-link-reference); background:var(--relation-link-reference-bg); }
+.rel-partial-overlap { color:var(--relation-partial-overlap); background:var(--relation-partial-overlap-bg); }
+.rel-out-of-scope { color:var(--relation-out-of-scope); background:var(--relation-out-of-scope-bg); }
+.rel-broken { color:var(--relation-broken); background:var(--relation-broken-bg); }
+.rel-circular { color:var(--relation-circular); background:var(--relation-circular-bg); }
+
+.res-badge { display:inline-flex; padding:3px 10px; border-radius:var(--radius-pill); font-size:12px; font-weight:600; white-space:nowrap; }
+.res-equality { color:var(--resolution-equality); background:var(--resolution-equality-bg); }
+.res-compatibility { color:var(--resolution-compatibility); background:var(--resolution-compatibility-bg); }
+.res-conflict { color:var(--resolution-conflict); background:var(--resolution-conflict-bg); }
+.res-integrity { color:var(--resolution-integrity); background:var(--resolution-integrity-bg); }
+
+.conf-bar { display:flex; align-items:center; gap:7px; }
+.conf-track { width:56px; height:5px; background:var(--color-surface-sunken); border-radius:3px; overflow:hidden; }
+.conf-fill { height:100%; background:linear-gradient(90deg,var(--color-brand-bright),var(--color-brand)); border-radius:3px; transition:width .4s; }
+.conf-val { font-size:12px; font-weight:600; color:var(--color-text-secondary); }
+
+.sug { display:inline-flex; padding:2px 8px; border-radius:var(--radius-pill); font-size:11.5px; font-weight:500; white-space:nowrap; }
+.sug-keep { color:var(--resolution-equality); background:var(--resolution-equality-bg); }
+.sug-trash { color:#be123c; background:#ffe4e6; }
+.sug-manual { color:var(--color-brand-deep); background:var(--color-brand-tint-strong); }
+.sug-neutral { color:var(--color-text-secondary); background:var(--color-surface-sunken); }
+.sug-integrity { color:var(--resolution-integrity); background:var(--resolution-integrity-bg); }
+
+/* === 问题卡片（JS渲染） === */
+.issue-card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-card); padding:16px 20px; margin-bottom:12px; box-shadow:var(--shadow-card); }
+.issue-card-hd { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+.issue-card-title { font-size:14px; font-weight:600; }
+.issue-card-meta { font-size:12px; color:var(--color-text-tertiary); margin-left:auto; }
+.issue-card-body { border-top:1px solid var(--color-border); padding-top:8px; }
+.issue-row { display:flex; align-items:center; gap:10px; padding:7px 0; font-size:13px; border-bottom:1px solid var(--color-surface-sunken); }
+.issue-row:last-child { border-bottom:none; }
+.issue-row-path { font-family:var(--font-mono); font-size:12.5px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.issue-row-size { font-size:12px; color:var(--color-text-secondary); flex:none; }
+.issue-row-sug { flex:none; }
+
+/* === 范式 A：向导式 === */
+.wz-shell { max-width:1060px; margin:0 auto; padding:32px 28px 64px; }
+.wz-stepper { display:flex; align-items:center; justify-content:center; margin-bottom:36px; }
+.wz-step { display:flex; align-items:center; gap:10px; }
+.wz-step-dot { width:36px; height:36px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:14px; border:2px solid var(--color-border-strong); color:var(--color-text-tertiary); background:var(--color-surface); transition:all .3s; }
+.wz-step.done .wz-step-dot { background:var(--color-brand); border-color:var(--color-brand); color:#fff; }
+.wz-step.on .wz-step-dot { border-color:var(--color-brand); color:var(--color-brand-deep); box-shadow:0 0 0 5px rgba(217,119,6,.12); }
+.wz-step-lbl { font-size:13px; font-weight:600; color:var(--color-text-tertiary); }
+.wz-step.on .wz-step-lbl { color:var(--color-text-primary); }
+.wz-step.done .wz-step-lbl { color:var(--color-text-secondary); }
+.wz-conn { width:68px; height:2px; background:var(--color-border-strong); margin:0 16px; border-radius:1px; }
+.wz-conn.filled { background:var(--color-brand); }
+.wz-viewport { position:relative; }
+.wz-page { position:absolute; inset:0 0 auto; opacity:0; visibility:hidden; transform:translateX(48px); transition:opacity .38s, transform .38s, visibility 0s .38s; }
+.wz-page.from-left { transform:translateX(-48px); }
+.wz-page.on { position:relative; opacity:1; visibility:visible; transform:none; transition:opacity .38s, transform .38s; }
+.wz-heading { text-align:center; margin-bottom:28px; }
+.wz-title { font-size:22px; font-weight:700; }
+.wz-sub { font-size:13px; color:var(--color-text-secondary); margin-top:5px; }
+.wz-card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:16px; padding:24px 26px; margin-bottom:16px; box-shadow:var(--shadow-card); }
+.wz-card-hd { font-size:14px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.wz-card-hd .icon { color:var(--color-brand); }
+.wz-path { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:var(--radius-el); border:1px solid var(--color-border); margin-bottom:8px; transition:border-color .15s; }
+.wz-path:hover { border-color:var(--color-border-strong); }
+.wz-path .icon { color:var(--color-brand); width:18px; height:18px; }
+.wz-path-text { font-family:var(--font-mono); font-size:13px; font-weight:500; }
+.wz-path-meta { font-size:11.5px; color:var(--color-text-tertiary); margin-left:auto; }
+.wz-depths { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.wz-depth { padding:14px 12px; border-radius:var(--radius-el); text-align:center; border:1.5px solid var(--color-border); cursor:pointer; transition:all .18s; }
+.wz-depth:hover { border-color:var(--color-border-strong); }
+.wz-depth.sel { border-color:var(--color-brand); background:var(--color-brand-tint); box-shadow:0 0 0 3px rgba(217,119,6,.08); }
+.wz-depth-name { font-size:13px; font-weight:600; }
+.wz-depth-desc { font-size:11px; color:var(--color-text-tertiary); margin-top:3px; }
+.wz-actions { display:flex; justify-content:space-between; align-items:center; padding-top:22px; margin-top:6px; border-top:1px solid var(--color-border); }
+.wz-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:var(--radius-el); font-size:14px; font-weight:600; border:1px solid var(--color-border-strong); background:var(--color-surface); transition:all .15s; }
+.wz-btn:hover { background:var(--color-surface-hover); }
+.wz-btn-pri { border:none; color:var(--color-text-inverted); background:linear-gradient(180deg,var(--color-brand-bright),var(--color-brand)); box-shadow:var(--shadow-brand); }
+.wz-btn-pri:hover { background:linear-gradient(180deg,#f59e0b,#c2670a); }
+.wz-btn-lg { padding:12px 32px; font-size:15px; }
+.wz-scan-center { text-align:center; padding:20px 0 8px; }
+.wz-ring { position:relative; width:180px; height:180px; margin:0 auto 20px; }
+.wz-ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+.wz-ring-bg { fill:none; stroke:var(--color-surface-sunken); stroke-width:10; }
+.wz-ring-fill { fill:none; stroke:url(#wzGrad); stroke-width:10; stroke-linecap:round; stroke-dasharray:502.65; stroke-dashoffset:502.65; transition:stroke-dashoffset .5s; }
+.wz-ring-text { position:absolute; inset:0; display:grid; place-items:center; }
+.wz-pct { font-size:42px; font-weight:700; }
+.wz-pct-lbl { font-size:12px; color:var(--color-text-secondary); }
+.wz-scan-path { font-family:var(--font-mono); font-size:12px; color:var(--color-text-secondary); margin-bottom:20px; }
+.wz-scan-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.wz-scan-stat { text-align:center; padding:10px; }
+.wz-scan-val { font-size:18px; font-weight:700; }
+.wz-scan-lbl { font-size:11.5px; color:var(--color-text-tertiary); }
+.wz-layers { display:flex; gap:8px; justify-content:center; margin-bottom:20px; }
+.wz-layer { padding:5px 14px; border-radius:var(--radius-pill); font-size:12px; font-weight:500; border:1px solid var(--color-border); background:var(--color-surface); display:flex; align-items:center; gap:5px; }
+.wz-layer.done { border-color:var(--resolution-equality); color:var(--resolution-equality); background:var(--resolution-equality-bg); }
+.wz-layer.run { border-color:var(--color-brand); color:var(--color-brand-deep); background:var(--color-brand-tint); }
+.wz-scan-btns { display:flex; gap:10px; justify-content:center; }
+
+/* === 范式 B：工作台式 === */
+.ws-shell { display:grid; grid-template-columns:272px minmax(0,1fr); height:800px; margin:0 28px 48px; border:1px solid var(--color-border); border-radius:16px; overflow:hidden; box-shadow:var(--shadow-raised); background:var(--color-surface); }
+.ws-side { background:#29241f; color:#e9e2d5; display:flex; flex-direction:column; overflow:hidden; }
+.ws-side-hd { padding:16px 16px 12px; border-bottom:1px solid rgba(255,255,255,.07); }
+.ws-side-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:#a89e8d; margin-bottom:10px; }
+.ws-new-btn { width:100%; padding:8px 14px; border-radius:var(--radius-el); background:linear-gradient(180deg,var(--color-brand-bright),var(--color-brand)); color:#fff; font-weight:600; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px; }
+.ws-new-btn:hover { filter:brightness(1.08); }
+.ws-sessions { flex:1; overflow-y:auto; padding:10px; }
+.ws-section { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:#7a7264; padding:12px 6px 6px; }
+.ws-session { display:block; width:100%; text-align:left; padding:10px 12px; border-radius:10px; margin-bottom:4px; cursor:pointer; transition:all .15s; border-left:3px solid transparent; }
+.ws-session:hover { background:rgba(255,255,255,.05); }
+.ws-session.on { background:rgba(245,158,11,.14); border-left-color:var(--color-brand-bright); }
+.ws-session-name { font-size:13px; font-weight:600; color:#e9e2d5; }
+.ws-session-scope { font-size:11px; color:#8d8474; margin-top:1px; }
+.ws-session-st { display:inline-flex; margin-top:6px; padding:2px 8px; border-radius:var(--radius-pill); font-size:10.5px; font-weight:600; }
+.ws-st-scan { background:rgba(245,158,11,.2); color:var(--color-brand-bright); }
+.ws-st-done { background:rgba(21,128,61,.25); color:#4ade80; }
+.ws-st-plan { background:rgba(3,105,161,.25); color:#7dd3fc; }
+.ws-st-draft { background:rgba(255,255,255,.08); color:#a89e8d; }
+.ws-main { display:flex; flex-direction:column; overflow:hidden; }
+.ws-main-hd { display:flex; align-items:center; gap:14px; padding:12px 20px; border-bottom:1px solid var(--color-border); }
+.ws-main-title { font-size:15px; font-weight:700; }
+.ws-dots { display:flex; gap:4px; align-items:center; margin-left:auto; }
+.ws-dot { width:8px; height:8px; border-radius:50%; background:var(--color-border-strong); }
+.ws-dot.done { background:var(--color-brand); }
+.ws-dot.on { background:var(--color-brand-bright); box-shadow:0 0 0 3px rgba(245,158,11,.2); }
+.ws-dot-lbl { font-size:11px; color:var(--color-text-tertiary); margin:0 4px; }
+.ws-state { display:none; flex:1; overflow-y:auto; padding:20px 24px; }
+.ws-state.on { display:block; animation:pdIn .22s ease; }
+
+/* === 范式 C：任务卡片式 === */
+.tc-shell { max-width:1240px; margin:0 auto; padding:26px 28px 56px; position:relative; }
+.tc-hd { margin-bottom:22px; }
+.tc-title { font-size:20px; font-weight:700; }
+.tc-sub { font-size:13px; color:var(--color-text-secondary); margin-top:3px; }
+.tc-summary { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+.tc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.tc-card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:14px; padding:18px 20px; cursor:pointer; box-shadow:var(--shadow-card); transition:transform .18s, box-shadow .18s; position:relative; overflow:hidden; }
+.tc-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-raised); }
+.tc-card::before { content:""; position:absolute; top:0; left:0; right:0; height:3px; }
+.tc-card.st-scan::before { background:linear-gradient(90deg,var(--color-brand-bright),var(--color-brand)); }
+.tc-card.st-done::before { background:#22c55e; }
+.tc-card.st-plan::before { background:#3b82f6; }
+.tc-card.st-draft::before { background:var(--color-border-strong); }
+.tc-new { border:2px dashed var(--color-border-strong); background:transparent; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:180px; color:var(--color-text-tertiary); box-shadow:none; }
+.tc-new:hover { border-color:var(--color-brand); color:var(--color-brand-deep); }
+.tc-new .icon { width:28px; height:28px; margin-bottom:8px; }
+.tc-new-lbl { font-size:14px; font-weight:600; }
+.tc-card-name { font-size:15px; font-weight:700; margin-bottom:3px; }
+.tc-card-scope { font-size:12px; color:var(--color-text-tertiary); margin-bottom:12px; }
+.tc-card-st { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:var(--radius-pill); font-size:11.5px; font-weight:600; margin-bottom:10px; }
+.tc-st-scan { background:var(--color-brand-tint); color:var(--color-brand-deep); }
+.tc-st-done { background:var(--resolution-equality-bg); color:var(--resolution-equality); }
+.tc-st-plan { background:var(--resolution-compatibility-bg); color:var(--resolution-compatibility); }
+.tc-st-draft { background:var(--color-surface-sunken); color:var(--color-text-secondary); }
+.tc-prog { margin-bottom:10px; }
+.tc-prog-track { height:6px; background:var(--color-surface-sunken); border-radius:3px; overflow:hidden; }
+.tc-prog-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--color-brand-bright),var(--color-brand)); transition:width .4s; position:relative; }
+.tc-prog-fill::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent); animation:tcShimmer 2s infinite; }
+@keyframes tcShimmer { 0% { transform:translateX(-100%); } 100% { transform:translateX(100%); } }
+.tc-prog-text { font-size:12px; color:var(--color-text-secondary); margin-top:4px; }
+.tc-card-stats { display:flex; gap:14px; font-size:12px; color:var(--color-text-secondary); }
+.tc-card-stats b { color:var(--color-text-primary); }
+.tc-card-time { font-size:11px; color:var(--color-text-tertiary); margin-top:10px; }
+.tc-detail { position:absolute; inset:0; z-index:30; background:var(--color-canvas); border-radius:14px; padding:24px 28px; overflow-y:auto; opacity:0; visibility:hidden; transform:translateY(20px); transition:all .3s; }
+.tc-detail.open { opacity:1; visibility:visible; transform:none; }
+.tc-back { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--color-brand-deep); font-weight:600; margin-bottom:16px; }
+.tc-back:hover { text-decoration:underline; }
+
+/* === 范式 D：沉浸式 === */
+.im-shell { position:relative; height:780px; margin:0 28px 48px; border-radius:18px; overflow:hidden; background:#171310; color:#f3ecdd; box-shadow:0 4px 32px rgba(0,0,0,.3); }
+.im-ambient { position:absolute; inset:0; pointer-events:none; }
+.im-ambient::before { content:""; position:absolute; width:500px; height:500px; border-radius:50%; background:radial-gradient(circle,rgba(245,158,11,.07),transparent 70%); top:-15%; right:-10%; animation:imDrift1 28s ease-in-out infinite alternate; }
+.im-ambient::after { content:""; position:absolute; width:400px; height:400px; border-radius:50%; background:radial-gradient(circle,rgba(217,119,6,.05),transparent 70%); bottom:-10%; left:-8%; animation:imDrift2 32s ease-in-out infinite alternate; }
+@keyframes imDrift1 { from { transform:translate(0,0) scale(1); } to { transform:translate(-60px,40px) scale(1.1); } }
+@keyframes imDrift2 { from { transform:translate(0,0) scale(1); } to { transform:translate(50px,-30px) scale(1.05); } }
+.im-phase { position:absolute; inset:0; padding:48px 56px; display:flex; flex-direction:column; opacity:0; visibility:hidden; transform:translateY(28px); transition:opacity .42s, transform .42s, visibility 0s .42s; }
+.im-phase.on { opacity:1; visibility:visible; transform:none; transition:opacity .42s, transform .42s; }
+.im-phase.exit-up { transform:translateY(-28px); }
+.im-brand { display:flex; align-items:center; gap:8px; margin-bottom:auto; }
+.im-brand-mark { width:30px; height:30px; border-radius:8px; background:linear-gradient(145deg,var(--color-brand-bright),var(--color-brand)); display:grid; place-items:center; }
+.im-brand-mark svg { width:16px; height:16px; }
+.im-brand-name { font-size:14px; font-weight:700; }
+.im-body { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+.im-heading { font-size:28px; font-weight:700; margin-bottom:8px; }
+.im-sub { font-size:14px; color:#a89e8d; margin-bottom:36px; }
+.im-paths { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:32px; }
+.im-path { padding:10px 20px; border-radius:var(--radius-pill); border:1.5px solid rgba(245,158,11,.25); background:rgba(245,158,11,.08); color:#e9e2d5; font-size:13px; font-weight:500; font-family:var(--font-mono); cursor:pointer; transition:all .2s; }
+.im-path:hover { border-color:rgba(245,158,11,.5); }
+.im-path.sel { border-color:var(--color-brand-bright); background:rgba(245,158,11,.18); box-shadow:0 0 12px rgba(245,158,11,.12); }
+.im-depths { display:flex; gap:8px; margin-bottom:36px; }
+.im-depth { padding:7px 18px; border-radius:var(--radius-pill); border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:#a89e8d; font-size:12.5px; cursor:pointer; transition:all .2s; }
+.im-depth:hover { border-color:rgba(255,255,255,.2); color:#d5cdb8; }
+.im-depth.sel { border-color:var(--color-brand-bright); color:var(--color-brand-bright); background:rgba(245,158,11,.1); }
+.im-cta { padding:14px 40px; border-radius:var(--radius-pill); background:linear-gradient(180deg,var(--color-brand-bright),var(--color-brand)); color:#fff; font-size:16px; font-weight:700; box-shadow:0 4px 24px rgba(217,119,6,.35); transition:all .2s; display:inline-flex; align-items:center; gap:8px; }
+.im-cta:hover { transform:translateY(-2px); box-shadow:0 6px 32px rgba(217,119,6,.45); }
+.im-pct { font-size:96px; font-weight:700; line-height:1; margin-bottom:6px; }
+.im-scan-lbl { font-size:14px; color:#a89e8d; margin-bottom:32px; }
+.im-scan-line { width:320px; height:2px; background:rgba(255,255,255,.08); border-radius:1px; overflow:hidden; margin-bottom:24px; }
+.im-scan-fill { height:100%; background:linear-gradient(90deg,var(--color-brand-bright),var(--color-brand)); border-radius:1px; transition:width .5s; }
+.im-scan-path { font-family:var(--font-mono); font-size:12px; color:#7a7264; margin-bottom:32px; }
+.im-scan-stats { display:flex; gap:36px; margin-bottom:36px; }
+.im-scan-stat { text-align:center; }
+.im-scan-val { font-size:20px; font-weight:700; color:#e9e2d5; }
+.im-scan-lbl2 { font-size:11px; color:#7a7264; margin-top:2px; }
+.im-results-hd { text-align:center; margin-bottom:28px; }
+.im-results-count { font-size:48px; font-weight:700; color:var(--color-brand-bright); line-height:1.1; }
+.im-results-lbl { font-size:14px; color:#a89e8d; }
+.im-results-chips { display:flex; gap:12px; justify-content:center; margin-bottom:28px; }
+.im-chip { padding:6px 16px; border-radius:var(--radius-pill); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); font-size:12.5px; color:#d5cdb8; }
+.im-chip b { color:#f3ecdd; }
+.im-issues { flex:1; overflow-y:auto; max-width:720px; margin:0 auto; width:100%; }
+.im-issue { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:10px; margin-bottom:6px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.05); transition:all .18s; }
+.im-issue:hover { background:rgba(255,255,255,.07); }
+.im-issue-dot { width:8px; height:8px; border-radius:50%; flex:none; }
+.im-issue-title { font-size:13px; font-weight:600; color:#e9e2d5; flex:1; text-align:left; }
+.im-issue-conf { font-size:12px; color:#a89e8d; }
+.im-issue-sug { font-size:11.5px; padding:2px 8px; border-radius:var(--radius-pill); }
+.im-nav { position:absolute; bottom:24px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:14px; z-index:10; }
+.im-dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.15); cursor:pointer; transition:all .2s; }
+.im-dot.on { background:var(--color-brand-bright); box-shadow:0 0 8px rgba(245,158,11,.3); }
+.im-nav-btn { padding:7px 16px; border-radius:var(--radius-pill); border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.05); color:#a89e8d; font-size:12.5px; transition:all .2s; }
+.im-nav-btn:hover { border-color:rgba(255,255,255,.25); color:#e9e2d5; }
+
+.pd-footer { text-align:center; padding:24px; font-size:12px; color:var(--color-text-tertiary); border-top:1px solid var(--color-border); }
+</style>
+</head>
+<body>
+
+<svg style="display:none">
+<defs><linearGradient id="wzGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#f59e0b"/><stop offset="100%" style="stop-color:#d97706"/></linearGradient></defs>
+<symbol id="i-flower" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2a3 3 0 0 1 3 3c0 1-.5 2-1 2.5M12 2a3 3 0 0 0-3 3c0 1 .5 2 1 2.5M12 22a3 3 0 0 0 3-3c0-1-.5-2-1-2.5M12 22a3 3 0 0 1-3-3c0-1 .5-2 1-2.5M2 12a3 3 0 0 1 3-3c1 0 2 .5 2.5 1M2 12a3 3 0 0 0 3 3c1 0 2-.5 2.5-1M22 12a3 3 0 0 0-3-3c-1 0-2 .5-2.5 1M22 12a3 3 0 0 1-3 3c-1 0-2-.5-2.5-1"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3z"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></symbol>
+<symbol id="i-stop" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></symbol>
+<symbol id="i-drive" viewBox="0 0 24 24"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+</svg>
+
+<header class="pd-bar">
+  <div class="pd-brand">
+    <div class="pd-brand-mark"><svg><use href="#i-flower"/></svg></div>
+    <div><div class="pd-brand-name">Helichrysum <em>蜡菊</em></div><div class="pd-brand-sub">WebUI UX 范式探索</div></div>
+  </div>
+  <nav class="pd-tabs">
+    <button type="button" class="pd-tab on" data-pd="wizard"><svg class="icon"><use href="#i-play"/></svg>A 向导式</button>
+    <button type="button" class="pd-tab" data-pd="workspace"><svg class="icon"><use href="#i-layers"/></svg>B 工作台</button>
+    <button type="button" class="pd-tab" data-pd="taskcard"><svg class="icon"><use href="#i-grid"/></svg>C 任务卡片</button>
+    <button type="button" class="pd-tab" data-pd="immersive"><svg class="icon"><use href="#i-sparkle"/></svg>D 沉浸单页</button>
+  </nav>
+  <div class="pd-note">设计评审稿 · 4 种扫描流程范式</div>
+</header>
+
+<div class="pd-intro">
+  <div class="pd-intro-card">
+    <span class="pd-intro-label" id="intro-title">范式 A · 向导式流程</span>
+    <div class="pd-intro-grid" id="intro-body">
+      <div class="pd-intro-item"><b>设计思路</b><br>像安装向导/杀毒软件——一次只做一件事，全屏专注</div>
+      <div class="pd-intro-item"><b>界面组织</b><br>顶部步骤指示器（1→2→3→4），当前步骤全屏显示</div>
+      <div class="pd-intro-item"><b>状态转换</b><br>「下一步」平滑滑动，可「上一步」返回</div>
+      <div class="pd-intro-item"><b>适合</b><br>新手用户、低频任务、需要引导的场景</div>
+    </div>
+  </div>
+</div>
+
+<main>
+
+<!-- === 范式 A：向导式 === -->
+<section class="pd-stage on" id="stage-wizard">
+<div class="wz-shell">
+  <div class="wz-stepper" id="wz-stepper">
+    <div class="wz-step on" data-step="0"><span class="wz-step-dot">1</span><span class="wz-step-lbl">配置范围</span></div>
+    <div class="wz-conn"></div>
+    <div class="wz-step" data-step="1"><span class="wz-step-dot">2</span><span class="wz-step-lbl">扫描与分析</span></div>
+    <div class="wz-conn"></div>
+    <div class="wz-step" data-step="2"><span class="wz-step-dot">3</span><span class="wz-step-lbl">审阅问题</span></div>
+    <div class="wz-conn"></div>
+    <div class="wz-step" data-step="3"><span class="wz-step-dot">4</span><span class="wz-step-lbl">生成计划</span></div>
+  </div>
+  <div class="wz-viewport" id="wz-viewport">
+    <div class="wz-page on" data-page="0">
+      <div class="wz-heading"><div class="wz-title">配置扫描范围</div><div class="wz-sub">选择要整理的目录，设置分析深度与排除规则</div></div>
+      <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-folder"/></svg>扫描范围（Scope）</div>
+        <div class="wz-path"><svg class="icon"><use href="#i-drive"/></svg><span class="wz-path-text">D:\Backup1</span><span class="wz-path-meta">备份盘 1 · 主目录</span></div>
+        <div class="wz-path"><svg class="icon"><use href="#i-drive"/></svg><span class="wz-path-text">D:\Backup2</span><span class="wz-path-meta">备份盘 2 · 主目录</span></div>
+        <div class="wz-path"><svg class="icon"><use href="#i-drive"/></svg><span class="wz-path-text">E:\Archive\Photos</span><span class="wz-path-meta">归档盘 · 照片</span></div>
+        <div class="wz-path"><svg class="icon"><use href="#i-drive"/></svg><span class="wz-path-text">E:\Photos</span><span class="wz-path-meta">归档盘 · 相册</span></div>
+      </div>
+      <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-layers"/></svg>分析深度</div>
+        <div class="wz-depths">
+          <div class="wz-depth"><div class="wz-depth-name">目录结构</div><div class="wz-depth-desc">仅元数据</div></div>
+          <div class="wz-depth"><div class="wz-depth-name">文件元数据</div><div class="wz-depth-desc">size / mtime</div></div>
+          <div class="wz-depth"><div class="wz-depth-name">快速 hash</div><div class="wz-depth-desc">采样预筛</div></div>
+          <div class="wz-depth sel"><div class="wz-depth-name">全量内容 hash</div><div class="wz-depth-desc">最终判据</div></div>
+        </div>
+      </div>
+      <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-shield"/></svg>排除规则 <span style="font-weight:400;color:var(--color-text-tertiary);font-size:12px;">5 条规则 · 默认配置</span></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;"><span class="sug sug-neutral">*.tmp</span><span class="sug sug-neutral">node_modules</span><span class="sug sug-neutral">$RECYCLE.BIN</span><span class="sug sug-neutral">thumbs.db</span><span class="sug sug-neutral">.git/objects</span></div>
+      </div>
+      <div class="wz-actions"><span style="font-size:12px;color:var(--color-text-tertiary);">配置档案：三盘备份整合</span><button type="button" class="wz-btn wz-btn-pri wz-btn-lg" onclick="wzGo(1)">开始扫描 <svg class="icon"><use href="#i-arrow-right"/></svg></button></div>
+    </div>
+    <div class="wz-page" data-page="1">
+      <div class="wz-heading"><div class="wz-title">正在扫描与分析</div><div class="wz-sub">分层渐进分析进行中，可随时暂停或中断</div></div>
+      <div class="wz-scan-center">
+        <div class="wz-ring"><svg viewBox="0 0 180 180"><circle class="wz-ring-bg" cx="90" cy="90" r="80"/><circle class="wz-ring-fill" id="wzRingFill" cx="90" cy="90" r="80"/></svg><div class="wz-ring-text"><div><div class="wz-pct" id="wzPct">0%</div><div class="wz-pct-lbl">全量内容 hash 层</div></div></div></div>
+        <div class="wz-scan-path mono">D:\Backup2\backup0620\视频\2024\DV_0231.MOV</div>
+      </div>
+      <div class="wz-scan-stats">
+        <div class="wz-scan-stat"><div class="wz-scan-val num" id="wzScanned">0</div><div class="wz-scan-lbl">已扫描对象</div></div>
+        <div class="wz-scan-stat"><div class="wz-scan-val num">18,420</div><div class="wz-scan-lbl">对象/秒</div></div>
+        <div class="wz-scan-stat"><div class="wz-scan-val num">00:47:12</div><div class="wz-scan-lbl">预计剩余</div></div>
+        <div class="wz-scan-stat"><div class="wz-scan-val num">431,207</div><div class="wz-scan-lbl">预筛命中</div></div>
+      </div>
+      <div class="wz-layers">
+        <span class="wz-layer done"><svg class="icon icon-sm"><use href="#i-check"/></svg>目录结构</span>
+        <span class="wz-layer done"><svg class="icon icon-sm"><use href="#i-check"/></svg>文件元数据</span>
+        <span class="wz-layer done"><svg class="icon icon-sm"><use href="#i-check"/></svg>快速 hash</span>
+        <span class="wz-layer run"><svg class="icon icon-sm"><use href="#i-clock"/></svg>全量 hash</span>
+      </div>
+      <div class="wz-scan-btns">
+        <button type="button" class="wz-btn"><svg class="icon"><use href="#i-pause"/></svg>暂停</button>
+        <button type="button" class="wz-btn"><svg class="icon"><use href="#i-stop"/></svg>中断</button>
+        <button type="button" class="wz-btn wz-btn-pri" onclick="wzGo(2)">扫描完成 · 查看结果 <svg class="icon"><use href="#i-arrow-right"/></svg></button>
+      </div>
+    </div>
+    <div class="wz-page" data-page="2">
+      <div class="wz-heading"><div class="wz-title">审阅问题</div><div class="wz-sub">基于快照 manifest-2026-08-01 · 16 组问题 · 31 个对象</div></div>
+      <div class="stat-row" style="margin-bottom:20px;">
+        <div class="stat-tile"><span class="stat-val num">16<span class="stat-unit">组</span></span><span class="stat-lbl">问题组</span></div>
+        <div class="stat-tile"><span class="stat-val num">31<span class="stat-unit">个对象</span></span><span class="stat-lbl">涉及文件/目录/链接</span></div>
+        <div class="stat-tile stat-warn"><span class="stat-val num">4<span class="stat-unit">组</span></span><span class="stat-lbl">需人工决策</span></div>
+        <div class="stat-tile stat-acc"><span class="stat-val num">42.4<span class="stat-unit">GB</span></span><span class="stat-lbl">预计可释放</span></div>
+      </div>
+      <div id="wz-issues" style="max-height:520px;overflow-y:auto;padding-right:4px;"></div>
+      <div class="wz-actions"><button type="button" class="wz-btn" onclick="wzGo(1)"><svg class="icon"><use href="#i-arrow-left"/></svg>上一步</button><button type="button" class="wz-btn wz-btn-pri wz-btn-lg" onclick="wzGo(3)">生成处理计划 <svg class="icon"><use href="#i-arrow-right"/></svg></button></div>
+    </div>
+    <div class="wz-page" data-page="3">
+      <div class="wz-heading"><div class="wz-title">确认处理计划</div><div class="wz-sub">plan-2026-08-15-01 · 由 12 处标记汇总生成 · 执行前需二次确认</div></div>
+      <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-list"/></svg>计划摘要</div>
+        <div style="display:flex;gap:16px;font-size:13px;"><span>回收站 <b class="num">×9</b></span><span>保留 <b class="num">×4</b></span><span>移动 <b class="num">×2</b></span><span>替换为链接 <b class="num">×1</b></span><span>重命名 <b class="num">×1</b></span><span>合并 <b class="num">×1</b></span><span style="margin-left:auto;color:var(--color-brand-deep);font-weight:600;">预计释放 42.4 GB</span></div>
+      </div>
+      <div class="wz-card" style="border-color:var(--resolution-conflict);background:var(--resolution-conflict-bg);"><div style="display:flex;align-items:center;gap:8px;color:var(--resolution-conflict);font-weight:600;font-size:13px;"><svg class="icon"><use href="#i-alert"/></svg>2 项未解决冲突：目标路径已存在 · 移动后产生歧义</div></div>
+      <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-shield"/></svg>保底策略</div>
+        <div style="display:flex;gap:10px;"><span class="sug sug-keep" style="padding:6px 14px;">双保险（Trash + Staging）· 默认</span><span class="sug sug-neutral" style="padding:6px 14px;">仅回收站</span><span class="sug sug-neutral" style="padding:6px 14px;">仅 Staging</span></div>
+        <div style="font-size:12px;color:var(--color-text-tertiary);margin-top:8px;">Staging 位置：~/.helichrysum/staging/ · 保留 30 天 · 执行前身份重校验（mtime + 摘要 + inode）</div>
+      </div>
+      <div class="wz-actions"><button type="button" class="wz-btn" onclick="wzGo(2)"><svg class="icon"><use href="#i-arrow-left"/></svg>返回问题列表</button><button type="button" class="wz-btn wz-btn-pri wz-btn-lg" style="opacity:.45;cursor:not-allowed;" disabled>确认执行（有 2 项冲突待解决）</button></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- === 范式 B：工作台式 === -->
+<section class="pd-stage" id="stage-workspace">
+<div class="ws-shell">
+  <aside class="ws-side">
+    <div class="ws-side-hd"><div class="ws-side-title">扫描会话</div><button type="button" class="ws-new-btn"><svg class="icon icon-sm"><use href="#i-plus"/></svg>新建扫描</button></div>
+    <div class="ws-sessions">
+      <div class="ws-section">进行中</div>
+      <button type="button" class="ws-session on" data-ws-state="scan"><div class="ws-session-name">三盘备份整合</div><div class="ws-session-scope">D:\Backup1 · D:\Backup2 · E:\Archive\Photos</div><span class="ws-session-st ws-st-scan">扫描中 62%</span></button>
+      <div class="ws-section">历史扫描</div>
+      <button type="button" class="ws-session" data-ws-state="results"><div class="ws-session-name">相册专项清理</div><div class="ws-session-scope">E:\Archive\Photos · E:\Photos</div><span class="ws-session-st ws-st-done">已完成 · 16 组问题</span></button>
+      <button type="button" class="ws-session" data-ws-state="plan"><div class="ws-session-name">default</div><div class="ws-session-scope">D:\Backup1</div><span class="ws-session-st ws-st-plan">已生成计划 · 18 项动作</span></button>
+      <button type="button" class="ws-session" data-ws-state="setup"><div class="ws-session-name">旧磁盘归档</div><div class="ws-session-scope">F:\OldDisk</div><span class="ws-session-st ws-st-draft">草稿 · 配置未完成</span></button>
+    </div>
+  </aside>
+  <div class="ws-main">
+    <div class="ws-main-hd">
+      <div class="ws-main-title" id="ws-title">三盘备份整合</div>
+      <div class="ws-dots" id="ws-dots">
+        <span class="ws-dot done"></span><span class="ws-dot-lbl">配置</span>
+        <span class="ws-dot on"></span><span class="ws-dot-lbl">扫描</span>
+        <span class="ws-dot"></span><span class="ws-dot-lbl">结果</span>
+        <span class="ws-dot"></span><span class="ws-dot-lbl">计划</span>
+      </div>
+    </div>
+    <div class="ws-state" data-state="setup" id="ws-setup">
+      <div style="max-width:640px;">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">配置扫描范围</h3>
+        <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-folder"/></svg>扫描范围</div>
+          <div class="wz-path"><svg class="icon"><use href="#i-drive"/></svg><span class="wz-path-text">F:\OldDisk</span><span class="wz-path-meta">旧磁盘 · 待配置</span></div>
+        </div>
+        <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-layers"/></svg>分析深度</div>
+          <div class="wz-depths"><div class="wz-depth"><div class="wz-depth-name">目录结构</div><div class="wz-depth-desc">仅元数据</div></div><div class="wz-depth"><div class="wz-depth-name">文件元数据</div><div class="wz-depth-desc">size / mtime</div></div><div class="wz-depth sel"><div class="wz-depth-name">快速 hash</div><div class="wz-depth-desc">采样预筛</div></div><div class="wz-depth"><div class="wz-depth-name">全量内容 hash</div><div class="wz-depth-desc">最终判据</div></div></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:16px;"><button type="button" class="wz-btn wz-btn-pri" onclick="wsSetState('scan')">开始扫描 <svg class="icon"><use href="#i-arrow-right"/></svg></button></div>
+      </div>
+    </div>
+    <div class="ws-state on" data-state="scan" id="ws-scan">
+      <div style="max-width:720px;">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">扫描进行中</h3>
+        <div class="wz-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;"><div style="flex:1;"><div style="font-size:13px;font-weight:600;margin-bottom:6px;">整体进度 <span class="num" style="color:var(--color-brand-deep);font-weight:700;">62%</span></div><div style="height:8px;background:var(--color-surface-sunken);border-radius:4px;overflow:hidden;"><div style="height:100%;width:62%;background:linear-gradient(90deg,var(--color-brand-bright),var(--color-brand));border-radius:4px;transition:width .4s;"></div></div></div></div>
+          <div class="wz-scan-stats" style="grid-template-columns:repeat(4,1fr);gap:10px;">
+            <div class="wz-scan-stat"><div class="wz-scan-val num">1,284,301</div><div class="wz-scan-lbl">已扫描</div></div>
+            <div class="wz-scan-stat"><div class="wz-scan-val num">18,420</div><div class="wz-scan-lbl">对象/秒</div></div>
+            <div class="wz-scan-stat"><div class="wz-scan-val num">00:47:12</div><div class="wz-scan-lbl">预计剩余</div></div>
+            <div class="wz-scan-stat"><div class="wz-scan-val num">7</div><div class="wz-scan-lbl">隔离对象</div></div>
+          </div>
+        </div>
+        <div class="wz-layers" style="margin-bottom:16px;">
+          <span class="wz-layer done"><svg class="icon icon-sm"><use href="#i-check"/></svg>目录结构</span>
+          <span class="wz-layer done"><svg class="icon icon-sm"><use href="#i-check"/></svg>文件元数据</span>
+          <span class="wz-layer done"><svg class="icon icon-sm"><use href="#i-check"/></svg>快速 hash</span>
+          <span class="wz-layer run"><svg class="icon icon-sm"><use href="#i-clock"/></svg>全量 hash</span>
+        </div>
+        <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-list"/></svg>实时日志</div>
+          <div style="font-family:var(--font-mono);font-size:11.5px;line-height:1.8;color:var(--color-text-secondary);">
+            <div>[18:06:12] 全量 hash 层 · 84,216 文件待处理</div>
+            <div>[18:06:11] 快速摘要预筛命中 431,207 次</div>
+            <div>[18:06:08] 当前：D:\Backup2\backup0620\视频\2024\DV_0231.MOV</div>
+            <div>[18:05:44] 隔离对象：权限拒绝 ×3 · 损坏 ×2 · 畸形 ×2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ws-state" data-state="results" id="ws-results">
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">扫描结果</h3>
+      <div class="stat-row" style="margin-bottom:16px;">
+        <div class="stat-tile"><span class="stat-val num">16<span class="stat-unit">组</span></span><span class="stat-lbl">问题组</span></div>
+        <div class="stat-tile"><span class="stat-val num">31<span class="stat-unit">个</span></span><span class="stat-lbl">对象</span></div>
+        <div class="stat-tile stat-warn"><span class="stat-val num">4<span class="stat-unit">组</span></span><span class="stat-lbl">需人工</span></div>
+        <div class="stat-tile stat-acc"><span class="stat-val num">42.4<span class="stat-unit">GB</span></span><span class="stat-lbl">可释放</span></div>
+      </div>
+      <div id="ws-issues" style="max-height:480px;overflow-y:auto;"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px;"><button type="button" class="wz-btn wz-btn-pri" onclick="wsSetState('plan')">生成处理计划 <svg class="icon"><use href="#i-arrow-right"/></svg></button></div>
+    </div>
+    <div class="ws-state" data-state="plan" id="ws-plan">
+      <div style="max-width:640px;">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">处理计划</h3>
+        <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-list"/></svg>计划摘要</div>
+          <div style="display:flex;gap:16px;font-size:13px;"><span>回收站 <b>×9</b></span><span>保留 <b>×4</b></span><span>移动 <b>×2</b></span><span>链接 <b>×1</b></span><span>重命名 <b>×1</b></span><span>合并 <b>×1</b></span><span style="margin-left:auto;color:var(--color-brand-deep);font-weight:600;">释放 42.4 GB</span></div>
+        </div>
+        <div class="wz-card" style="border-color:var(--resolution-conflict);background:var(--resolution-conflict-bg);"><div style="display:flex;align-items:center;gap:8px;color:var(--resolution-conflict);font-weight:600;font-size:13px;"><svg class="icon"><use href="#i-alert"/></svg>2 项未解决冲突</div></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:16px;"><button type="button" class="wz-btn wz-btn-pri" style="opacity:.45;cursor:not-allowed;" disabled>确认执行</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- === 范式 C：任务卡片式 === -->
+<section class="pd-stage" id="stage-taskcard">
+<div class="tc-shell">
+  <div class="tc-hd"><div class="tc-title">扫描任务</div><div class="tc-sub">管理所有扫描任务，点击卡片进入详情</div></div>
+  <div class="tc-summary">
+    <div class="stat-tile"><span class="stat-val num">4</span><span class="stat-lbl">总任务</span></div>
+    <div class="stat-tile"><span class="stat-val num" style="color:var(--color-brand-bright);">1</span><span class="stat-lbl">进行中</span></div>
+    <div class="stat-tile stat-warn"><span class="stat-val num">4</span><span class="stat-lbl">组待决策</span></div>
+    <div class="stat-tile stat-acc"><span class="stat-val num">42.4<span class="stat-unit">GB</span></span><span class="stat-lbl">累计可释放</span></div>
+  </div>
+  <div class="tc-grid">
+    <div class="tc-card tc-new" onclick="tcShowDetail('tc-detail-setup')"><svg class="icon"><use href="#i-plus"/></svg><div class="tc-new-lbl">新建扫描任务</div></div>
+    <div class="tc-card st-scan" onclick="tcShowDetail('tc-detail-scan')">
+      <div class="tc-card-name">三盘备份整合</div><div class="tc-card-scope">D:\Backup1 · D:\Backup2 · E:\Archive\Photos · E:\Photos</div>
+      <span class="tc-card-st tc-st-scan"><svg class="icon icon-sm"><use href="#i-clock"/></svg>扫描中</span>
+      <div class="tc-prog"><div class="tc-prog-track"><div class="tc-prog-fill" style="width:62%;"></div></div><div class="tc-prog-text num">62% · 1,284,301 / 2,071,463 对象 · 18,420/s</div></div>
+      <div class="tc-card-stats"><span>速率 <b class="num">18,420</b>/s</span><span>ETA <b class="num">47:12</b></span></div>
+      <div class="tc-card-time">2 分钟前更新</div>
+    </div>
+    <div class="tc-card st-done" onclick="tcShowDetail('tc-detail-results')">
+      <div class="tc-card-name">相册专项清理</div><div class="tc-card-scope">E:\Archive\Photos · E:\Photos</div>
+      <span class="tc-card-st tc-st-done"><svg class="icon icon-sm"><use href="#i-check"/></svg>已完成</span>
+      <div class="tc-card-stats"><span><b class="num">16</b> 组问题</span><span><b class="num">31</b> 对象</span><span><b class="num">42.4</b> GB 可释放</span></div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"><span class="sug sug-neutral">重复 ×3</span><span class="sug sug-neutral">配对 ×2</span><span class="sug sug-neutral">链接 ×3</span><span class="sug sug-manual">人工 ×4</span></div>
+      <div class="tc-card-time">2 周前完成</div>
+    </div>
+    <div class="tc-card st-plan" onclick="tcShowDetail('tc-detail-plan')">
+      <div class="tc-card-name">default</div><div class="tc-card-scope">D:\Backup1</div>
+      <span class="tc-card-st tc-st-plan"><svg class="icon icon-sm"><use href="#i-list"/></svg>待执行计划</span>
+      <div class="tc-card-stats"><span><b class="num">18</b> 项动作</span><span><b class="num" style="color:var(--resolution-conflict);">2</b> 冲突</span></div>
+      <div class="tc-card-time">3 天前生成</div>
+    </div>
+    <div class="tc-card st-draft" onclick="tcShowDetail('tc-detail-setup')">
+      <div class="tc-card-name">旧磁盘归档</div><div class="tc-card-scope">F:\OldDisk</div>
+      <span class="tc-card-st tc-st-draft">草稿</span>
+      <div class="tc-card-stats"><span>配置 <b class="num">60%</b></span></div>
+      <div class="tc-card-time">5 天前创建</div>
+    </div>
+  </div>
+  <div class="tc-detail" id="tc-detail-scan">
+    <button type="button" class="tc-back" onclick="tcHideDetail()"><svg class="icon"><use href="#i-arrow-left"/></svg>返回任务墙</button>
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">三盘备份整合 · 扫描中</h3>
+    <div class="wz-card"><div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;"><div style="flex:1;"><div style="font-size:13px;font-weight:600;margin-bottom:6px;">整体进度 <span class="num" style="color:var(--color-brand-deep);font-weight:700;">62%</span></div><div style="height:8px;background:var(--color-surface-sunken);border-radius:4px;overflow:hidden;"><div style="height:100%;width:62%;background:linear-gradient(90deg,var(--color-brand-bright),var(--color-brand));border-radius:4px;"></div></div></div></div>
+      <div class="wz-scan-stats"><div class="wz-scan-stat"><div class="wz-scan-val num">1,284,301</div><div class="wz-scan-lbl">已扫描</div></div><div class="wz-scan-stat"><div class="wz-scan-val num">18,420</div><div class="wz-scan-lbl">对象/秒</div></div><div class="wz-scan-stat"><div class="wz-scan-val num">00:47:12</div><div class="wz-scan-lbl">预计剩余</div></div><div class="wz-scan-stat"><div class="wz-scan-val num">7</div><div class="wz-scan-lbl">隔离</div></div></div>
+    </div>
+    <div class="wz-layers"><span class="wz-layer done"><svg class="icon icon-sm"><use href="#i-check"/></svg>目录结构</span><span class="wz-layer done"><svg class="icon icon-sm"><use href="#i-check"/></svg>元数据</span><span class="wz-layer done"><svg class="icon icon-sm"><use href="#i-check"/></svg>快速 hash</span><span class="wz-layer run"><svg class="icon icon-sm"><use href="#i-clock"/></svg>全量 hash</span></div>
+  </div>
+  <div class="tc-detail" id="tc-detail-results">
+    <button type="button" class="tc-back" onclick="tcHideDetail()"><svg class="icon"><use href="#i-arrow-left"/></svg>返回任务墙</button>
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">相册专项清理 · 扫描结果</h3>
+    <div class="stat-row" style="margin-bottom:16px;"><div class="stat-tile"><span class="stat-val num">16<span class="stat-unit">组</span></span><span class="stat-lbl">问题组</span></div><div class="stat-tile"><span class="stat-val num">31<span class="stat-unit">个</span></span><span class="stat-lbl">对象</span></div><div class="stat-tile stat-warn"><span class="stat-val num">4<span class="stat-unit">组</span></span><span class="stat-lbl">需人工</span></div><div class="stat-tile stat-acc"><span class="stat-val num">42.4<span class="stat-unit">GB</span></span><span class="stat-lbl">可释放</span></div></div>
+    <div id="tc-issues"></div>
+  </div>
+  <div class="tc-detail" id="tc-detail-plan">
+    <button type="button" class="tc-back" onclick="tcHideDetail()"><svg class="icon"><use href="#i-arrow-left"/></svg>返回任务墙</button>
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">default · 处理计划</h3>
+    <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-list"/></svg>计划摘要</div><div style="display:flex;gap:16px;font-size:13px;"><span>回收站 <b>×9</b></span><span>保留 <b>×4</b></span><span>移动 <b>×2</b></span><span>链接 <b>×1</b></span><span>重命名 <b>×1</b></span><span>合并 <b>×1</b></span><span style="margin-left:auto;color:var(--color-brand-deep);font-weight:600;">释放 42.4 GB</span></div></div>
+    <div class="wz-card" style="border-color:var(--resolution-conflict);background:var(--resolution-conflict-bg);"><div style="display:flex;align-items:center;gap:8px;color:var(--resolution-conflict);font-weight:600;font-size:13px;"><svg class="icon"><use href="#i-alert"/></svg>2 项未解决冲突</div></div>
+  </div>
+  <div class="tc-detail" id="tc-detail-setup">
+    <button type="button" class="tc-back" onclick="tcHideDetail()"><svg class="icon"><use href="#i-arrow-left"/></svg>返回任务墙</button>
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">配置扫描</h3>
+    <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-folder"/></svg>扫描范围</div>
+      <div class="wz-path"><svg class="icon"><use href="#i-drive"/></svg><span class="wz-path-text">D:\Backup1</span><span class="wz-path-meta">备份盘 1</span></div>
+      <div class="wz-path"><svg class="icon"><use href="#i-drive"/></svg><span class="wz-path-text">D:\Backup2</span><span class="wz-path-meta">备份盘 2</span></div>
+      <div class="wz-path"><svg class="icon"><use href="#i-drive"/></svg><span class="wz-path-text">E:\Archive\Photos</span><span class="wz-path-meta">归档盘</span></div>
+      <div class="wz-path"><svg class="icon"><use href="#i-drive"/></svg><span class="wz-path-text">E:\Photos</span><span class="wz-path-meta">归档盘</span></div>
+    </div>
+    <div class="wz-card"><div class="wz-card-hd"><svg class="icon"><use href="#i-layers"/></svg>分析深度</div>
+      <div class="wz-depths"><div class="wz-depth"><div class="wz-depth-name">目录结构</div><div class="wz-depth-desc">仅元数据</div></div><div class="wz-depth"><div class="wz-depth-name">文件元数据</div><div class="wz-depth-desc">size / mtime</div></div><div class="wz-depth"><div class="wz-depth-name">快速 hash</div><div class="wz-depth-desc">采样预筛</div></div><div class="wz-depth sel"><div class="wz-depth-name">全量内容 hash</div><div class="wz-depth-desc">最终判据</div></div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- === 范式 D：沉浸式单页流 === -->
+<section class="pd-stage" id="stage-immersive">
+<div class="im-shell">
+  <div class="im-ambient"></div>
+  <div class="im-phase on" data-phase="0">
+    <div class="im-brand"><div class="im-brand-mark"><svg><use href="#i-flower"/></svg></div><div class="im-brand-name">Helichrysum</div></div>
+    <div class="im-body">
+      <div class="im-heading">从哪里开始？</div>
+      <div class="im-sub">选择要整理的目录，设置分析深度</div>
+      <div class="im-paths">
+        <button type="button" class="im-path sel">D:\Backup1</button>
+        <button type="button" class="im-path sel">D:\Backup2</button>
+        <button type="button" class="im-path sel">E:\Archive\Photos</button>
+        <button type="button" class="im-path sel">E:\Photos</button>
+      </div>
+      <div class="im-depths">
+        <button type="button" class="im-depth">目录结构</button>
+        <button type="button" class="im-depth">文件元数据</button>
+        <button type="button" class="im-depth">快速 hash</button>
+        <button type="button" class="im-depth sel">全量内容 hash</button>
+      </div>
+      <button type="button" class="im-cta" onclick="imGo(1)">开始扫描 <svg class="icon"><use href="#i-arrow-right"/></svg></button>
+    </div>
+  </div>
+  <div class="im-phase" data-phase="1">
+    <div class="im-brand"><div class="im-brand-mark"><svg><use href="#i-flower"/></svg></div><div class="im-brand-name">Helichrysum</div></div>
+    <div class="im-body">
+      <div class="im-pct num" id="imPct">62%</div>
+      <div class="im-scan-lbl">正在扫描 · 全量内容 hash 层</div>
+      <div class="im-scan-line"><div class="im-scan-fill" id="imScanFill" style="width:62%;"></div></div>
+      <div class="im-scan-path mono">D:\Backup2\backup0620\视频\2024\DV_0231.MOV</div>
+      <div class="im-scan-stats">
+        <div class="im-scan-stat"><div class="im-scan-val num">1,284,301</div><div class="im-scan-lbl2">已扫描</div></div>
+        <div class="im-scan-stat"><div class="im-scan-val num">18,420</div><div class="im-scan-lbl2">对象/秒</div></div>
+        <div class="im-scan-stat"><div class="im-scan-val num">47:12</div><div class="im-scan-lbl2">剩余</div></div>
+        <div class="im-scan-stat"><div class="im-scan-val num">431,207</div><div class="im-scan-lbl2">预筛命中</div></div>
+      </div>
+      <button type="button" class="im-cta" onclick="imGo(2)">查看结果 <svg class="icon"><use href="#i-arrow-right"/></svg></button>
+    </div>
+  </div>
+  <div class="im-phase" data-phase="2">
+    <div class="im-brand"><div class="im-brand-mark"><svg><use href="#i-flower"/></svg></div><div class="im-brand-name">Helichrysum</div></div>
+    <div class="im-body" style="justify-content:flex-start;padding-top:20px;">
+      <div class="im-results-hd"><div class="im-results-count num">16</div><div class="im-results-lbl">组问题待处理</div></div>
+      <div class="im-results-chips"><span class="im-chip"><b class="num">31</b> 个对象</span><span class="im-chip"><b class="num">42.4</b> GB 可释放</span><span class="im-chip"><b class="num" style="color:#fca5a5;">4</b> 组需人工</span></div>
+      <div class="im-issues" id="im-issues"></div>
+      <button type="button" class="im-cta" style="margin-top:20px;" onclick="imGo(3)">生成处理计划 <svg class="icon"><use href="#i-arrow-right"/></svg></button>
+    </div>
+  </div>
+  <div class="im-phase" data-phase="3">
+    <div class="im-brand"><div class="im-brand-mark"><svg><use href="#i-flower"/></svg></div><div class="im-brand-name">Helichrysum</div></div>
+    <div class="im-body" style="max-width:640px;margin:0 auto;">
+      <div class="im-heading" style="font-size:24px;">确认处理计划</div>
+      <div class="im-sub">plan-2026-08-15-01 · 执行前需二次确认</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:24px;">
+        <span class="im-chip">回收站 <b class="num">×9</b></span><span class="im-chip">保留 <b class="num">×4</b></span><span class="im-chip">移动 <b class="num">×2</b></span><span class="im-chip">链接 <b class="num">×1</b></span><span class="im-chip">重命名 <b class="num">×1</b></span><span class="im-chip">合并 <b class="num">×1</b></span>
+      </div>
+      <div style="padding:14px 20px;border-radius:12px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);margin-bottom:24px;display:flex;align-items:center;gap:8px;color:#fca5a5;font-size:13px;font-weight:600;"><svg class="icon"><use href="#i-alert"/></svg>2 项未解决冲突</div>
+      <div style="display:flex;gap:10px;justify-content:center;"><button type="button" class="im-nav-btn" onclick="imGo(2)"><svg class="icon"><use href="#i-arrow-left"/></svg>返回</button><button type="button" class="im-cta" style="opacity:.45;cursor:not-allowed;" disabled>确认执行</button></div>
+    </div>
+  </div>
+  <div class="im-nav">
+    <button type="button" class="im-nav-btn" onclick="imGo(imPhase-1)"><svg class="icon"><use href="#i-arrow-left"/></svg></button>
+    <div class="im-dot on" data-im-dot="0" onclick="imGo(0)"></div>
+    <div class="im-dot" data-im-dot="1" onclick="imGo(1)"></div>
+    <div class="im-dot" data-im-dot="2" onclick="imGo(2)"></div>
+    <div class="im-dot" data-im-dot="3" onclick="imGo(3)"></div>
+    <button type="button" class="im-nav-btn" onclick="imGo(imPhase+1)"><svg class="icon"><use href="#i-arrow-right"/></svg></button>
+  </div>
+</div>
+</section>
+
+</main>
+
+<div class="pd-footer">＊ 顶部范式切换器仅用于本设计稿导航 · 非产品功能 · 数据复用自 webui-mockup.html</div>
+
+<script>
+(function(){
+"use strict";
+
+/* === 16 问题组数据（复用 webui-mockup.html） === */
+var ISSUES = [
+  {rel:"structural-sibling",relLabel:"结构相似",relCode:"StructuralSibling",title:"backup0505 ↔ backup0620",conf:86,res:"compatibility",resLabel:"兼容 · 以新为准",meta:"2 目录 · 可释放 29.6 GB",members:[
+    {path:"D:\\Backup1\\backup0505",size:"54.2 GB",sug:"keep",sugLabel:"并入新版"},
+    {path:"D:\\Backup2\\backup0620",size:"61.8 GB",sug:"keep",sugLabel:"保留基准"}
+  ]},
+  {rel:"versioned",relLabel:"版本演进",relCode:"Versioned",title:"2024年报.xlsx · 两版分叉",conf:87,res:"conflict",resLabel:"冲突 · 需人工决策",meta:"同名 · 内容部分相似 0.62",manual:true,members:[
+    {path:"D:\\Backup1\\backup0505\\工作\\2024年报.xlsx",size:"1.18 MB",sug:"manual",sugLabel:"需人工决策"},
+    {path:"D:\\Backup2\\backup0620\\工作\\2024年报.xlsx",size:"1.31 MB",sug:"manual",sugLabel:"需人工决策"}
+  ]},
+  {rel:"versioned",relLabel:"版本演进",relCode:"Versioned",title:"简历.docx · 新版包含旧版",conf:93,res:"compatibility",resLabel:"兼容 · 以新为准",meta:"可释放 24 KB",members:[
+    {path:"D:\\Backup1\\backup0505\\求职\\简历.docx",size:"24 KB",sug:"trash",sugLabel:"旧版可清理"},
+    {path:"D:\\Backup2\\backup0620\\求职\\简历.docx",size:"26 KB",sug:"keep",sugLabel:"以新为准"}
+  ]},
+  {rel:"exact-duplicate",relLabel:"完全重复",relCode:"ExactDuplicate",title:"IMG_0412.jpg · 3 处副本",conf:98,res:"equality",resLabel:"相等 · 可自动处理",meta:"4.2 MB × 3 · 可释放 8.4 MB",members:[
+    {path:"E:\\Archive\\Photos\\2023\\三亚\\IMG_0412.jpg",size:"4.2 MB",sug:"keep",sugLabel:"保留"},
+    {path:"D:\\Backup1\\backup0505\\照片\\三亚\\IMG_0412.jpg",size:"4.2 MB",sug:"trash",sugLabel:"拟入回收站"},
+    {path:"D:\\Backup2\\backup0620\\照片\\三亚\\IMG_0412.jpg",size:"4.2 MB",sug:"trash",sugLabel:"拟入回收站"}
+  ]},
+  {rel:"exact-duplicate",relLabel:"完全重复",relCode:"ExactDuplicate",title:"家庭医疗记录.pdf · 2 处副本",conf:100,res:"equality",resLabel:"相等 · 可自动处理",meta:"2.1 MB × 2 · 可释放 2.1 MB",members:[
+    {path:"D:\\Backup1\\backup0505\\文档\\家庭医疗记录.pdf",size:"2.1 MB",sug:"keep",sugLabel:"保留"},
+    {path:"D:\\Backup2\\backup0620\\文档\\家庭医疗记录.pdf",size:"2.1 MB",sug:"trash",sugLabel:"拟入回收站"}
+  ]},
+  {rel:"exact-duplicate",relLabel:"完全重复",relCode:"ExactDuplicate",title:"IMG_2201.jpg · 3 处副本 · 一份可疑",conf:100,res:"integrity",resLabel:"损坏嫌疑",meta:"3.8 MB × 3",manual:true,members:[
+    {path:"D:\\Backup1\\backup0505\\照片\\IMG_2201.jpg",size:"3.8 MB",sug:"keep",sugLabel:"多数派·保留"},
+    {path:"E:\\Archive\\Photos\\2023\\IMG_2201.jpg",size:"3.8 MB",sug:"keep",sugLabel:"多数派·保留"},
+    {path:"D:\\Backup2\\backup0620\\照片\\IMG_2201.jpg",size:"3.7 MB",sug:"integrity",sugLabel:"损坏嫌疑·转人工"}
+  ]},
+  {rel:"near-duplicate",relLabel:"近似重复",relCode:"NearDuplicate",title:"读书笔记.txt · EOL / BOM 差异",conf:91,res:"compatibility",resLabel:"兼容 · 保留一份",meta:"字节差异 0.03% · 14 KB",members:[
+    {path:"D:\\Backup2\\backup0620\\笔记\\读书笔记.txt",size:"14,632 B",sug:"keep",sugLabel:"保留（含新增行）"},
+    {path:"D:\\Backup1\\backup0505\\笔记\\读书笔记.txt",size:"14,381 B",sug:"neutral",sugLabel:"经 Diff 确认后清理"}
+  ]},
+  {rel:"partial-overlap",relLabel:"部分重叠",relCode:"PartialOverlap",title:"照片\\三亚 ↔ 随手拍\\三亚",conf:74,res:"conflict",resLabel:"冲突 · 需人工决策",meta:"48 项中 12 项重叠 · 128 MB",manual:true,members:[
+    {path:"D:\\Backup1\\backup0505\\照片\\三亚",size:"96 MB",sug:"manual",sugLabel:"需人工决策"},
+    {path:"E:\\Photos\\随手拍\\三亚",size:"32 MB",sug:"manual",sugLabel:"需人工决策"}
+  ]},
+  {rel:"renamed",relLabel:"重命名",relCode:"Renamed",title:"合同扫描件.pdf · 同一对象两个名字",conf:100,res:"equality",resLabel:"相等 · 无需重复清理",meta:"file id 48213377",members:[
+    {path:"D:\\Backup1\\backup0505\\文档\\合同扫描件.pdf",size:"5.6 MB",sug:"keep",sugLabel:"保留规范名"},
+    {path:"D:\\Backup1\\backup0505\\杂项\\2023合同扫描件.pdf",size:"5.6 MB",sug:"neutral",sugLabel:"替换为链接/清理"}
+  ]},
+  {rel:"moved",relLabel:"移动",relCode:"Moved",title:"全家福.jpg · 已归档仍有暂存副本",conf:99,res:"equality",resLabel:"相等 · 可自动处理",meta:"6.8 MB × 2 · 可释放 6.8 MB",members:[
+    {path:"E:\\Archive\\Photos\\2023\\春节\\全家福.jpg",size:"6.8 MB",sug:"keep",sugLabel:"归档正本"},
+    {path:"E:\\Photos\\精选\\2023\\全家福.jpg",size:"6.8 MB",sug:"trash",sugLabel:"拟入回收站"}
+  ]},
+  {rel:"archive-pair",relLabel:"压缩包配对",relCode:"ArchivePair",title:"photos-2023.zip ↔ photos-2023\\",conf:97,res:"equality",resLabel:"相等 · 清单完全一致",meta:"12.8 GB × 2 · 可释放 12.8 GB",members:[
+    {path:"E:\\Photos\\photos-2023.zip",size:"12.8 GB",sug:"trash",sugLabel:"拟入回收站"},
+    {path:"E:\\Photos\\photos-2023\\",size:"12.8 GB",sug:"keep",sugLabel:"保留解压目录"}
+  ]},
+  {rel:"archive-pair",relLabel:"压缩包配对",relCode:"ArchivePair",title:"工作归档2024.7z ↔ 工作归档2024\\",conf:89,res:"conflict",resLabel:"冲突 · 解压后有修改",meta:"356 MB × 2",manual:true,members:[
+    {path:"E:\\Photos\\工作归档2024.7z",size:"356 MB",sug:"manual",sugLabel:"需人工决策"},
+    {path:"E:\\Photos\\工作归档2024\\",size:"358 MB",sug:"manual",sugLabel:"需人工决策"}
+  ]},
+  {rel:"link-reference",relLabel:"链接引用",relCode:"LinkReference",title:"最新备份 → backup0620",conf:null,res:"equality",resLabel:"正常引用 · 无需处理",meta:"目录符号链接 · 不重复统计",members:[
+    {path:"D:\\Backup2\\最新备份",size:"—",sug:"neutral",sugLabel:"保持现状"}
+  ]},
+  {rel:"out-of-scope",relLabel:"范围外链接",relCode:"OutOfScope",title:"archive → F:\\外接盘\\Archive",conf:null,res:"compatibility",resLabel:"已标记 · 不参与分析",meta:"目录符号链接",members:[
+    {path:"D:\\Backup2\\archive",size:"—",sug:"neutral",sugLabel:"扩大 Scope 或忽略"}
+  ]},
+  {rel:"broken",relLabel:"断裂链接",relCode:"Broken",title:"family-2022-原盘 → G:\\FamilyDisk\\2022",conf:null,res:"conflict",resLabel:"已标记 · 建议处置",meta:"目录符号链接 · 目标卷已移除",members:[
+    {path:"E:\\Photos\\family-2022-原盘",size:"—",sug:"trash",sugLabel:"建议删除链接"}
+  ]},
+  {rel:"circular",relLabel:"循环链接",relCode:"Circular",title:"相册-现行 ⇄ 相册-归档",conf:null,res:"conflict",resLabel:"已标记 · 建议解除",meta:"环深度 2 · 已停止递归",members:[
+    {path:"D:\\Backup2\\backup0620\\相册-现行",size:"—",sug:"manual",sugLabel:"建议解除循环"},
+    {path:"D:\\Backup2\\backup0620\\相册-归档\\现行",size:"—",sug:"manual",sugLabel:"建议解除循环"}
+  ]}
+];
+
+var REL_COLORS = {
+  "structural-sibling":"#4f46e5","versioned":"#16a34a","exact-duplicate":"#2563eb",
+  "near-duplicate":"#0e7490","partial-overlap":"#ea580c","renamed":"#52627a",
+  "moved":"#64748b","archive-pair":"#9333ea","link-reference":"#475569",
+  "out-of-scope":"#b45309","broken":"#dc2626","circular":"#9f1239"
+};
+
+/* === 渲染函数 === */
+function renderIssueCard(g) {
+  var confHtml = g.conf !== null
+    ? '<div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:'+g.conf+'%;"></div></div><span class="conf-val">'+g.conf+'%</span></div>'
+    : '';
+  var rows = g.members.map(function(m) {
+    return '<div class="issue-row"><span class="issue-row-path" title="'+m.path+'">'+m.path+'</span><span class="issue-row-size num">'+m.size+'</span><span class="issue-row-sug"><span class="sug sug-'+m.sug+'">'+m.sugLabel+'</span></span></div>';
+  }).join("");
+  return '<div class="issue-card"><div class="issue-card-hd"><span class="rel-badge rel-'+g.rel+'">'+g.relLabel+' <span class="rel-code">'+g.relCode+'</span></span><div class="issue-card-title">'+g.title+'</div>'+confHtml+'<span class="res-badge res-'+g.res+'">'+g.resLabel+'</span><div class="issue-card-meta">'+g.meta+'</div></div><div class="issue-card-body">'+rows+'</div></div>';
+}
+
+function renderImIssue(g) {
+  var confHtml = g.conf !== null ? '<span class="im-issue-conf num">'+g.conf+'%</span>' : '';
+  return '<div class="im-issue"><span class="im-issue-dot" style="background:'+REL_COLORS[g.rel]+';"></span><div class="im-issue-title">'+g.title+'</div>'+confHtml+'<span class="im-issue-sug sug sug-'+g.res+'" style="font-size:11px;">'+g.resLabel.split(' ')[0]+'</span></div>';
+}
+
+/* 渲染到各容器 */
+var wzIssues = document.getElementById("wz-issues");
+if (wzIssues) wzIssues.innerHTML = ISSUES.map(renderIssueCard).join("");
+var wsIssues = document.getElementById("ws-issues");
+if (wsIssues) wsIssues.innerHTML = ISSUES.map(renderIssueCard).join("");
+var tcIssues = document.getElementById("tc-issues");
+if (tcIssues) tcIssues.innerHTML = ISSUES.map(renderIssueCard).join("");
+var imIssues = document.getElementById("im-issues");
+if (imIssues) imIssues.innerHTML = ISSUES.map(renderImIssue).join("");
+
+/* === 范式切换 === */
+var INTROS = {
+  wizard: {title:"范式 A · 向导式流程",items:["<b>设计思路</b><br>像安装向导/杀毒软件——一次只做一件事，全屏专注","<b>界面组织</b><br>顶部步骤指示器（1→2→3→4），当前步骤全屏显示","<b>状态转换</b><br>「下一步」平滑滑动，可「上一步」返回","<b>适合</b><br>新手用户、低频任务、需要引导的场景"]},
+  workspace: {title:"范式 B · 工作台式",items:["<b>设计思路</b><br>像 IDE——有「工作区」概念，扫描是工作区里的会话","<b>界面组织</b><br>左侧会话列表 + 右侧主区随会话状态切换","<b>状态转换</b><br>侧边栏点击切换会话，主区内容随状态变化","<b>适合</b><br>专业用户、多任务管理、需要对比历史的场景"]},
+  taskcard: {title:"范式 C · 任务卡片式",items:["<b>设计思路</b><br>像项目管理工具——每次扫描是任务卡片，dashboard 概览","<b>界面组织</b><br>首页卡片墙 + 点击进入详情页（全屏覆盖）","<b>状态转换</b><br>卡片状态驱动（待开始→扫描中→已完成→已计划）","<b>适合</b><br>多扫描管理、概览优先、现代消费级工具"]},
+  immersive: {title:"范式 D · 沉浸式单页流",items:["<b>设计思路</b><br>现代 Web 应用——单页状态过渡动画，无跳转感","<b>界面组织</b><br>单页容器，内容区域随状态完全重排","<b>状态转换</b><br>全屏平滑过渡（淡出/滑入/分屏），动画是核心体验","<b>适合</b><br>追求流畅体验、演示效果好、年轻化产品"]}
+};
+
+document.querySelectorAll(".pd-tab").forEach(function(tab) {
+  tab.addEventListener("click", function() {
+    var pd = this.getAttribute("data-pd");
+    document.querySelectorAll(".pd-tab").forEach(function(t) { t.classList.remove("on"); });
+    this.classList.add("on");
+    document.querySelectorAll(".pd-stage").forEach(function(s) { s.classList.remove("on"); });
+    document.getElementById("stage-"+pd).classList.add("on");
+    var intro = INTROS[pd];
+    document.getElementById("intro-title").textContent = intro.title;
+    document.getElementById("intro-body").innerHTML = intro.items.map(function(i) { return '<div class="pd-intro-item">'+i+'</div>'; }).join("");
+  });
+});
+
+/* === 范式 A：向导 === */
+var wzCurrent = 0;
+window.wzGo = function(step) {
+  var dir = step > wzCurrent ? 1 : -1;
+  var pages = document.querySelectorAll("#stage-wizard .wz-page");
+  var steps = document.querySelectorAll("#stage-wizard .wz-step");
+  var conns = document.querySelectorAll("#stage-wizard .wz-conn");
+  pages.forEach(function(p) { p.classList.remove("on","from-left"); });
+  var target = document.querySelector('#stage-wizard .wz-page[data-page="'+step+'"]');
+  if (dir < 0) target.classList.add("from-left");
+  void target.offsetWidth;
+  target.classList.add("on");
+  steps.forEach(function(s, i) {
+    s.classList.remove("on","done");
+    if (i < step) s.classList.add("done");
+    else if (i === step) s.classList.add("on");
+  });
+  conns.forEach(function(c, i) { c.classList.toggle("filled", i < step); });
+  wzCurrent = step;
+  if (step === 1) animateWizardScan();
+};
+
+function animateWizardScan() {
+  var ring = document.getElementById("wzRingFill");
+  var pct = document.getElementById("wzPct");
+  var scanned = document.getElementById("wzScanned");
+  if (!ring) return;
+  var target = 62, circumference = 502.65;
+  ring.style.strokeDashoffset = circumference;
+  pct.textContent = "0%";
+  scanned.textContent = "0";
+  requestAnimationFrame(function() {
+    setTimeout(function() {
+      ring.style.strokeDashoffset = circumference * (1 - target/100);
+      var start = null;
+      function tick(ts) {
+        if (!start) start = ts;
+        var p = Math.min((ts - start) / 500, 1);
+        var v = Math.round(target * p);
+        pct.textContent = v + "%";
+        scanned.textContent = Math.round(1284301 * p).toLocaleString();
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }, 100);
+  });
+}
+
+/* === 范式 B：工作台 === */
+var WS_TITLES = {setup:"旧磁盘归档",scan:"三盘备份整合",results:"相册专项清理",plan:"default"};
+document.querySelectorAll(".ws-session").forEach(function(s) {
+  s.addEventListener("click", function() {
+    document.querySelectorAll(".ws-session").forEach(function(x) { x.classList.remove("on"); });
+    this.classList.add("on");
+    wsSetState(this.getAttribute("data-ws-state"));
+  });
+});
+window.wsSetState = function(state) {
+  document.querySelectorAll(".ws-state").forEach(function(s) { s.classList.remove("on"); });
+  document.getElementById("ws-"+state).classList.add("on");
+  document.getElementById("ws-title").textContent = WS_TITLES[state] || state;
+  var order = ["setup","scan","results","plan"];
+  var idx = order.indexOf(state);
+  document.querySelectorAll("#ws-dots .ws-dot").forEach(function(d, i) {
+    d.classList.remove("on","done");
+    if (i < idx) d.classList.add("done");
+    else if (i === idx) d.classList.add("on");
+  });
+};
+
+/* === 范式 C：任务卡片 === */
+window.tcShowDetail = function(id) {
+  document.getElementById(id).classList.add("open");
+};
+window.tcHideDetail = function() {
+  document.querySelectorAll(".tc-detail").forEach(function(d) { d.classList.remove("open"); });
+};
+
+/* === 范式 D：沉浸式 === */
+var imPhase = 0;
+window.imGo = function(phase) {
+  if (phase < 0 || phase > 3) return;
+  var phases = document.querySelectorAll(".im-phase");
+  var dots = document.querySelectorAll(".im-dot");
+  phases.forEach(function(p) { p.classList.remove("on","exit-up"); });
+  if (phase < imPhase) phases[imPhase].classList.add("exit-up");
+  void phases[phase].offsetWidth;
+  phases[phase].classList.add("on");
+  dots.forEach(function(d, i) { d.classList.toggle("on", i === phase); });
+  imPhase = phase;
+};
+
+})();
+</script>
+</body>
+</html>
