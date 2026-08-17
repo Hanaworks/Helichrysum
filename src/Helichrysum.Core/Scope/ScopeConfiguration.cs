@@ -51,19 +51,48 @@ public sealed class ScopeConfiguration
 
     /// <summary>
     /// Returns true if the given canonical path is within any scope root.
+    /// Matches the root prefix only at directory boundaries — a root of
+    /// "/data/backup1" must NOT match "/data/backup10".
     /// </summary>
     /// <param name="canonicalPath">The canonical path to check.</param>
     public bool Contains(string canonicalPath)
     {
         foreach (string root in _canonicalRoots)
         {
-            if (canonicalPath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+            if (IsWithinRoot(canonicalPath, root))
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private static bool IsWithinRoot(string canonicalPath, string root)
+    {
+        if (canonicalPath.Equals(root, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!canonicalPath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        // Ensure the character right after the prefix is a directory separator,
+        // so "backup10" is not treated as inside "backup1".
+        int rootLength = root.Length;
+        char separator = Path.DirectorySeparatorChar;
+        char altSeparator = Path.AltDirectorySeparatorChar;
+
+        if (rootLength >= canonicalPath.Length)
+        {
+            return false;
+        }
+
+        char next = canonicalPath[rootLength];
+        return next == separator || next == altSeparator;
     }
 
     /// <summary>

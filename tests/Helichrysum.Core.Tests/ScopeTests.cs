@@ -2,48 +2,76 @@ using Helichrysum.Core.Scope;
 
 namespace Helichrysum.Core.Tests;
 
-public sealed class ScopeTests
+public sealed class ScopeTests : IDisposable
 {
+    private readonly string _tempDir;
+
+    public ScopeTests()
+    {
+        _tempDir = Path.Combine(Path.GetTempPath(), $"helichrysum_scope_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_tempDir);
+    }
+
     [Fact]
     public void Scope_Contains_AcceptsPathWithinRoot()
     {
+        string root = Path.Combine(_tempDir, "backup1");
+        Directory.CreateDirectory(root);
+
         var scope = new ScopeConfiguration();
-        scope.AddRoot("/data/backup1");
+        scope.AddRoot(root);
 
-        bool result = scope.Contains("/data/backup1/report.docx");
-
-        Assert.True(result);
+        string candidate = Path.Combine(root, "report.docx");
+        Assert.True(scope.Contains(candidate));
     }
 
     [Fact]
     public void Scope_Contains_RejectsPathOutsideRoot()
     {
+        string root = Path.Combine(_tempDir, "backup1");
+        string otherDir = Path.Combine(_tempDir, "elsewhere");
+        Directory.CreateDirectory(root);
+        Directory.CreateDirectory(otherDir);
+
         var scope = new ScopeConfiguration();
-        scope.AddRoot("/data/backup1");
+        scope.AddRoot(root);
 
-        bool result = scope.Contains("/other/path/file.txt");
+        string candidate = Path.Combine(otherDir, "file.txt");
+        Assert.False(scope.Contains(candidate));
+    }
 
-        Assert.False(result);
+    [Fact]
+    public void Scope_Contains_PrefixBoundary_NotConfused()
+    {
+        string root = Path.Combine(_tempDir, "backup1");
+        string lookalike = Path.Combine(_tempDir, "backup10");
+        Directory.CreateDirectory(root);
+        Directory.CreateDirectory(lookalike);
+
+        var scope = new ScopeConfiguration();
+        scope.AddRoot(root);
+
+        // A sibling "backup10" must NOT match prefix "backup1".
+        string candidate = Path.Combine(lookalike, "file.txt");
+        Assert.False(scope.Contains(candidate));
     }
 
     [Fact]
     public void Scope_ExcludePattern_ExcludesMatchingPath()
     {
         var scope = new ScopeConfiguration();
-        scope.AddRoot("/data");
+        scope.AddRoot(_tempDir);
         scope.AddExclude("*.tmp");
 
-        bool result = scope.IsExcluded("cache.tmp");
-
-        Assert.True(result);
+        Assert.True(scope.IsExcluded("cache.tmp"));
+        Assert.False(scope.IsExcluded("notes.txt"));
     }
 
     [Fact]
     public void Scope_CanonicalPath_ResolvesCorrectly()
     {
         var scope = new ScopeConfiguration();
-        string relative = ".";
-        string canonical = scope.CanonicalizePath(relative);
+        string canonical = scope.CanonicalizePath(_tempDir);
 
         Assert.False(string.IsNullOrEmpty(canonical));
         Assert.True(Path.IsPathRooted(canonical));
@@ -52,12 +80,21 @@ public sealed class ScopeTests
     [Fact]
     public void Scope_MultipleRoots_AllPathsAccepted()
     {
-        var scope = new ScopeConfiguration();
-        scope.AddRoot("/data/backup1");
-        scope.AddRoot("/data/backup2");
+        string rootA = Path.Combine(_tempDir, "backup1");
+        string rootB = Path.Combine(_tempDir, "backup2");
+        Directory.CreateDirectory(rootA);
+        Directory.CreateDirectory(rootB);
 
-        Assert.True(scope.Contains("/data/backup1/file.txt"));
-        Assert.True(scope.Contains("/data/backup2/doc.docx"));
-        Assert.False(scope.Contains("/data/backup3/other.txt"));
+        var scope = new ScopeConfiguration();
+        scope.AddRoot(rootA);
+        scope.AddRoot(rootB);
+
+        Assert.True(scope.Contains(Path.Combine(rootA, "file.txt")));
+        Assert.True(scope.Contains(Path.Combine(rootB, "doc.docx")));
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_tempDir)) TestFileHelper.DeleteDirectoryWithRetry(_tempDir);
     }
 }

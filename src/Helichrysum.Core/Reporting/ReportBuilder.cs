@@ -152,7 +152,7 @@ public sealed class ReportBuilder
     /// </summary>
     public void ExportSqlite(string outputPath)
     {
-        using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={outputPath}");
+        using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={outputPath};Pooling=False;");
         connection.Open();
         using var cmd = connection.CreateCommand();
 
