@@ -2,6 +2,7 @@ namespace Helichrysum.Core.Reporting;
 
 using System.Collections.Generic;
 using Helichrysum.Core.Manifest;
+using Helichrysum.Core.Serialization;
 
 /// <summary>
 /// Builds scan reports (JSON and HTML) from the manifest repository.
@@ -57,14 +58,7 @@ public sealed class ReportBuilder
             DuplicateGroups = groupSummaries,
         };
 
-        var options = new Newtonsoft.Json.JsonSerializerSettings
-        {
-            Formatting = Newtonsoft.Json.Formatting.Indented,
-            NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
-        };
-        options.ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver();
-
-        return Newtonsoft.Json.JsonConvert.SerializeObject(report, options);
+        return Serialization.JsonService.SerializeCamelCase(report);
     }
 
     /// <summary>

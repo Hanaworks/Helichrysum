@@ -1,7 +1,8 @@
 namespace Helichrysum.Core.Analysis;
 
+using Helichrysum.Core.Serialization;
+
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using Helichrysum.Core.Manifest;
 
 /// <summary>
@@ -46,7 +47,7 @@ public sealed class ExactDuplicateDetector
                 },
             };
 
-            string evidenceJson = JsonConvert.SerializeObject(evidence);
+            string evidenceJson = JsonService.Serialize(evidence);
 
             // Persist relation to manifest.
             var relation = new Relation

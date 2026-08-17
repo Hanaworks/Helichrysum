@@ -1,6 +1,7 @@
 namespace Helichrysum.Core.Planning;
 
-using Newtonsoft.Json;
+using Helichrysum.Core.Serialization;
+
 
 /// <summary>
 /// A planned action to be executed on a filesystem object.
@@ -38,7 +39,7 @@ public sealed class ProcessingPlan
     /// </summary>
     public string ToJson()
     {
-        return JsonConvert.SerializeObject(this, Formatting.Indented);
+        return JsonService.SerializeIndented(this);
     }
 
     /// <summary>
@@ -46,7 +47,7 @@ public sealed class ProcessingPlan
     /// </summary>
     public static ProcessingPlan? FromJson(string json)
     {
-        return JsonConvert.DeserializeObject<ProcessingPlan>(json);
+        return JsonService.Deserialize<ProcessingPlan>(json);
     }
 }
 

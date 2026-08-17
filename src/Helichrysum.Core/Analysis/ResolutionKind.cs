@@ -1,5 +1,7 @@
 namespace Helichrysum.Core.Analysis;
 
+using Helichrysum.Core.Serialization;
+
 /// <summary>
 /// The processing intent assigned to a relation group by the decision model.
 /// Maps to the F-Resolve decision model (Equality / Compatibility / Conflict).
@@ -36,13 +38,13 @@ public sealed record ResolutionResult
     /// <summary>Serializes the result to a string for manifest storage.</summary>
     public string ToStorageString()
     {
-        return Newtonsoft.Json.JsonConvert.SerializeObject(this);
+        return JsonService.Serialize(this);
     }
 
     /// <summary>Deserializes from a storage string.</summary>
     public static ResolutionResult FromStorageString(string json)
     {
-        return Newtonsoft.Json.JsonConvert.DeserializeObject<ResolutionResult>(json)
+        return JsonService.Deserialize<ResolutionResult>(json)
             ?? new ResolutionResult { Kind = ResolutionKind.Unknown, Confidence = 0, Evidence = "deserialization failed" };
     }
 }
