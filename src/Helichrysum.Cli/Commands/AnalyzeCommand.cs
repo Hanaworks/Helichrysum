@@ -93,7 +93,7 @@ public sealed class ReportCommand : Command<ReportCommand.Settings>
 {
     public sealed class Settings : CommandSettings
     {
-        [Description("Output format: html or json.")]
+        [Description("Output format: html, json, or sqlite.")]
         [CommandOption("-f|--format")]
         [DefaultValue("html")]
         public required string Format { get; init; }
@@ -130,6 +130,11 @@ public sealed class ReportCommand : Command<ReportCommand.Settings>
             string json = builder.BuildJson();
             File.WriteAllText(outputPath, json);
             AnsiConsole.MarkupLine($"[green]✓[/] JSON 报告已生成: {outputPath}");
+        }
+        else if (settings.Format.Equals("sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            builder.ExportSqlite(outputPath);
+            AnsiConsole.MarkupLine($"[green]✓[/] SQLite 报告已生成: {outputPath}");
         }
         else
         {

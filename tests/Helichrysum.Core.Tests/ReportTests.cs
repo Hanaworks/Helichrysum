@@ -55,8 +55,8 @@ public sealed class ReportTests : IDisposable
         var builder = new ReportBuilder(_repository);
         string json = builder.BuildJson();
 
-        Assert.Contains("DuplicateGroupCount", json);
-        Assert.Contains("HashValue", json);
+        Assert.Contains("duplicateGroupCount", json);
+        Assert.Contains("hashValue", json);
     }
 
     [Fact]
@@ -74,6 +74,50 @@ public sealed class ReportTests : IDisposable
         Assert.Contains("<html", html);
         Assert.Contains("</html>", html);
         Assert.True(html.Length < 5 * 1024 * 1024, "HTML report exceeds 5MB");
+    }
+
+    [Fact]
+    public void Report_Json_ContainsSnapshotAge()
+    {
+        InsertFile("/test/a.txt", 100, "Same content");
+        InsertFile("/test/b.txt", 100, "Same content");
+
+        _repository.SetManifestMeta("created_at", DateTimeOffset.UtcNow.ToString("O"));
+
+        var builder = new ReportBuilder(_repository);
+        string json = builder.BuildJson();
+
+        Assert.Contains("snapshotAge", json);
+    }
+
+    [Fact]
+    public void Report_SqliteExport_Queryable()
+    {
+        InsertFile("/test/a.txt", 100, "Same content");
+        InsertFile("/test/b.txt", 100, "Same content");
+
+        var detector = new Analysis.ExactDuplicateDetector(_repository);
+        detector.Detect();
+
+        string dbPath = Path.Combine(Path.GetTempPath(), $"helichrysum_rpt_{Guid.NewGuid():N}.db");
+
+        try
+        {
+            var builder = new ReportBuilder(_repository);
+            builder.ExportSqlite(dbPath);
+
+            using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath}");
+            connection.Open();
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM report_duplicates;";
+            long count = (long)cmd.ExecuteScalar()!;
+
+            Assert.True(count > 0);
+        }
+        finally
+        {
+            if (File.Exists(dbPath)) File.Delete(dbPath);
+        }
     }
 
     public void Dispose()
