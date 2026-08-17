@@ -59,13 +59,20 @@ public sealed class ExecCommand : Command<ExecCommand.Settings>
 
         AnsiConsole.MarkupLine("[yellow]正在执行计划...[/]");
 
+        // Load config to apply deletion strategy and TOCTOU verification settings (F-Exec-9/11).
+        var config = Core.Configuration.HelichrysumConfiguration.Load();
+        var executor = new Executor(
+            config.TrashDirectory,
+            config.StagingDirectory,
+            config.DeletionStrategy,
+            config.VerifyBeforeExec);
+
         using var repository = ManifestRepository.Open(manifestPath);
 
         // Resolve object IDs to file paths.
         var allFiles = repository.GetAllFiles();
         var pathMap = allFiles.ToDictionary(f => f.Id, f => f.CanonicalPath);
 
-        var executor = new Executor();
         int successCount = executor.ExecutePlan(plan, id =>
         {
             if (pathMap.TryGetValue(id, out var path))
@@ -90,6 +97,19 @@ public sealed class ExecCommand : Command<ExecCommand.Settings>
 
         AnsiConsole.Write(table);
         AnsiConsole.MarkupLine($"[green]✓[/] 执行完成。成功: {successCount}/{plan.Actions.Count}");
+
+        // F-Exec-5: Mark executed actions' objects as removed in the manifest,
+        // so post-execution reports reflect the archived state.
+        foreach (var entry in executor.Log)
+        {
+            if (entry.Status == "Completed" && entry.ActionType == "MoveToTrash")
+            {
+                repository.MarkObjectRemoved(entry.ObjectId);
+            }
+        }
+
+        repository.SetManifestMeta("last_plan_executed", plan.Id);
+        repository.SetManifestMeta("last_execution_at", DateTimeOffset.UtcNow.ToString("O"));
 
         return 0;
     }

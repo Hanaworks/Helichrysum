@@ -286,6 +286,19 @@ public sealed class ManifestRepository : IDisposable
     }
 
 /// <summary>
+    /// Marks an object as removed from the archive (already moved to trash/staging).
+    /// The manifest keeps the record but flags it, so post-execution reports
+    /// reflect the archived state (F-Exec-5).
+    /// </summary>
+    public void MarkObjectRemoved(long objectId)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = "UPDATE objects SET scope_relation = 'Removed' WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", objectId);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>
     /// Gets a single filesystem object by its ID.
     /// </summary>
     public FilesystemObject? GetObjectById(long objectId)

@@ -1,4 +1,5 @@
 using Helichrysum.Core.Execution;
+using Helichrysum.Core.Configuration;
 using Helichrysum.Core.Planning;
 using Helichrysum.Core.Hashing;
 
@@ -97,6 +98,79 @@ public sealed class ExecutorTests : IDisposable
         Assert.Equal(0, success);
         Assert.Equal("Skipped", _executor.Log[0].Status);
     }
+
+    [Fact]
+    public void TrashOnly_Strategy_NoStagingCopy()
+    {
+        string filePath = Path.Combine(_tempDir, "trashonly.txt");
+        File.WriteAllText(filePath, "content");
+        string hash = HashService.ComputeSha256(filePath);
+
+        var executor = new Executor(_trashDir, _stagingDir, DeletionStrategy.TrashOnly);
+        var action = new PlannedAction { ActionType = "MoveToTrash", ObjectId = 1 };
+        bool result = executor.ExecuteAction(action, filePath, hash);
+
+        Assert.True(result);
+        Assert.False(File.Exists(filePath));
+        Assert.Empty(Directory.GetFiles(_stagingDir)); // No staging copy in TrashOnly mode
+    }
+
+    [Fact]
+    public void StagingOnly_Strategy_SourcePreserved()
+    {
+        string filePath = Path.Combine(_tempDir, "stagingonly.txt");
+        File.WriteAllText(filePath, "content");
+        string hash = HashService.ComputeSha256(filePath);
+
+        var executor = new Executor(_trashDir, _stagingDir, DeletionStrategy.StagingOnly);
+        var action = new PlannedAction { ActionType = "MoveToTrash", ObjectId = 1 };
+        bool result = executor.ExecuteAction(action, filePath, hash);
+
+        Assert.True(result);
+        Assert.True(File.Exists(filePath)); // Source preserved
+        Assert.True(Directory.GetFiles(_stagingDir).Length > 0); // Staging backup made
+    }
+
+    [Fact]
+    public void DoubleBackup_Strategy_BothCopiesMade()
+    {
+        string filePath = Path.Combine(_tempDir, "double.txt");
+        File.WriteAllText(filePath, "content");
+        string hash = HashService.ComputeSha256(filePath);
+
+        var executor = new Executor(_trashDir, _stagingDir, DeletionStrategy.DoubleBackup);
+        var action = new PlannedAction { ActionType = "MoveToTrash", ObjectId = 1 };
+        bool result = executor.ExecuteAction(action, filePath, hash);
+
+        Assert.True(result);
+        Assert.False(File.Exists(filePath)); // Source moved to trash
+        Assert.NotEmpty(Directory.GetFiles(_trashDir));   // Trash copy
+        Assert.NotEmpty(Directory.GetFiles(_stagingDir)); // Staging copy
+    }
+
+    [Fact]
+    public void VerifyBeforeExec_Disabled_SkipsHashCheck()
+    {
+        string filePath = Path.Combine(_tempDir, "noverify.txt");
+        File.WriteAllText(filePath, "original");
+        string originalHash = HashService.ComputeSha256(filePath);
+
+        // Modify the file after recording hash — should NOT abort when verify disabled.
+        File.WriteAllText(filePath, "modified");
+
+        var executor = new Executor(_trashDir, _stagingDir, DeletionStrategy.DoubleBackup, verifyBeforeExec: false);
+        var action = new PlannedAction { ActionType = "MoveToTrash", ObjectId = 1 };
+        bool result = executor.ExecuteAction(action, filePath, originalHash);
+
+        Assert.True(result);
+        Assert.Equal("Completed", executor.Log[0].Status);
+    }
+
+    private static PlannedAction Action(string type, long id) => new()
+    {
+        ActionType = type,
+        ObjectId = id,
+    };
 
     public void Dispose()
     {

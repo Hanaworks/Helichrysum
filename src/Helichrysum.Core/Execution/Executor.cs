@@ -1,12 +1,14 @@
 namespace Helichrysum.Core.Execution;
 
 using System.IO;
+using Helichrysum.Core.Configuration;
 using Helichrysum.Core.Hashing;
 using Helichrysum.Core.Planning;
 
 /// <summary>
 /// Executes a processing plan with safety checks, staging, and logging.
-/// Implements F-Exec-7~12: staging backup, integrity verification, TOCTOU prevention.
+/// Implements F-Exec-7~12: staging backup, integrity verification, TOCTOU prevention,
+/// configurable backup strategy, and post-execution manifest generation.
 /// </summary>
 public sealed class Executor
 {
@@ -19,7 +21,13 @@ public sealed class Executor
     /// </summary>
     /// <param name="trashDirectory">Optional custom trash directory.</param>
     /// <param name="stagingDirectory">Optional custom staging directory.</param>
-    public Executor(string? trashDirectory = null, string? stagingDirectory = null)
+    /// <param name="strategy">Deletion backup strategy (F-Exec-9).</param>
+    /// <param name="verifyBeforeExec">Whether to verify object hash before execution (F-Exec-11).</param>
+    public Executor(
+        string? trashDirectory = null,
+        string? stagingDirectory = null,
+        DeletionStrategy strategy = DeletionStrategy.DoubleBackup,
+        bool verifyBeforeExec = true)
     {
         string baseDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -27,10 +35,22 @@ public sealed class Executor
 
         _trashDirectory = trashDirectory ?? Path.Combine(baseDir, "trash");
         _stagingDirectory = stagingDirectory ?? Path.Combine(baseDir, "staging");
+        _strategy = strategy;
+        _verifyBeforeExec = verifyBeforeExec;
 
-        Directory.CreateDirectory(_trashDirectory);
-        Directory.CreateDirectory(_stagingDirectory);
+        if (_strategy is DeletionStrategy.DoubleBackup or DeletionStrategy.StagingOnly)
+        {
+            Directory.CreateDirectory(_stagingDirectory);
+        }
+
+        if (_strategy is DeletionStrategy.DoubleBackup or DeletionStrategy.TrashOnly)
+        {
+            Directory.CreateDirectory(_trashDirectory);
+        }
     }
+
+    private readonly DeletionStrategy _strategy;
+    private readonly bool _verifyBeforeExec;
 
     /// <summary>
     /// Gets the execution log (read-only).
@@ -48,8 +68,8 @@ public sealed class Executor
             return false;
         }
 
-        // F-Exec-11: Pre-execution verification (TOCTOU prevention).
-        if (expectedHash != null && File.Exists(sourcePath))
+        // F-Exec-11: Pre-execution verification (TOCTOU prevention, config-controlled).
+        if (_verifyBeforeExec && expectedHash != null && File.Exists(sourcePath))
         {
             string currentHash = HashService.ComputeSha256(sourcePath);
             if (currentHash != expectedHash)
@@ -118,51 +138,71 @@ public sealed class Executor
 
     private bool MoveToTrash(PlannedAction action, string sourcePath, string? expectedHash)
     {
-        // F-Exec-7: Two-phase — copy to staging first.
+        // TOCTOU verification is handled once at ExecuteAction level (F-Exec-11),
+        // controlled by the VerifyBeforeExec configuration.
+
         string stagingId = Guid.NewGuid().ToString("N")[..12];
-        string stagingPath = Path.Combine(_stagingDirectory, $"{stagingId}_{Path.GetFileName(sourcePath)}");
 
-        if (File.Exists(sourcePath))
+        // F-Exec-7: Two-phase — copy to staging first (DoubleBackup / StagingOnly).
+        string? stagingPath = null;
+        if (_strategy is DeletionStrategy.DoubleBackup or DeletionStrategy.StagingOnly
+            && File.Exists(sourcePath))
         {
+            stagingPath = Path.Combine(_stagingDirectory, $"{stagingId}_{Path.GetFileName(sourcePath)}");
             File.Copy(sourcePath, stagingPath, overwrite: true);
-        }
 
-        // F-Exec-8: Verify staging copy integrity before removing original.
-        if (File.Exists(stagingPath))
-        {
+            // F-Exec-8: Verify the staging copy is faithful to the source content.
+            // Compare against the current source file — this validates the copy
+            // itself, independent of any earlier-recorded hash.
             string stagingHash = HashService.ComputeSha256(stagingPath);
-            string originalHash = expectedHash ?? HashService.ComputeSha256(sourcePath);
+            string sourceHash = HashService.ComputeSha256(sourcePath);
 
-            if (stagingHash != originalHash)
+            if (stagingHash != sourceHash)
             {
-                // F-Exec-8: Rollback — staging copy is corrupted.
+                // F-Exec-8: Rollback — staging copy is not faithful.
                 File.Delete(stagingPath);
-                LogAction(action, sourcePath, stagingPath, "RolledBack", "Integrity check failed: staging hash mismatch");
+                LogAction(action, sourcePath, stagingPath, "RolledBack", "Integrity check failed: staging copy does not match source");
                 return false;
             }
         }
 
-        // Move to trash.
-        string trashPath = Path.Combine(_trashDirectory, $"{stagingId}_{Path.GetFileName(sourcePath)}");
-
-        if (File.Exists(sourcePath))
+        // TrashOnly or DoubleBackup: move to trash.
+        if (_strategy is DeletionStrategy.TrashOnly or DeletionStrategy.DoubleBackup)
         {
-            File.Move(sourcePath, trashPath);
-        }
-        else if (Directory.Exists(sourcePath))
-        {
-            Directory.Move(sourcePath, trashPath);
+            string trashPath = Path.Combine(_trashDirectory, $"{stagingId}_{Path.GetFileName(sourcePath)}");
+
+            if (File.Exists(sourcePath))
+            {
+                File.Move(sourcePath, trashPath);
+            }
+            else if (Directory.Exists(sourcePath))
+            {
+                Directory.Move(sourcePath, trashPath);
+            }
+
+            // F-Exec-8: Verify move succeeded.
+            if (!File.Exists(trashPath) && !Directory.Exists(trashPath))
+            {
+                LogAction(action, sourcePath, stagingPath, "Failed", "Move to trash failed");
+                return false;
+            }
+
+            LogAction(action, sourcePath, trashPath, "Completed",
+                _strategy == DeletionStrategy.DoubleBackup
+                    ? "Moved to trash with staging backup"
+                    : "Moved to trash (trash only)");
+            return true;
         }
 
-        // F-Exec-8: Verify move succeeded.
-        if (!File.Exists(trashPath) && !Directory.Exists(trashPath))
+        // StagingOnly strategy: keep source in place, only staging backup is made.
+        if (stagingPath != null && File.Exists(stagingPath))
         {
-            LogAction(action, sourcePath, stagingPath, "Failed", "Move to trash failed");
-            return false;
+            LogAction(action, sourcePath, stagingPath, "Completed", "Staging backup created (staging only mode, source preserved)");
+            return true;
         }
 
-        LogAction(action, sourcePath, trashPath, "Completed", "Moved to trash with staging backup");
-        return true;
+        LogAction(action, sourcePath, null, "Failed", "No backup made under current strategy");
+        return false;
     }
 
     private void LogAction(PlannedAction action, string? sourcePath, string? destinationPath, string status, string message)
