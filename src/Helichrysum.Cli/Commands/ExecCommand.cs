@@ -15,24 +15,17 @@ public sealed class ExecCommand : Command<ExecCommand.Settings>
         [CommandArgument(0, "<plan-id>")]
         public required string PlanId { get; init; }
 
-        [Description("Confirm execution.")]
-        [CommandOption("--confirm")]
-        public bool Confirm { get; init; }
-
         [Description("Path to manifest database.")]
         [CommandOption("-m|--manifest")]
         public string? ManifestPath { get; init; }
+
+        [Description("Silently confirm execution (skip interactive prompt).")]
+        [CommandOption("-y|--yes")]
+        public bool Yes { get; init; }
     }
 
     protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        // F-Exec-1: Must have --confirm to execute.
-        if (!settings.Confirm)
-        {
-            AnsiConsole.MarkupLine("[red]错误：[/]必须使用 --confirm 确认执行。先执行 [bold]dry-run[/] 预览效果。");
-            return 1;
-        }
-
         string planPath = GetPlanPath(settings.PlanId, settings.ManifestPath);
         string manifestPath = GetManifestPath(settings.ManifestPath);
 
@@ -55,6 +48,22 @@ public sealed class ExecCommand : Command<ExecCommand.Settings>
         {
             AnsiConsole.MarkupLine("[red]错误：[/]计划文件格式错误。");
             return 1;
+        }
+
+        // F-Exec-1: Interactive confirmation — must confirm before executing.
+        // `--yes` bypasses the prompt for scripting; otherwise ask the user.
+        bool confirmed = settings.Yes;
+        if (!confirmed)
+        {
+            AnsiConsole.MarkupLine($"[yellow]计划 {settings.PlanId}[/] 包含 {plan.Actions.Count} 个动作（{plan.Conflicts.Count} 个冲突）。");
+            AnsiConsole.MarkupLine("[yellow]执行后文件将被移动/清理，请确认。[/]");
+            confirmed = AnsiConsole.Confirm("[bold red]确认执行?[/]");
+        }
+
+        if (!confirmed)
+        {
+            AnsiConsole.MarkupLine("[yellow]已取消执行。先行 [bold]plan-dry-run[/] 可预览效果。[/]");
+            return 0;
         }
 
         AnsiConsole.MarkupLine("[yellow]正在执行计划...[/]");
