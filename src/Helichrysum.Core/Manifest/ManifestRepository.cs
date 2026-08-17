@@ -285,10 +285,42 @@ public sealed class ManifestRepository : IDisposable
         return result as string;
     }
 
+/// <summary>
+    /// Gets a single filesystem object by its ID.
+    /// </summary>
+    public FilesystemObject? GetObjectById(long objectId)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT id, scope_id, path, canonical_path, kind, size, scope_relation FROM objects WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", objectId);
+
+        using var reader = command.ExecuteReader();
+        if (reader.Read())
+        {
+            return new FilesystemObject
+            {
+                Id = reader.GetInt64(0),
+                ScopeId = reader.GetInt64(1),
+                Path = reader.GetString(2),
+                CanonicalPath = reader.GetString(3),
+                Kind = reader.GetString(4),
+                Size = reader.IsDBNull(5) ? null : reader.GetInt64(5),
+                ModifiedTime = null,
+                CreatedTime = null,
+                InodeGroup = null,
+                DeviceId = 0,
+                ScopeRelation = reader.GetString(6),
+                LinkTarget = null,
+                ResolvedLinkTarget = null,
+            };
+        }
+
+        return null;
+    }
+
     /// <summary>
     /// Gets all filesystem objects that are regular files.
     /// </summary>
-    /// <returns>List of all regular file objects.</returns>
     public List<FilesystemObject> GetAllFiles()
     {
         using var command = _connection.CreateCommand();

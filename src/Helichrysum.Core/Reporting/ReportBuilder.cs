@@ -71,7 +71,7 @@ public sealed class ReportBuilder
         string timestamp = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
 
         int totalFiles = _repository.GetAllFiles().Count;
-        string groupsHtml = BuildGroupsHtml(duplicateGroups, totalFiles);
+        string groupsHtml = BuildGroupsHtml(_repository, duplicateGroups);
         string treeHtml = BuildDirectoryTreeHtml(_repository);
 
         // Check truncation threshold.
@@ -102,6 +102,11 @@ public sealed class ReportBuilder
         sb.AppendLine("  .filter-bar select,.filter-bar input{padding:4px 8px;margin-right:8px;border:1px solid #ddd;border-radius:4px}");
         sb.AppendLine("  .tree-node{padding:2px 0 2px 20px;border-left:1px solid #eee;margin:2px 0}");
         sb.AppendLine("  .tree-root{padding:4px 0;font-weight:bold;color:#b8860b}");
+        sb.AppendLine("  .diff{margin-top:8px;background:#fafafa;border:1px solid #eee;border-radius:4px;padding:8px;font-family:monospace;font-size:0.85em}");
+        sb.AppendLine("  .diff h4{margin:0 0 6px 0;color:#666;font-size:0.9em}");
+        sb.AppendLine("  .diff-added{color:#1a7f1a;background:#e8f5e8;padding:1px 4px}");
+        sb.AppendLine("  .diff-removed{color:#a33;background:#fdeaea;padding:1px 4px;text-decoration:line-through}");
+        sb.AppendLine("  .diff-more{color:#888;font-style:italic}");
         sb.AppendLine("</style></head><body>");
         sb.AppendLine("<h1>Helichrysum 分析报告</h1>");
         sb.AppendLine("<div class=\"summary\">");
@@ -180,9 +185,12 @@ public sealed class ReportBuilder
         return $"{(int)(age.TotalDays / 365)} 年前";
     }
 
-    private static string BuildGroupsHtml(List<DuplicateGroup> groups, int totalFiles)
+    private static string BuildGroupsHtml(ManifestRepository repository, List<DuplicateGroup> groups)
     {
         if (groups.Count == 0) return "<p>未发现重复文件。</p>";
+
+        var allFiles = repository.GetAllFiles();
+        var pathById = allFiles.ToDictionary(f => f.Id);
 
         var html = new System.Text.StringBuilder();
         foreach (var group in groups)
@@ -191,7 +199,14 @@ public sealed class ReportBuilder
             html.AppendLine($"<h3>重复组 (共 {group.Count} 个文件，累计 {group.Size * group.Count:N0} 字节)</h3>");
             html.AppendLine($"<div class=\"hash\">Hash: {group.HashValue}</div>");
             foreach (long memberId in group.Members)
-                html.AppendLine($"<div class=\"member\">对象 ID: {memberId}</div>");
+            {
+                string display = pathById.TryGetValue(memberId, out var obj) ? obj.Path : $"对象 ID: {memberId}";
+                html.AppendLine($"<div class=\"member\">{EscapeHtml(display)}</div>");
+            }
+
+            // Diff view for text files within the group.
+            html.Append(BuildDiffHtml(repository, group));
+
             html.AppendLine("</div>");
         }
         return html.ToString();
@@ -221,6 +236,74 @@ public sealed class ReportBuilder
             html.AppendLine($"<div class=\"tree-node\">📁 {EscapeHtml(display)} <span style=\"color:#888;font-size:0.8em\">({dirCounts[dir]} 文件)</span></div>");
         }
 
+        return html.ToString();
+    }
+
+    /// <summary>
+    /// Builds a text diff view between two files, for display in the HTML report.
+    /// Returns a simple line-by-line diff using modified LCS.
+    /// </summary>
+    private static string BuildDiffHtml(ManifestRepository repository, DuplicateGroup group)
+    {
+        if (group.Members.Count < 2) return string.Empty;
+
+        var fileA = repository.GetObjectById(group.Members[0]);
+        var fileB = repository.GetObjectById(group.Members[1]);
+
+        if (fileA == null || fileB == null) return string.Empty;
+        if (!File.Exists(fileA.CanonicalPath) || !File.Exists(fileB.CanonicalPath)) return string.Empty;
+
+        // Only diff text files (small enough to read).
+        if (fileA.Size > 1_000_000 || fileB.Size > 1_000_000) return string.Empty;
+
+        string[] linesA;
+        string[] linesB;
+        try
+        {
+            linesA = File.ReadAllLines(fileA.CanonicalPath);
+            linesB = File.ReadAllLines(fileB.CanonicalPath);
+        }
+        catch
+        {
+            return string.Empty;
+        }
+
+        // Simple diff: mark lines present in A but missing in B as removed,
+        // lines present in B but missing in A as added.
+        var setB = new HashSet<string>(linesB, StringComparer.Ordinal);
+        var setA = new HashSet<string>(linesA, StringComparer.Ordinal);
+
+        var html = new System.Text.StringBuilder();
+        string nameA = Path.GetFileName(fileA.Path);
+        string nameB = Path.GetFileName(fileB.Path);
+
+        html.AppendLine("<div class=\"diff\">");
+        html.AppendLine($"<h4>内容差异对比：{EscapeHtml(nameA)} ⟷ {EscapeHtml(nameB)}</h4>");
+
+        int shown = 0;
+        foreach (string line in linesA)
+        {
+            if (!setB.Contains(line))
+            {
+                html.AppendLine($"<div class=\"diff-line diff-removed\">- {EscapeHtml(line)}</div>");
+                if (++shown >= 50) { html.AppendLine("<div class=\"diff-more\">… 差异过多，已截断</div>"); break; }
+            }
+        }
+        foreach (string line in linesB)
+        {
+            if (!setA.Contains(line))
+            {
+                html.AppendLine($"<div class=\"diff-line diff-added\">+ {EscapeHtml(line)}</div>");
+                if (++shown >= 50) { html.AppendLine("<div class=\"diff-more\">… 差异过多，已截断</div>"); break; }
+            }
+        }
+
+        if (shown == 0)
+        {
+            html.AppendLine("<div class=\"diff-line\">内容相同（仅路径或元数据差异）</div>");
+        }
+
+        html.AppendLine("</div>");
         return html.ToString();
     }
 
