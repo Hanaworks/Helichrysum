@@ -36,7 +36,7 @@ public sealed class ManifestRepository : IDisposable
             System.IO.Directory.CreateDirectory(directory);
         }
 
-        var connection = new SqliteConnection($"Data Source={path}");
+        var connection = new SqliteConnection($"Data Source={path};Pooling=False;");
         return new ManifestRepository(connection);
     }
 
