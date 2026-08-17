@@ -11,11 +11,20 @@ using Helichrysum.Core.Manifest;
 public sealed class ReportBuilder
 {
     private readonly ManifestRepository _repository;
-    private const long HtmlTruncationThreshold = 20 * 1024 * 1024; // 20 MB
+    private long _htmlTruncationThreshold = 20 * 1024 * 1024; // 20 MB default
 
     public ReportBuilder(ManifestRepository repository)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+    }
+
+    /// <summary>
+    /// Sets the HTML report truncation threshold (F-Report-6c).
+    /// </summary>
+    public ReportBuilder WithTruncationThreshold(long thresholdBytes)
+    {
+        _htmlTruncationThreshold = thresholdBytes;
+        return this;
     }
 
     /// <summary>
@@ -77,9 +86,9 @@ public sealed class ReportBuilder
         // Check truncation threshold.
         bool truncated = false;
         string displayGroups = groupsHtml;
-        if (displayGroups.Length > HtmlTruncationThreshold)
+        if (displayGroups.Length > _htmlTruncationThreshold)
         {
-            displayGroups = displayGroups[..(int)HtmlTruncationThreshold]
+            displayGroups = displayGroups[..(int)_htmlTruncationThreshold]
                 + "\n<!-- 报告已截断，完整详情保留在 manifest 中 -->\n"
                 + "<p class=\"truncated\">报告数据量过大，详细列表已截断。请使用 JSON 格式或通过 manifest 查询完整数据。</p>";
             truncated = true;

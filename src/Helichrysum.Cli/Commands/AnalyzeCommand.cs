@@ -2,6 +2,7 @@ namespace Helichrysum.Cli.Commands;
 
 using System.ComponentModel;
 using Helichrysum.Core.Analysis;
+using Helichrysum.Core.Configuration;
 using Helichrysum.Core.Hashing;
 using Helichrysum.Core.Manifest;
 using Helichrysum.Core.Planning;
@@ -15,8 +16,7 @@ public sealed class AnalyzeCommand : Command<AnalyzeCommand.Settings>
     {
         [Description("Analysis depth: metadata, sampled, or full.")]
         [CommandOption("-t|--tier")]
-        [DefaultValue("full")]
-        public required string Tier { get; init; }
+        public string? Tier { get; init; }
 
         [Description("Path to manifest database.")]
         [CommandOption("-m|--manifest")]
@@ -25,10 +25,10 @@ public sealed class AnalyzeCommand : Command<AnalyzeCommand.Settings>
 
     protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        string manifestPath = settings.ManifestPath
-            ?? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".helichrysum", "manifests", "default.sqlite");
+        var config = HelichrysumConfiguration.Load();
+        string tier = settings.Tier ?? config.AnalysisTier;
+
+        string manifestPath = settings.ManifestPath ?? DefaultPaths.ManifestPath(config);
 
         if (!File.Exists(manifestPath))
         {
@@ -36,7 +36,7 @@ public sealed class AnalyzeCommand : Command<AnalyzeCommand.Settings>
             return 1;
         }
 
-        AnsiConsole.MarkupLine($"[yellow]开始分析 (tier: {settings.Tier})...[/]");
+        AnsiConsole.MarkupLine($"[yellow]开始分析 (tier: {tier})...[/]");
 
         using var repository = ManifestRepository.Open(manifestPath);
 
@@ -109,10 +109,8 @@ public sealed class ReportCommand : Command<ReportCommand.Settings>
 
     protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        string manifestPath = settings.ManifestPath
-            ?? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".helichrysum", "manifests", "default.sqlite");
+        var config = HelichrysumConfiguration.Load();
+        string manifestPath = settings.ManifestPath ?? DefaultPaths.ManifestPath(config);
 
         if (!File.Exists(manifestPath))
         {
@@ -121,7 +119,8 @@ public sealed class ReportCommand : Command<ReportCommand.Settings>
         }
 
         using var repository = ManifestRepository.Open(manifestPath);
-        var builder = new ReportBuilder(repository);
+        var builder = new ReportBuilder(repository)
+            .WithTruncationThreshold(config.HtmlTruncationThreshold);
 
         string outputPath = settings.OutputPath ?? $"helichrysum_report.{settings.Format}";
 

@@ -62,6 +62,9 @@ public static class Program
 
                 config.AddCommand<VerifyCommand>("verify")
                       .WithDescription("验证归档完整性（重新 hash 对比 manifest）");
+
+                config.AddCommand<ConfigShowCommand>("config")
+                      .WithDescription("显示当前配置");
             });
 
             return app.Run(arguments);
