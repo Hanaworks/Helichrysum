@@ -59,6 +59,6 @@ public sealed class VersionedDetectorTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDir)) Directory.Delete(_tempDir, true);
+        if (Directory.Exists(_tempDir)) TestFileHelper.DeleteDirectoryWithRetry(_tempDir);
     }
 }

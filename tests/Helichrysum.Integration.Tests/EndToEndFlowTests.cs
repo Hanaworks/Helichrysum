@@ -148,6 +148,18 @@ public sealed class EndToEndFlowTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDir)) Directory.Delete(_tempDir, true);
+        // Retry to tolerate Windows transient file-lock delays.
+        for (int attempt = 1; attempt <= 10; attempt++)
+        {
+            try
+            {
+                if (Directory.Exists(_tempDir)) Directory.Delete(_tempDir, recursive: true);
+                return;
+            }
+            catch (IOException) when (attempt < 10)
+            {
+                Thread.Sleep(100 * attempt);
+            }
+        }
     }
 }

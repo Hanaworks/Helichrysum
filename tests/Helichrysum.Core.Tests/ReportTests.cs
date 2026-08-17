@@ -116,7 +116,7 @@ public sealed class ReportTests : IDisposable
         }
         finally
         {
-            if (File.Exists(dbPath)) File.Delete(dbPath);
+            if (File.Exists(dbPath)) TestFileHelper.DeleteFileWithRetry(dbPath);
         }
     }
 

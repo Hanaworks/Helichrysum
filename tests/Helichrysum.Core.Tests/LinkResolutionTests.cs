@@ -59,7 +59,8 @@ public sealed class LinkResolutionTests : IDisposable
     public void Symlink_ScopeOut_MarkedOutOfScope()
     {
         string linkPath = Path.Combine(_tempDir, "out.link");
-        string outsidePath = "/tmp/helichrysum_outside_test.txt";
+        string outsidePath = Path.Combine(_tempDir, "..", "outside_target.txt");
+        outsidePath = Path.GetFullPath(outsidePath); // Ensure it's outside _tempDir scope root
         try
         {
             File.WriteAllText(outsidePath, "outside");

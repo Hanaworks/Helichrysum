@@ -93,7 +93,7 @@ public sealed class DuplicateDetectionTests : IDisposable
         _repository.Dispose();
         if (File.Exists(_dbPath))
         {
-            File.Delete(_dbPath);
+            TestFileHelper.DeleteFileWithRetry(_dbPath);
         }
     }
 }
