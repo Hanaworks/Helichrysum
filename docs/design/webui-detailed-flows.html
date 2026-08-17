@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Helichrysum WebUI · 4 套完整流程 UX 方案（设置 → 扫描 → 结果 → 计划）</title>
+<!--
+  Helichrysum WebUI 详细流程设计稿（v0.2 · 全配置项版）
+  · 4 套方案：E 专业控制台 / F 现代 SaaS 设置中心 / G 大师-详情三栏 / H 渐进披露向导
+  · 每套方案都包含完整流程 4 个阶段（设置 → 扫描 → 结果 → 计划），且所有可配置项全部可见，仅组织方式不同
+  · 单文件自包含，零外部依赖；JS 承担数据渲染与演示级交互（方案切换 / 阶段导航 / 选中联动 / 展开收起 / 向导步进）
+  · 数据源：webui-mockup.html（16 问题组 / 扫描统计 / 18 计划动作 / 全部配置项）
+-->
+<style>
+/* ============================================================
+   0. 设计 token（四套方案共享：蜡菊琥珀金 + 暖石灰阶）
+   ============================================================ */
+:root {
+  --color-canvas: #faf9f7;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f3f1ec;
+  --color-surface-hover: #f7f5f0;
+  --color-border: #e9e5de;
+  --color-border-strong: #d8d2c8;
+
+  --color-text-primary: #292524;
+  --color-text-secondary: #6f6963;
+  --color-text-tertiary: #a49e95;
+  --color-text-inverted: #ffffff;
+
+  --color-brand: #d97706;
+  --color-brand-deep: #b45309;
+  --color-brand-bright: #f59e0b;
+  --color-brand-tint: #fffbeb;
+  --color-brand-tint-strong: #fef3c7;
+  --color-brand-border: #f5d9a8;
+
+  --relation-exact-duplicate: #2563eb;        --relation-exact-duplicate-bg: #eff6ff;
+  --relation-near-duplicate: #0e7490;         --relation-near-duplicate-bg: #ecfeff;
+  --relation-versioned: #16a34a;              --relation-versioned-bg: #f0fdf4;
+  --relation-renamed: #52627a;                --relation-renamed-bg: #f1f5f9;
+  --relation-moved: #64748b;                  --relation-moved-bg: #f4f6f8;
+  --relation-structural-sibling: #4f46e5;     --relation-structural-sibling-bg: #eef2ff;
+  --relation-archive-pair: #9333ea;           --relation-archive-pair-bg: #faf5ff;
+  --relation-link-reference: #475569;         --relation-link-reference-bg: #f1f5f9;
+  --relation-partial-overlap: #ea580c;        --relation-partial-overlap-bg: #fff7ed;
+  --relation-out-of-scope: #b45309;           --relation-out-of-scope-bg: #fef3c7;
+  --relation-broken: #dc2626;                 --relation-broken-bg: #fef2f2;
+  --relation-circular: #9f1239;               --relation-circular-bg: #ffe4e6;
+
+  --resolution-equality: #15803d;             --resolution-equality-bg: #dcfce7;
+  --resolution-compatibility: #0369a1;        --resolution-compatibility-bg: #e0f2fe;
+  --resolution-conflict: #dc2626;             --resolution-conflict-bg: #fee2e2;
+  --resolution-integrity: #7f1d1d;            --resolution-integrity-bg: #f7dcdc;
+
+  --action-keep: #15803d;                     --action-keep-bg: #dcfce7;
+  --action-trash: #be123c;                    --action-trash-bg: #ffe4e6;
+  --action-move: #1d4ed8;                     --action-move-bg: #dbeafe;
+  --action-rename: #475569;                   --action-rename-bg: #f1f5f9;
+  --action-link: #0f766e;                     --action-link-bg: #ccfbf1;
+  --action-merge: #4338ca;                    --action-merge-bg: #e0e7ff;
+  --action-manual: #b45309;                   --action-manual-bg: #fef3c7;
+
+  --font-interface: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-monospace: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, "Courier New", monospace;
+
+  --radius-card: 12px;
+  --radius-element: 8px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(41, 37, 36, 0.04), 0 4px 16px rgba(41, 37, 36, 0.05);
+  --shadow-raised: 0 1px 3px rgba(41, 37, 36, 0.08), 0 8px 24px rgba(41, 37, 36, 0.09);
+  --shadow-brand: 0 2px 10px rgba(217, 119, 6, 0.32);
+}
+
+/* ============================================================
+   1. 基础重置与共享组件
+   ============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font-interface); font-size: 14px; line-height: 1.55;
+  color: var(--color-text-primary); background: var(--color-canvas);
+  background-image: radial-gradient(1200px 400px at 70% -200px, rgba(245, 158, 11, 0.05), transparent 70%);
+  min-width: 1280px;
+}
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--color-brand-bright); outline-offset: 2px; border-radius: 4px; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--color-brand); }
+.icon { width: 16px; height: 16px; flex: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; vertical-align: -3px; }
+.icon-small { width: 13px; height: 13px; vertical-align: -2px; }
+.monospace { font-family: var(--font-monospace); font-size: 12px; }
+.numeric { font-variant-numeric: tabular-nums; }
+.scrollable::-webkit-scrollbar { width: 8px; height: 8px; }
+.scrollable::-webkit-scrollbar-thumb { background: #ddd8cf; border-radius: 8px; }
+.scrollable::-webkit-scrollbar-track { background: transparent; }
+
+/* 共享：按钮 */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--radius-element);
+  font-size: 13px; font-weight: 500; white-space: nowrap;
+  border: 1px solid var(--color-border-strong); background: var(--color-surface);
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.btn:hover { background: var(--color-surface-hover); border-color: #c9c2b6; }
+.btn-primary { border: none; color: var(--color-text-inverted); font-weight: 600; background: linear-gradient(180deg, var(--color-brand-bright), var(--color-brand)); box-shadow: var(--shadow-brand); }
+.btn-primary:hover { background: linear-gradient(180deg, #f59e0b, #c2670a); }
+.btn-small { padding: 4px 10px; font-size: 12px; }
+.btn.disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+/* 共享：卡片 */
+.card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-card); box-shadow: var(--shadow-card); }
+.card-header { display: flex; align-items: center; gap: 10px; padding: 13px 18px; border-bottom: 1px solid var(--color-border); }
+.card-title { font-size: 14.5px; font-weight: 650; }
+.card-title-note { font-size: 12px; color: var(--color-text-tertiary); font-weight: 400; margin-left: 4px; }
+.card-body { padding: 16px 18px; }
+
+/* 共享：信息条 */
+.banner { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; border-radius: var(--radius-element); font-size: 13px; border: 1px solid transparent; line-height: 1.55; }
+.banner .icon { margin-top: 2px; flex: none; }
+.banner-info { background: #eff6ff; border-color: #d3e3fd; color: #1e40af; }
+.banner-warning { background: var(--color-brand-tint); border-color: var(--color-brand-border); color: var(--color-brand-deep); }
+.banner-danger { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+.banner b { font-weight: 650; }
+
+/* 共享：关系 / Resolution / 动作 / 建议徽章 */
+.relation-badge { display: inline-flex; align-items: center; gap: 6px; flex: none; font-size: 12px; font-weight: 600; border-radius: var(--radius-pill); padding: 2px 10px 2px 8px; white-space: nowrap; }
+.relation-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.relation-code { font-family: var(--font-monospace); font-size: 10px; font-weight: 400; opacity: 0.72; }
+.relation-exact-duplicate { color: var(--relation-exact-duplicate); background: var(--relation-exact-duplicate-bg); }
+.relation-near-duplicate { color: var(--relation-near-duplicate); background: var(--relation-near-duplicate-bg); }
+.relation-versioned { color: var(--relation-versioned); background: var(--relation-versioned-bg); }
+.relation-renamed { color: var(--relation-renamed); background: var(--relation-renamed-bg); }
+.relation-moved { color: var(--relation-moved); background: var(--relation-moved-bg); }
+.relation-structural-sibling { color: var(--relation-structural-sibling); background: var(--relation-structural-sibling-bg); }
+.relation-archive-pair { color: var(--relation-archive-pair); background: var(--relation-archive-pair-bg); }
+.relation-link-reference { color: var(--relation-link-reference); background: var(--relation-link-reference-bg); }
+.relation-partial-overlap { color: var(--relation-partial-overlap); background: var(--relation-partial-overlap-bg); }
+.relation-out-of-scope { color: var(--relation-out-of-scope); background: var(--relation-out-of-scope-bg); }
+.relation-broken { color: var(--relation-broken); background: var(--relation-broken-bg); }
+.relation-circular { color: var(--relation-circular); background: var(--relation-circular-bg); }
+
+.resolution-badge { display: inline-flex; align-items: center; gap: 5px; flex: none; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: var(--radius-pill); padding: 2px 10px; border: 1px solid transparent; }
+.resolution-equality { color: var(--resolution-equality); background: var(--resolution-equality-bg); border-color: #bbf7d0; }
+.resolution-compatibility { color: var(--resolution-compatibility); background: var(--resolution-compatibility-bg); border-color: #bae6fd; }
+.resolution-conflict { color: var(--resolution-conflict); background: var(--resolution-conflict-bg); border-color: #fecaca; }
+.resolution-integrity { color: var(--resolution-integrity); background: var(--resolution-integrity-bg); border-color: #efb9b9; }
+
+.action-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: var(--radius-pill); padding: 2px 10px; flex: none; }
+.action-keep { color: var(--action-keep); background: var(--action-keep-bg); }
+.action-trash { color: var(--action-trash); background: var(--action-trash-bg); }
+.action-move { color: var(--action-move); background: var(--action-move-bg); }
+.action-rename { color: var(--action-rename); background: var(--action-rename-bg); }
+.action-link { color: var(--action-link); background: var(--action-link-bg); }
+.action-merge { color: var(--action-merge); background: var(--action-merge-bg); }
+.action-manual { color: var(--action-manual); background: var(--action-manual-bg); }
+
+.suggestion-chip { font-size: 11px; font-weight: 600; border-radius: var(--radius-pill); padding: 2px 9px; white-space: nowrap; }
+.suggestion-keep { color: var(--action-keep); background: var(--action-keep-bg); }
+.suggestion-trash { color: var(--action-trash); background: var(--action-trash-bg); }
+.suggestion-manual { color: var(--action-manual); background: var(--action-manual-bg); }
+.suggestion-neutral { color: var(--color-text-secondary); background: var(--color-surface-sunken); }
+.suggestion-integrity { color: var(--resolution-integrity); background: var(--resolution-integrity-bg); }
+
+/* 共享：置信度 */
+.confidence-indicator { display: flex; align-items: center; gap: 7px; flex: none; }
+.confidence-track { width: 52px; height: 5px; border-radius: 4px; background: var(--color-surface-sunken); overflow: hidden; }
+.confidence-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--color-brand-bright), var(--color-brand)); }
+.confidence-value { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; width: 36px; }
+.confidence-unavailable { font-size: 12px; color: var(--color-text-tertiary); white-space: nowrap; }
+
+/* 共享：推荐标记 / 默认标记 / 层级 chip */
+.recommend-tag { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: 11.5px; font-weight: 700; color: var(--color-brand-deep); background: var(--color-brand-tint-strong); border: 1px dashed var(--color-brand); border-radius: var(--radius-pill); padding: 2px 9px; white-space: nowrap; }
+.recommend-tag .icon { width: 12px; height: 12px; }
+.default-tag { font-size: 10.5px; font-weight: 600; color: var(--color-text-tertiary); background: var(--color-surface-sunken); border-radius: var(--radius-pill); padding: 1px 8px; white-space: nowrap; }
+.layer-chip { font-size: 10.5px; font-weight: 600; border-radius: var(--radius-pill); padding: 2px 8px; color: var(--color-text-tertiary); border: 1px solid var(--color-border-strong); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.layer-chip.hit { color: var(--color-text-inverted); background: #44403c; border-color: #44403c; }
+
+/* 共享：表单控件 */
+.field-label { font-size: 11px; color: var(--color-text-tertiary); font-weight: 600; letter-spacing: 0.3px; display: block; margin-bottom: 4px; }
+.text-input, .select-input {
+  font-size: 13px; padding: 6px 10px; width: 100%;
+  border: 1px solid var(--color-border-strong); border-radius: var(--radius-element);
+  background: var(--color-surface); font-variant-numeric: tabular-nums;
+}
+.text-input:focus, .select-input:focus { outline: none; border-color: var(--color-brand-bright); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16); }
+.text-input.monospace { font-size: 12px; }
+
+/* 共享：开关 */
+.toggle-switch { position: relative; width: 40px; height: 22px; flex: none; cursor: pointer; display: inline-block; }
+.toggle-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; margin: 0; }
+.toggle-slider { position: absolute; inset: 0; background: #d6d0c6; border-radius: var(--radius-pill); transition: background-color 0.18s ease; }
+.toggle-slider::after { content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #fff; top: 3px; left: 3px; box-shadow: 0 1px 3px rgba(41, 37, 36, 0.25); transition: transform 0.18s ease; }
+.toggle-switch input:checked + .toggle-slider { background: var(--color-brand); }
+.toggle-switch input:checked + .toggle-slider::after { transform: translateX(18px); }
+
+/* 共享：设置行（标题 + 说明 + 控件） */
+.setting-row { display: flex; align-items: flex-start; gap: 14px; padding: 12px 0; border-bottom: 1px solid #f1eee8; }
+.setting-row:last-child { border-bottom: none; padding-bottom: 2px; }
+.setting-row-main { flex: 1; min-width: 0; }
+.setting-row-title { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.setting-row-hint { font-size: 12px; color: var(--color-text-tertiary); margin-top: 2px; line-height: 1.5; }
+
+/* 共享：路径 chip / 规则行 */
+.path-chip { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-monospace); font-size: 12.5px; background: var(--color-surface-sunken); border: 1px solid var(--color-border-strong); border-radius: var(--radius-element); padding: 5px 8px 5px 10px; }
+.path-chip .icon { width: 14px; height: 14px; color: var(--color-brand); }
+.chip-remove { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; color: var(--color-text-tertiary); }
+.chip-remove:hover { background: var(--resolution-conflict-bg); color: var(--resolution-conflict); }
+.rule-type-badge { font-size: 11px; font-weight: 650; flex: none; width: 58px; text-align: center; border-radius: var(--radius-pill); padding: 2px 0; color: var(--color-brand-deep); background: var(--color-brand-tint); border: 1px solid var(--color-brand-border); }
+.rule-pattern { font-family: var(--font-monospace); font-size: 12.5px; }
+.rule-purpose { font-size: 12px; color: var(--color-text-tertiary); }
+
+/* 共享：深度选择卡片 */
+.depth-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.depth-choice { display: flex; flex-direction: column; gap: 3px; cursor: pointer; border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-element); padding: 11px 13px; transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease; }
+.depth-choice:hover { border-color: #c9c2b6; }
+.depth-choice.selected { border-color: var(--color-brand); background: var(--color-brand-tint); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12); }
+.depth-choice-title { font-size: 13px; font-weight: 650; display: flex; align-items: center; gap: 7px; }
+.depth-choice-title .layer-chip { margin-left: auto; }
+.depth-choice-hint { font-size: 11.5px; color: var(--color-text-tertiary); line-height: 1.45; }
+
+/* 共享：滑块 */
+.slider-row { display: flex; align-items: center; gap: 14px; }
+.range-slider { flex: 1; accent-color: var(--color-brand); height: 4px; cursor: pointer; }
+.slider-value { font-size: 15px; font-weight: 700; color: var(--color-brand-deep); min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* 共享：统计块 */
+.stat-value { font-size: 24px; font-weight: 750; letter-spacing: 0.2px; font-variant-numeric: tabular-nums; display: block; line-height: 1.2; }
+.stat-unit { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); }
+.stat-label { font-size: 12px; color: var(--color-text-secondary); display: block; margin-top: 2px; }
+.stat-accent .stat-value { color: var(--color-brand-deep); }
+.stat-warning .stat-value { color: var(--resolution-conflict); }
+
+/* 共享：问题组成员行 / 判定依据 / 处理链 */
+.member-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1eee8; font-size: 12.5px; }
+.member-row:last-child { border-bottom: none; }
+.member-checkbox { width: 15px; height: 15px; accent-color: var(--color-brand); cursor: pointer; flex: none; }
+.member-path-cell { flex: 1; min-width: 0; }
+.member-path { font-family: var(--font-monospace); font-size: 12.5px; display: flex; align-items: center; gap: 7px; white-space: nowrap; overflow: hidden; }
+.member-path .icon { width: 14px; height: 14px; color: var(--color-text-tertiary); }
+.member-path .keep-star { color: var(--color-brand); width: 13px; height: 13px; fill: currentColor; stroke: none; }
+.member-path-detail { font-size: 11px; color: var(--color-text-tertiary); margin-top: 1px; }
+.member-meta { font-size: 12px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
+
+.evidence-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.evidence-item { display: flex; gap: 8px; font-size: 12.5px; line-height: 1.5; }
+.evidence-item .evidence-marker { color: var(--action-keep); flex: none; margin-top: 2px; }
+.evidence-item .evidence-marker.evidence-miss { color: var(--resolution-conflict); }
+.evidence-item-text { color: var(--color-text-secondary); }
+.evidence-item-text b { color: var(--color-text-primary); font-weight: 600; }
+
+.process-chain-step { display: flex; align-items: flex-start; gap: 9px; padding: 5px 0; }
+.process-chain-dot { width: 20px; height: 20px; border-radius: 50%; flex: none; margin-top: 1px; display: grid; place-items: center; font-size: 11px; font-weight: 700; border: 1.5px solid var(--color-border-strong); color: var(--color-text-tertiary); background: var(--color-surface); }
+.process-chain-step.state-done .process-chain-dot { background: var(--resolution-equality-bg); border-color: var(--resolution-equality); color: var(--resolution-equality); }
+.process-chain-step.state-active .process-chain-dot { background: var(--color-brand); border-color: var(--color-brand); color: #fff; box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.15); }
+.process-chain-name { font-size: 12.5px; font-weight: 650; }
+.process-chain-step.state-pending .process-chain-name { color: var(--color-text-tertiary); font-weight: 500; }
+.process-chain-meta { font-size: 11.5px; color: var(--color-text-secondary); }
+.chain-dependency-tag { display: inline-flex; font-size: 11px; font-weight: 600; color: var(--color-brand-deep); background: var(--color-brand-tint); border: 1px solid var(--color-brand-border); border-radius: var(--radius-pill); padding: 1px 8px; margin-left: 6px; white-space: nowrap; }
+
+.detail-panel-heading { font-size: 12px; font-weight: 700; letter-spacing: 0.4px; color: var(--color-text-secondary); margin-bottom: 9px; display: flex; align-items: center; gap: 6px; }
+.analysis-layer-chips { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+
+/* 共享：筛选条控件 */
+.filter-field { display: flex; flex-direction: column; gap: 4px; }
+.quick-chip { font-size: 12px; padding: 5px 12px; border-radius: var(--radius-pill); border: 1px solid var(--color-border-strong); color: var(--color-text-secondary); transition: all 0.15s ease; white-space: nowrap; }
+.quick-chip:hover { border-color: var(--color-brand); color: var(--color-brand-deep); }
+.quick-chip.selected { background: var(--color-brand-tint-strong); border-color: var(--color-brand); color: var(--color-brand-deep); font-weight: 600; }
+
+/* 共享：计划动作表格 */
+.plan-summary-chip { font-size: 12px; font-weight: 600; border-radius: var(--radius-pill); padding: 4px 12px; background: var(--color-surface-sunken); border: 1px solid var(--color-border); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.plan-summary-chip.emphasis { background: var(--color-brand-tint-strong); border-color: var(--color-brand-border); color: var(--color-brand-deep); }
+.plan-action-object { font-family: var(--font-monospace); font-size: 12px; min-width: 0; word-break: break-all; }
+.plan-action-object-sub { font-size: 11px; color: var(--color-text-tertiary); }
+.plan-action-target { font-family: var(--font-monospace); font-size: 11.5px; color: var(--color-text-secondary); word-break: break-all; }
+.conflict-inline-flag { color: var(--resolution-conflict); font-weight: 700; font-family: var(--font-interface); white-space: nowrap; }
+
+/* 共享：保底策略卡 */
+.strategy-card { display: flex; gap: 11px; align-items: flex-start; cursor: pointer; border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-element); padding: 11px 13px; transition: border-color 0.15s ease, background-color 0.15s ease; }
+.strategy-card:hover { border-color: #c9c2b6; }
+.strategy-card.selected { border-color: var(--color-brand); background: var(--color-brand-tint); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12); }
+.strategy-radio-dot { width: 16px; height: 16px; border-radius: 50%; flex: none; margin-top: 2px; border: 1.5px solid var(--color-border-strong); display: grid; place-items: center; }
+.strategy-card.selected .strategy-radio-dot { border-color: var(--color-brand); }
+.strategy-card.selected .strategy-radio-dot::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--color-brand); }
+.strategy-card-title { font-size: 13px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
+.strategy-card-desc { font-size: 11.5px; color: var(--color-text-tertiary); line-height: 1.5; margin-top: 2px; display: block; }
+.strategy-recommend-tag { font-size: 10px; font-weight: 700; color: var(--color-brand-deep); background: var(--color-brand-tint-strong); border-radius: var(--radius-pill); padding: 1px 7px; }
+
+/* 共享：dry-run 对比 */
+.dry-run-compare { display: grid; grid-template-columns: 1fr 34px 1fr; align-items: stretch; }
+.compare-column { padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-element); background: var(--color-surface); }
+.compare-column.column-after { background: #f4fbf6; border-color: #bbe7c9; }
+.compare-column-heading { font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); letter-spacing: 0.4px; margin-bottom: 8px; }
+.compare-column.column-after .compare-column-heading { color: var(--action-keep); }
+.compare-stat { display: flex; justify-content: space-between; font-size: 12.5px; padding: 3px 0; font-variant-numeric: tabular-nums; }
+.compare-stat-label { color: var(--color-text-secondary); }
+.compare-stat-value { font-weight: 650; }
+.compare-arrow { display: grid; place-items: center; color: var(--color-text-tertiary); }
+
+/* 共享：扫描日志 */
+.scan-log { font-family: var(--font-monospace); font-size: 11.5px; line-height: 1.9; background: #fbfaf7; border: 1px solid var(--color-border); border-radius: var(--radius-element); padding: 12px 14px; color: var(--color-text-secondary); }
+.log-line { white-space: nowrap; }
+.log-time { color: var(--color-text-tertiary); }
+.log-tag-warning { color: var(--color-brand-deep); font-weight: 600; }
+.log-tag-hash { color: var(--relation-near-duplicate); }
+.log-tag-link { color: var(--relation-renamed); }
+.log-tag-info { color: var(--relation-structural-sibling); }
+
+/* ============================================================
+   2. 顶部方案切换器（设计稿导航，非产品功能）
+   ============================================================ */
+.design-topbar { position: sticky; top: 0; z-index: 200; display: flex; align-items: center; gap: 20px; padding: 10px 28px; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border); }
+.design-brand { display: flex; align-items: center; gap: 10px; min-width: 250px; }
+.design-brand-mark { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: linear-gradient(145deg, var(--color-brand-bright), var(--color-brand)); box-shadow: var(--shadow-brand); }
+.design-brand-mark svg { width: 18px; height: 18px; }
+.design-brand-name { font-size: 15px; font-weight: 700; }
+.design-brand-name em { font-style: normal; color: var(--color-brand-deep); }
+.design-brand-sub { font-size: 11px; color: var(--color-text-tertiary); }
+.paradigm-tabs { display: flex; gap: 3px; margin: 0 auto; background: var(--color-surface-sunken); border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 3px; }
+.paradigm-tab { display: flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: var(--radius-pill); font-size: 13px; color: var(--color-text-secondary); transition: all 0.18s ease; white-space: nowrap; }
+.paradigm-tab:hover { color: var(--color-text-primary); }
+.paradigm-tab.active { background: var(--color-surface); color: var(--color-brand-deep); font-weight: 600; box-shadow: 0 1px 3px rgba(41, 37, 36, 0.12); }
+.paradigm-tab .icon { width: 14px; height: 14px; }
+.design-note { font-size: 12px; color: var(--color-text-tertiary); min-width: 250px; text-align: right; }
+
+.design-intro { max-width: 1360px; margin: 0 auto; padding: 14px 28px 0; }
+.design-intro-card { display: flex; gap: 24px; padding: 14px 20px; background: var(--color-brand-tint); border: 1px dashed var(--color-brand-border); border-radius: var(--radius-card); font-size: 12.5px; line-height: 1.6; }
+.design-intro-label { flex: none; font-weight: 700; color: var(--color-brand-deep); font-size: 13px; }
+.design-intro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; flex: 1; }
+.design-intro-item b { color: var(--color-brand-deep); }
+
+.paradigm-section { display: none; }
+.paradigm-section.active { display: block; animation: section-fade-in 0.25s ease; }
+@keyframes section-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.design-footer { text-align: center; padding: 24px; font-size: 12px; color: var(--color-text-tertiary); border-top: 1px solid var(--color-border); margin-top: 24px; }
+
+/* 阶段面板通用（各方案内部切换） */
+.stage-pane { display: none; }
+.stage-pane.active { display: block; animation: section-fade-in 0.22s ease; }
+
+/* ============================================================
+   3. 方案 E · 专业控制台（TreeSize Pro / Arq 气质：高密度、强控制）
+   ============================================================ */
+.console-shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 30px; height: 860px; margin: 18px 28px 40px; border: 1px solid var(--color-border-strong); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-raised); background: var(--color-surface); font-size: 13px; }
+.console-sidebar { grid-row: 1; background: #29241f; color: #e9e2d5; display: flex; flex-direction: column; overflow: hidden; }
+.console-sidebar-header { padding: 14px 14px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+.console-app-name { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.console-app-name .icon { color: var(--color-brand-bright); }
+.console-session-name { font-size: 11px; color: #a89e8d; margin-top: 4px; }
+.console-nav { flex: 1; overflow-y: auto; padding: 10px 8px; }
+.console-nav-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #7a7264; padding: 10px 8px 5px; }
+.console-nav-item { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; padding: 7px 10px; border-radius: 7px; font-size: 12.5px; color: #cfc7b8; border-left: 3px solid transparent; transition: all 0.15s ease; }
+.console-nav-item:hover { background: rgba(255, 255, 255, 0.05); color: #f3ecdd; }
+.console-nav-item.active { background: rgba(245, 158, 11, 0.14); border-left-color: var(--color-brand-bright); color: #fff; font-weight: 600; }
+.console-nav-item .icon { width: 14px; height: 14px; }
+.console-nav-number { width: 17px; height: 17px; border-radius: 5px; display: grid; place-items: center; font-size: 10.5px; font-weight: 700; background: rgba(255, 255, 255, 0.08); color: #a89e8d; flex: none; }
+.console-nav-item.active .console-nav-number { background: var(--color-brand); color: #fff; }
+.console-nav-item.done .console-nav-number { background: rgba(21, 128, 61, 0.45); color: #4ade80; }
+.console-nav-state { margin-left: auto; font-size: 10px; color: #8d8474; white-space: nowrap; }
+.console-subnav { margin-left: 34px; display: flex; flex-direction: column; gap: 1px; padding: 2px 0 6px; }
+.console-subnav-item { text-align: left; font-size: 11.5px; color: #9a917f; padding: 3px 8px; border-radius: 5px; }
+.console-subnav-item:hover { color: #e9e2d5; background: rgba(255, 255, 255, 0.04); }
+.console-subnav-item.active { color: var(--color-brand-bright); font-weight: 600; background: rgba(245, 158, 11, 0.1); }
+.console-sidebar-footer { padding: 10px 14px; border-top: 1px solid rgba(255, 255, 255, 0.07); font-size: 10.5px; color: #8d8474; line-height: 1.7; }
+
+.console-main { grid-row: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--color-canvas); }
+.console-toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); flex: none; }
+.console-breadcrumb { font-size: 12.5px; color: var(--color-text-secondary); }
+.console-breadcrumb b { color: var(--color-text-primary); font-weight: 650; }
+.console-toolbar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.console-content { flex: 1; overflow-y: auto; padding: 14px 16px; }
+.console-statusbar { grid-column: 1 / -1; grid-row: 2; display: flex; align-items: center; gap: 18px; padding: 0 16px; background: #29241f; color: #a89e8d; font-size: 11px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.console-statusbar .status-ok { color: #4ade80; }
+.console-statusbar b { color: #e9e2d5; font-weight: 600; }
+
+/* E 设置：标签页 */
+.console-tabstrip { display: flex; gap: 2px; border-bottom: 1px solid var(--color-border-strong); background: var(--color-surface-sunken); padding: 0 8px; border-radius: 8px 8px 0 0; }
+.console-tab { padding: 8px 16px; font-size: 12.5px; font-weight: 600; color: var(--color-text-secondary); border: 1px solid transparent; border-bottom: none; border-radius: 7px 7px 0 0; margin-bottom: -1px; }
+.console-tab:hover { color: var(--color-text-primary); background: rgba(255, 255, 255, 0.5); }
+.console-tab.active { background: var(--color-surface); border-color: var(--color-border-strong); color: var(--color-brand-deep); }
+.console-tabpanel { border: 1px solid var(--color-border-strong); border-top: none; border-radius: 0 0 8px 8px; background: var(--color-surface); padding: 16px 18px; }
+.console-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; }
+.console-form-grid .setting-row { padding: 10px 0; }
+
+/* E 扫描：上下分区 + 下半左右分栏 */
+.console-scan-overview { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; margin-bottom: 12px; }
+.console-scan-split { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.console-progress-hero { padding: 16px 20px; }
+.console-progress-line { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+.console-progress-pct { font-size: 34px; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; line-height: 1; }
+.console-progress-pct small { font-size: 16px; font-weight: 600; color: var(--color-text-secondary); }
+.console-progress-meta { font-size: 12px; color: var(--color-text-secondary); }
+.progress-track { height: 9px; border-radius: 5px; background: var(--color-surface-sunken); overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--color-brand-bright), var(--color-brand)); box-shadow: 0 0 10px rgba(217, 119, 6, 0.3); }
+.current-path-line { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-family: var(--font-monospace); font-size: 11.5px; color: var(--color-text-secondary); background: var(--color-surface-sunken); border-radius: var(--radius-element); padding: 7px 11px; white-space: nowrap; overflow: hidden; }
+.current-path-label { font-family: var(--font-interface); font-size: 10.5px; font-weight: 700; color: var(--color-text-tertiary); letter-spacing: 0.5px; flex: none; }
+.current-path-cursor { color: var(--color-brand); animation: path-blink 1.1s ease infinite; }
+@keyframes path-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+.console-layer-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.console-layer-table th { text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; color: var(--color-text-tertiary); padding: 6px 10px; border-bottom: 1px solid var(--color-border); background: #fcfbf9; }
+.console-layer-table td { padding: 8px 10px; border-bottom: 1px solid #f1eee8; vertical-align: middle; }
+.console-layer-table tr:last-child td { border-bottom: none; }
+.layer-state-chip { font-size: 10.5px; font-weight: 700; border-radius: var(--radius-pill); padding: 1px 8px; white-space: nowrap; }
+.layer-state-chip.state-done { color: var(--resolution-equality); background: var(--resolution-equality-bg); }
+.layer-state-chip.state-running { color: var(--color-brand-deep); background: var(--color-brand-tint-strong); }
+.layer-state-chip.state-pending { color: var(--color-text-tertiary); background: var(--color-surface-sunken); }
+.mini-progress-track { width: 90px; height: 4px; border-radius: 3px; background: var(--color-surface-sunken); overflow: hidden; display: inline-block; vertical-align: middle; }
+.mini-progress-fill { height: 100%; background: var(--color-brand); border-radius: 3px; }
+
+.console-kv-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--color-border); font-size: 12.5px; }
+.console-kv-row:last-child { border-bottom: none; }
+.console-kv-count { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-text-secondary); }
+.relation-dot { width: 8px; height: 8px; border-radius: 3px; flex: none; display: inline-block; }
+
+/* E 结果：三栏 */
+.console-results-grid { display: grid; grid-template-columns: 190px minmax(0, 1fr) 320px; gap: 12px; align-items: start; }
+.console-type-nav { padding: 8px 6px; position: sticky; top: 12px; }
+.console-type-nav-heading { font-size: 10.5px; font-weight: 700; color: var(--color-text-tertiary); letter-spacing: 0.6px; padding: 4px 10px 7px; }
+.console-type-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font-size: 12px; color: var(--color-text-secondary); padding: 4.5px 10px; border-radius: 6px; }
+.console-type-item:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.console-type-item.active { background: var(--color-brand-tint-strong); color: var(--color-brand-deep); font-weight: 600; }
+.console-type-count { margin-left: auto; font-size: 11px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+.console-type-item.active .console-type-count { color: var(--color-brand-deep); }
+
+.console-batchbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 7px 12px; margin-bottom: 10px; background: rgba(41, 37, 36, 0.96); color: #f5f2ec; border-radius: 8px; position: sticky; top: 0; z-index: 30; }
+.console-batchbar .selected-count { font-size: 12px; font-weight: 600; color: var(--color-brand-bright); background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius-pill); padding: 2px 10px; font-variant-numeric: tabular-nums; }
+.console-batch-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #e8e3da; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 6px; padding: 3px 9px; transition: all 0.15s ease; }
+.console-batch-btn:hover { border-color: var(--color-brand-bright); color: #fff; background: rgba(245, 158, 11, 0.12); }
+.console-batch-btn .icon { width: 12px; height: 12px; }
+.console-batch-note { font-size: 11px; color: #a8a199; margin-left: auto; }
+
+.console-issue-card { margin-bottom: 10px; border-radius: 8px; }
+.console-issue-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 14px; border-bottom: 1px solid var(--color-border); cursor: pointer; }
+.console-issue-header:hover { background: var(--color-surface-hover); }
+.console-issue-title { font-size: 13px; font-weight: 650; }
+.console-issue-meta { margin-left: auto; font-size: 11.5px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.console-issue-body { padding: 6px 14px 10px; }
+.console-issue-members-header, .console-member-grid { display: grid; grid-template-columns: 22px minmax(0, 1fr) 76px 128px 118px 118px; gap: 8px; align-items: center; }
+.console-issue-members-header { padding: 6px 0 4px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border); }
+.console-member-grid { padding: 6px 0; border-bottom: 1px solid #f1eee8; font-size: 12px; }
+.console-member-grid:last-child { border-bottom: none; }
+.console-detail-toggle { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--color-brand-deep); border: 1px solid var(--color-brand-border); background: var(--color-brand-tint); border-radius: var(--radius-pill); padding: 3px 11px; }
+.console-detail-toggle:hover { background: var(--color-brand-tint-strong); }
+.console-detail-toggle .toggle-caret { display: inline-flex; transition: transform 0.18s ease; }
+.console-detail-toggle .toggle-caret.rotated { transform: rotate(90deg); }
+.inline-detail { margin-top: 8px; padding: 12px 14px; background: #fdfcf9; border: 1px solid var(--color-border); border-radius: var(--radius-element); }
+.inline-detail.collapsed { display: none; }
+
+.console-detail-panel { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.console-detail-panel .card-header { padding: 10px 14px; }
+.console-detail-panel .card-body { padding: 12px 14px; }
+.detail-metadata-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+.detail-metadata-item { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; border-bottom: 1px dashed #f0ede6; padding-bottom: 4px; }
+.detail-metadata-label { color: var(--color-text-tertiary); }
+.detail-metadata-value { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+
+/* E 计划：上下分区 */
+.console-plan-top { margin-bottom: 12px; }
+.console-plan-table-header, .console-plan-row { display: grid; grid-template-columns: 132px minmax(0, 1fr) 240px 84px; gap: 10px; align-items: center; padding: 7px 14px; }
+.console-plan-table-header { font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border); background: #fcfbf9; }
+.console-plan-row { border-bottom: 1px solid #f1eee8; font-size: 12.5px; cursor: pointer; }
+.console-plan-row:hover { background: var(--color-surface-hover); }
+.console-plan-row.conflict-flagged { background: #fffaf5; }
+.console-plan-space { font-size: 12px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.console-plan-space.reclaimed { color: var(--action-keep); }
+.console-plan-bottom { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 12px; align-items: start; }
+
+/* 共享：执行确认区 */
+.confirm-zone { padding: 18px 20px; background: radial-gradient(420px 130px at 15% 0%, rgba(245, 158, 11, 0.12), transparent 70%), linear-gradient(180deg, #fffdf8, #fffaf1); border: 1.5px solid var(--color-brand); border-radius: var(--radius-card); box-shadow: 0 4px 20px rgba(217, 119, 6, 0.10); }
+.confirm-heading { font-size: 15px; font-weight: 750; display: flex; align-items: center; gap: 8px; color: var(--color-brand-deep); }
+.confirm-summary { display: flex; gap: 22px; flex-wrap: wrap; margin: 12px 0 13px; }
+.confirm-stat-value { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; display: block; }
+.confirm-stat-label { font-size: 12px; color: var(--color-text-secondary); }
+.confirm-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.confirm-primary-btn { font-size: 14px; font-weight: 700; color: var(--color-text-inverted); padding: 10px 24px; border-radius: var(--radius-element); background: linear-gradient(180deg, var(--color-brand-bright), var(--color-brand)); box-shadow: var(--shadow-brand); display: inline-flex; align-items: center; gap: 8px; }
+.confirm-primary-btn.disabled { background: #d8d3c9; box-shadow: none; color: #f6f4ef; cursor: not-allowed; }
+.confirm-caption { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; margin-top: 11px; }
+.confirm-caption b { color: var(--color-brand-deep); }
+
+/* ============================================================
+   4. 方案 F · 现代 SaaS 设置中心（Vercel / Supabase 气质：清爽、分组明确）
+   ============================================================ */
+.saas-shell { display: grid; grid-template-columns: 208px minmax(0, 1fr); min-height: 860px; margin: 18px 28px 40px; border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-card); background: var(--color-surface); }
+.saas-nav { background: #fcfbF9; border-right: 1px solid var(--color-border); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px; }
+.saas-nav-project { display: flex; align-items: center; gap: 9px; padding: 6px 10px 14px; border-bottom: 1px solid var(--color-border); margin-bottom: 10px; }
+.saas-nav-project-badge { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(145deg, var(--color-brand-bright), var(--color-brand)); display: grid; place-items: center; flex: none; }
+.saas-nav-project-badge svg { width: 14px; height: 14px; }
+.saas-nav-project-name { font-size: 12.5px; font-weight: 700; line-height: 1.3; }
+.saas-nav-project-sub { font-size: 10.5px; color: var(--color-text-tertiary); }
+.saas-nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 7px; font-size: 13px; color: var(--color-text-secondary); width: 100%; text-align: left; transition: all 0.15s ease; }
+.saas-nav-item:hover { background: var(--color-surface-sunken); color: var(--color-text-primary); }
+.saas-nav-item.active { background: var(--color-brand-tint-strong); color: var(--color-brand-deep); font-weight: 600; }
+.saas-nav-item .icon { width: 15px; height: 15px; }
+.saas-nav-step { margin-left: auto; font-size: 10px; font-weight: 700; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; background: var(--color-surface-sunken); color: var(--color-text-tertiary); }
+.saas-nav-item.active .saas-nav-step { background: var(--color-brand); color: #fff; }
+.saas-nav-item.done .saas-nav-step { background: var(--resolution-equality); color: #fff; }
+.saas-nav-footer { margin-top: auto; padding: 12px 10px 2px; border-top: 1px solid var(--color-border); font-size: 11px; color: var(--color-text-tertiary); line-height: 1.7; }
+
+.saas-content { padding: 30px 36px 44px; background: var(--color-canvas); }
+.saas-content-inner { max-width: 880px; margin: 0 auto; }
+.saas-page-header { margin-bottom: 22px; }
+.saas-page-title { font-size: 21px; font-weight: 700; letter-spacing: 0.2px; }
+.saas-page-subtitle { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+.saas-page-header-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.saas-page-actions { display: flex; gap: 10px; flex: none; }
+
+.saas-card { margin-bottom: 18px; }
+.saas-card .card-header { padding: 15px 20px; }
+.saas-card .card-body { padding: 18px 20px; }
+.saas-card-description { font-size: 12.5px; color: var(--color-text-secondary); margin-top: 2px; font-weight: 400; }
+.saas-card-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--color-brand-tint); color: var(--color-brand-deep); display: grid; place-items: center; flex: none; }
+.saas-card-icon .icon { width: 15px; height: 15px; }
+.saas-section-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; color: var(--color-text-tertiary); text-transform: uppercase; }
+.saas-section-divider::after { content: ""; flex: 1; height: 1px; background: var(--color-border); }
+
+.saas-stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.saas-stat-tile { padding: 14px 18px; }
+.saas-filter-card { padding: 14px 18px; margin-bottom: 16px; }
+.saas-filter-grid { display: grid; grid-template-columns: 1.1fr 1.2fr 1fr 1.2fr; gap: 12px; align-items: end; }
+.saas-filter-chips { display: flex; gap: 8px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+
+.saas-issue-card { margin-bottom: 12px; overflow: hidden; }
+.saas-issue-summary { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 20px; cursor: pointer; }
+.saas-issue-summary:hover { background: var(--color-surface-hover); }
+.saas-issue-expand-hint { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-tertiary); }
+.saas-issue-expand-hint .icon { transition: transform 0.18s ease; }
+.saas-issue-card.open .saas-issue-expand-hint .icon { transform: rotate(90deg); }
+.saas-issue-detail { display: none; border-top: 1px solid var(--color-border); padding: 4px 20px 16px; background: #fdfcf9; }
+.saas-issue-card.open .saas-issue-detail { display: block; }
+.saas-issue-members-header, .saas-member-grid { display: grid; grid-template-columns: 22px minmax(0, 1fr) 78px 132px 120px 120px; gap: 10px; align-items: center; }
+.saas-issue-members-header { padding: 10px 0 5px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border); }
+.saas-member-grid { padding: 8px 0; border-bottom: 1px solid #f1eee8; font-size: 12.5px; }
+.saas-member-grid:last-of-type { border-bottom: none; }
+
+.saas-batchbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 16px; margin-bottom: 14px; background: rgba(41, 37, 36, 0.96); color: #f5f2ec; border-radius: 10px; position: sticky; top: 66px; z-index: 30; }
+.saas-scan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.saas-progress-card { padding: 24px 26px; margin-bottom: 14px; }
+.saas-confirm-bar { position: sticky; bottom: 0; margin: 18px -36px -44px; padding: 14px 36px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--color-border); }
+.saas-confirm-bar-inner { max-width: 880px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+
+.saas-plan-table-header, .saas-plan-row { display: grid; grid-template-columns: 128px minmax(0, 1fr) 220px 80px; gap: 10px; align-items: center; padding: 8px 20px; }
+.saas-plan-table-header { font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border); background: #fcfbf9; }
+.saas-plan-row { border-bottom: 1px solid #f1eee8; font-size: 12.5px; }
+.saas-plan-row:hover { background: var(--color-surface-hover); }
+.saas-plan-row.conflict-flagged { background: #fffaf5; }
+
+/* ============================================================
+   5. 方案 G · 大师-详情三栏（Apple Mail / Finder 气质：信息密度最高）
+   ============================================================ */
+.md-shell { display: grid; grid-template-columns: 224px 420px minmax(0, 1fr); height: 860px; margin: 18px 28px 40px; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-raised); background: var(--color-surface); font-size: 13px; }
+.md-column-left { background: #f5f3ee; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; overflow: hidden; }
+.md-column-middle { border-right: 1px solid var(--color-border); display: flex; flex-direction: column; overflow: hidden; background: var(--color-surface); }
+.md-column-right { display: flex; flex-direction: column; overflow: hidden; background: var(--color-canvas); }
+.md-column-header { padding: 10px 14px; border-bottom: 1px solid var(--color-border); font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: var(--color-text-tertiary); text-transform: uppercase; display: flex; align-items: center; gap: 8px; flex: none; background: rgba(255, 255, 255, 0.55); }
+.md-column-body { flex: 1; overflow-y: auto; }
+
+.md-workflow-step { display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--color-border); transition: background-color 0.15s ease; }
+.md-workflow-step:hover { background: rgba(255, 255, 255, 0.7); }
+.md-workflow-step.active { background: var(--color-surface); box-shadow: inset 3px 0 0 var(--color-brand); }
+.md-workflow-step-dot { width: 22px; height: 22px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 11px; font-weight: 700; border: 1.5px solid var(--color-border-strong); color: var(--color-text-tertiary); background: var(--color-surface); margin-top: 1px; }
+.md-workflow-step.done .md-workflow-step-dot { background: var(--resolution-equality-bg); border-color: var(--resolution-equality); color: var(--resolution-equality); }
+.md-workflow-step.active .md-workflow-step-dot { background: var(--color-brand); border-color: var(--color-brand); color: #fff; }
+.md-workflow-step-name { font-size: 13px; font-weight: 650; }
+.md-workflow-step-meta { font-size: 11px; color: var(--color-text-tertiary); margin-top: 1px; }
+.md-history-item { display: block; width: 100%; text-align: left; padding: 8px 14px; border-bottom: 1px solid var(--color-border); }
+.md-history-item:hover { background: rgba(255, 255, 255, 0.7); }
+.md-history-name { font-size: 12px; font-weight: 600; }
+.md-history-meta { font-size: 10.5px; color: var(--color-text-tertiary); margin-top: 1px; }
+.md-history-state { display: inline-flex; margin-top: 4px; padding: 1px 8px; border-radius: var(--radius-pill); font-size: 10px; font-weight: 600; }
+.md-state-scan { background: var(--color-brand-tint); color: var(--color-brand-deep); }
+.md-state-done { background: var(--resolution-equality-bg); color: var(--resolution-equality); }
+.md-state-plan { background: var(--resolution-compatibility-bg); color: var(--resolution-compatibility); }
+
+.md-list-item { display: block; width: 100%; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--color-border); transition: background-color 0.12s ease; }
+.md-list-item:hover { background: var(--color-surface-hover); }
+.md-list-item.selected { background: var(--color-brand-tint); box-shadow: inset 3px 0 0 var(--color-brand); }
+.md-list-item-title { font-size: 12.5px; font-weight: 650; display: flex; align-items: center; gap: 7px; }
+.md-list-item-meta { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.md-list-item-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+
+.md-detail-scroll { flex: 1; overflow-y: auto; padding: 16px 18px; }
+.md-detail-empty { flex: 1; display: grid; place-items: center; color: var(--color-text-tertiary); font-size: 12.5px; }
+.md-detail-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.md-detail-subtitle { font-size: 12px; color: var(--color-text-secondary); margin-top: 3px; }
+.md-detail-section { margin-top: 16px; }
+.md-detail-section + .md-detail-section { padding-top: 14px; border-top: 1px solid var(--color-border); }
+
+.md-middle-toolbar { padding: 8px 12px; border-bottom: 1px solid var(--color-border); display: flex; gap: 6px; flex-wrap: wrap; flex: none; background: #fcfbf9; }
+.md-middle-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--color-border); border-bottom: 1px solid var(--color-border); flex: none; }
+.md-middle-stat { background: var(--color-surface); padding: 8px 10px; }
+.md-middle-stat .stat-value { font-size: 17px; }
+.md-middle-stat .stat-label { font-size: 10.5px; }
+
+/* ============================================================
+   6. 方案 H · 渐进披露向导（macOS 安装器 / TurboTax 气质：友好、渐进复杂）
+   ============================================================ */
+.wizard-shell { max-width: 1020px; margin: 0 auto; padding: 26px 28px 56px; }
+.wizard-stepper { display: flex; align-items: center; justify-content: center; margin-bottom: 30px; }
+.wizard-step { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 4px 6px; border-radius: 10px; }
+.wizard-step-dot { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; border: 2px solid var(--color-border-strong); color: var(--color-text-tertiary); background: var(--color-surface); transition: all 0.25s ease; }
+.wizard-step.done .wizard-step-dot { background: var(--color-brand); border-color: var(--color-brand); color: #fff; }
+.wizard-step.current .wizard-step-dot { border-color: var(--color-brand); color: var(--color-brand-deep); box-shadow: 0 0 0 5px rgba(217, 119, 6, 0.12); }
+.wizard-step-label { font-size: 13px; font-weight: 600; color: var(--color-text-tertiary); }
+.wizard-step.current .wizard-step-label { color: var(--color-text-primary); }
+.wizard-step.done .wizard-step-label { color: var(--color-text-secondary); }
+.wizard-connector { width: 64px; height: 2px; background: var(--color-border-strong); margin: 0 14px; border-radius: 1px; }
+.wizard-connector.filled { background: var(--color-brand); }
+
+.wizard-heading { text-align: center; margin-bottom: 24px; }
+.wizard-title { font-size: 22px; font-weight: 700; }
+.wizard-subtitle { font-size: 13px; color: var(--color-text-secondary); margin-top: 5px; }
+.wizard-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 22px 26px; margin-bottom: 14px; box-shadow: var(--shadow-card); }
+.wizard-card-heading { font-size: 14.5px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.wizard-card-heading .icon { color: var(--color-brand); }
+.wizard-card-heading-note { font-size: 12px; color: var(--color-text-tertiary); font-weight: 400; }
+
+.wizard-disclosure { border: 1px dashed var(--color-border-strong); border-radius: 12px; margin-bottom: 14px; overflow: hidden; background: #fdfcf9; }
+.wizard-disclosure-toggle { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; padding: 13px 18px; font-size: 13.5px; font-weight: 650; color: var(--color-text-primary); }
+.wizard-disclosure-toggle:hover { background: var(--color-surface-hover); }
+.wizard-disclosure-toggle .icon { color: var(--color-brand); transition: transform 0.2s ease; }
+.wizard-disclosure.open .wizard-disclosure-toggle .disclosure-caret { transform: rotate(90deg); }
+.wizard-disclosure-summary { margin-left: auto; font-size: 11.5px; color: var(--color-text-tertiary); font-weight: 400; }
+.wizard-disclosure-body { display: none; padding: 4px 18px 18px; }
+.wizard-disclosure.open .wizard-disclosure-body { display: block; }
+
+.wizard-actions { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; margin-top: 8px; }
+.wizard-nav-btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 22px; border-radius: var(--radius-element); font-size: 14px; font-weight: 600; border: 1px solid var(--color-border-strong); background: var(--color-surface); }
+.wizard-nav-btn:hover { background: var(--color-surface-hover); }
+.wizard-nav-btn.primary { border: none; color: var(--color-text-inverted); background: linear-gradient(180deg, var(--color-brand-bright), var(--color-brand)); box-shadow: var(--shadow-brand); }
+.wizard-nav-btn.primary:hover { background: linear-gradient(180deg, #f59e0b, #c2670a); }
+.wizard-nav-btn.primary.disabled { background: #d8d3c9; box-shadow: none; color: #f6f4ef; cursor: not-allowed; }
+.wizard-nav-hint { font-size: 12px; color: var(--color-text-tertiary); }
+
+.wizard-path-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: var(--radius-element); border: 1px solid var(--color-border); margin-bottom: 8px; background: var(--color-surface); }
+.wizard-path-row .icon { color: var(--color-brand); width: 18px; height: 18px; }
+.wizard-path-text { font-family: var(--font-monospace); font-size: 13px; font-weight: 500; }
+.wizard-path-meta { font-size: 11.5px; color: var(--color-text-tertiary); margin-left: auto; }
+
+.wizard-depths { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.wizard-depth { padding: 13px 12px; border-radius: var(--radius-element); text-align: left; border: 1.5px solid var(--color-border); cursor: pointer; transition: all 0.18s ease; background: var(--color-surface); }
+.wizard-depth:hover { border-color: var(--color-border-strong); }
+.wizard-depth.selected { border-color: var(--color-brand); background: var(--color-brand-tint); box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.08); }
+.wizard-depth-name { font-size: 13px; font-weight: 650; }
+.wizard-depth-desc { font-size: 11px; color: var(--color-text-tertiary); margin-top: 3px; line-height: 1.45; }
+
+.wizard-scan-center { text-align: center; padding: 8px 0 4px; }
+.wizard-ring { position: relative; width: 176px; height: 176px; margin: 0 auto 16px; }
+.wizard-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.wizard-ring-bg { fill: none; stroke: var(--color-surface-sunken); stroke-width: 11; }
+.wizard-ring-fill { fill: none; stroke: url(#wizard-ring-gradient); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 502.65; stroke-dashoffset: 191; }
+.wizard-ring-text { position: absolute; inset: 0; display: grid; place-items: center; }
+.wizard-ring-pct { font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.wizard-ring-label { font-size: 12px; color: var(--color-text-secondary); }
+.wizard-layer-dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+.wizard-layer-dot { padding: 5px 14px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 500; border: 1px solid var(--color-border); background: var(--color-surface); display: flex; align-items: center; gap: 5px; }
+.wizard-layer-dot.done { border-color: var(--resolution-equality); color: var(--resolution-equality); background: var(--resolution-equality-bg); }
+.wizard-layer-dot.running { border-color: var(--color-brand); color: var(--color-brand-deep); background: var(--color-brand-tint); }
+.wizard-scan-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+.wizard-scan-stat { text-align: center; padding: 12px 10px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; }
+.wizard-scan-stat-value { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.wizard-scan-stat-label { font-size: 11.5px; color: var(--color-text-tertiary); }
+
+.wizard-result-row { border: 1px solid var(--color-border); border-radius: 12px; margin-bottom: 8px; background: var(--color-surface); overflow: hidden; }
+.wizard-result-summary { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 11px 16px; }
+.wizard-result-summary:hover { background: var(--color-surface-hover); }
+.wizard-result-title { font-size: 13px; font-weight: 650; }
+.wizard-result-caret { margin-left: auto; color: var(--color-text-tertiary); display: inline-flex; transition: transform 0.18s ease; }
+.wizard-result-row.open .wizard-result-caret { transform: rotate(90deg); }
+.wizard-result-detail { display: none; border-top: 1px solid var(--color-border); padding: 10px 16px 14px; background: #fdfcf9; }
+.wizard-result-row.open .wizard-result-detail { display: block; }
+
+.wizard-plan-counts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 16px; }
+.wizard-plan-count { text-align: center; padding: 10px 18px; border-radius: 12px; border: 1px solid var(--color-border); background: var(--color-surface); min-width: 96px; }
+.wizard-plan-count-value { font-size: 19px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.wizard-plan-count-label { font-size: 11.5px; color: var(--color-text-tertiary); }
+</style>
+</head>
+<body>
+
+<!-- 内联 SVG 图标库（无任何外部资源） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="brand-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <linearGradient id="wizard-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <symbol id="icon-brand-flower" viewBox="0 0 24 24"><g fill="url(#brand-gradient)"><ellipse cx="12" cy="5.6" rx="2.2" ry="3.7"/><ellipse cx="12" cy="5.6" rx="2.2" ry="3.7" transform="rotate(45 12 12)"/><ellipse cx="12" cy="5.6" rx="2.2" ry="3.7" transform="rotate(90 12 12)"/><ellipse cx="12" cy="5.6" rx="2.2" ry="3.7" transform="rotate(135 12 12)"/></g></symbol>
+  <symbol id="icon-chevron-right" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="icon-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></symbol>
+  <symbol id="icon-archive-box" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></symbol>
+  <symbol id="icon-link" viewBox="0 0 24 24"><path d="M15 7h3a5 5 0 0 1 0 10h-3"/><path d="M9 17H6a5 5 0 0 1 0-10h3"/><path d="M8 12h8"/></symbol>
+  <symbol id="icon-broken-link" viewBox="0 0 24 24"><path d="M15 7h3a5 5 0 0 1 0 10h-3"/><path d="M9 17H6a5 5 0 0 1 0-10h3"/><path d="M4 4l16 16"/></symbol>
+  <symbol id="icon-repeat" viewBox="0 0 24 24"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
+  <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="icon-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="icon-x" viewBox="0 0 24 24"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></symbol>
+  <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+  <symbol id="icon-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="icon-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
+  <symbol id="icon-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></symbol>
+  <symbol id="icon-alert-triangle" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="icon-info-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+  <symbol id="icon-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="icon-star" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></symbol>
+  <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+  <symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></symbol>
+  <symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></symbol>
+  <symbol id="icon-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></symbol>
+  <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></symbol>
+  <symbol id="icon-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></symbol>
+  <symbol id="icon-list" viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></symbol>
+  <symbol id="icon-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M22 12h-4"/><path d="M6 12H2"/><path d="M12 6V2"/><path d="M12 22v-4"/></symbol>
+  <symbol id="icon-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="icon-clipboard" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></symbol>
+  <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="icon-sliders" viewBox="0 0 24 24"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></symbol>
+  <symbol id="icon-git-merge" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></symbol>
+  <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+  <symbol id="icon-rename" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+  <symbol id="icon-bookmark" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="icon-hard-drive" viewBox="0 0 24 24"><path d="M22 12H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M6 16h.01"/><path d="M10 16h.01"/></symbol>
+  <symbol id="icon-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></symbol>
+  <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="icon-play" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></symbol>
+  <symbol id="icon-columns" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></symbol>
+  <symbol id="icon-terminal" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></symbol>
+  <symbol id="icon-layout" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></symbol>
+  <symbol id="icon-magic" viewBox="0 0 24 24"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8L19 13"/><path d="M17.8 6.2L19 5"/><path d="M12.2 6.2L11 5"/><path d="M12.2 11.8L11 13"/><path d="M3 21l9-9"/></symbol>
+  <symbol id="icon-history" viewBox="0 0 24 24"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></symbol>
+</svg>
+
+<!-- ======================= 顶部方案切换器 ======================= -->
+<header class="design-topbar">
+  <div class="design-brand">
+    <div class="design-brand-mark"><svg><use href="#icon-brand-flower"/></svg></div>
+    <div>
+      <div class="design-brand-name">Helichrysum <em>蜡菊</em></div>
+      <div class="design-brand-sub">WebUI 详细流程设计 · 全配置项版</div>
+    </div>
+  </div>
+  <nav class="paradigm-tabs" aria-label="设计方案切换">
+    <button type="button" class="paradigm-tab active" data-paradigm="console"><svg class="icon"><use href="#icon-terminal"/></svg>E 专业控制台</button>
+    <button type="button" class="paradigm-tab" data-paradigm="saas"><svg class="icon"><use href="#icon-layout"/></svg>F 现代 SaaS</button>
+    <button type="button" class="paradigm-tab" data-paradigm="masterdetail"><svg class="icon"><use href="#icon-columns"/></svg>G 三栏大师-详情</button>
+    <button type="button" class="paradigm-tab" data-paradigm="wizard"><svg class="icon"><use href="#icon-magic"/></svg>H 渐进披露向导</button>
+  </nav>
+  <div class="design-note">设计评审稿 · 流程：设置 → 扫描 → 结果 → 计划</div>
+</header>
+
+<div class="design-intro">
+  <div class="design-intro-card">
+    <span class="design-intro-label" id="intro-title">方案 E · 专业控制台</span>
+    <div class="design-intro-grid" id="intro-body">
+      <div class="design-intro-item"><b>设计思路</b><br><span id="intro-idea">像 TreeSize Pro / Arq Backup：信息密度高但组织清晰，所有选项一眼可见</span></div>
+      <div class="design-intro-item"><b>界面组织</b><br><span id="intro-layout">左侧固定导航（4 阶段 + 设置子菜单），右侧主区按阶段分标签页 / 分栏</span></div>
+      <div class="design-intro-item"><b>阶段过渡</b><br><span id="intro-transition">左侧导航随时切换阶段；底部状态栏常驻会话与快照信息</span></div>
+      <div class="design-intro-item"><b>适合</b><br><span id="intro-fit">高级用户、需要完全控制感的专业场景</span></div>
+    </div>
+  </div>
+</div>
+
+<main>
+<!-- ============================================================
+     方案 E · 专业控制台
+     ============================================================ -->
+<section class="paradigm-section active" id="paradigm-console">
+  <div class="console-shell">
+
+    <!-- 左侧固定导航：4 阶段 + 设置子菜单 -->
+    <aside class="console-sidebar">
+      <div class="console-sidebar-header">
+        <div class="console-app-name"><svg class="icon"><use href="#icon-brand-flower"/></svg>Helichrysum 控制台</div>
+        <div class="console-session-name">会话：三盘备份整合 · manifest-2026-08-01</div>
+      </div>
+      <nav class="console-nav">
+        <div class="console-nav-section">工作流</div>
+        <button type="button" class="console-nav-item active" data-stage-nav="console" data-stage="setup">
+          <span class="console-nav-number">1</span>设置<span class="console-nav-state">已就绪</span>
+        </button>
+        <div class="console-subnav">
+          <button type="button" class="console-subnav-item active" data-stage-nav="console" data-stage="setup" data-console-tab="scope">扫描范围</button>
+          <button type="button" class="console-subnav-item" data-stage-nav="console" data-stage="setup" data-console-tab="rules">排除规则</button>
+          <button type="button" class="console-subnav-item" data-stage-nav="console" data-stage="setup" data-console-tab="behavior">扫描行为</button>
+          <button type="button" class="console-subnav-item" data-stage-nav="console" data-stage="setup" data-console-tab="depth">分析深度</button>
+          <button type="button" class="console-subnav-item" data-stage-nav="console" data-stage="setup" data-console-tab="performance">性能选项</button>
+          <button type="button" class="console-subnav-item" data-stage-nav="console" data-stage="setup" data-console-tab="profiles">配置档案</button>
+        </div>
+        <button type="button" class="console-nav-item" data-stage-nav="console" data-stage="scan">
+          <span class="console-nav-number">2</span>扫描<span class="console-nav-state">进行中 62%</span>
+        </button>
+        <button type="button" class="console-nav-item" data-stage-nav="console" data-stage="results">
+          <span class="console-nav-number">3</span>结果<span class="console-nav-state">16 组</span>
+        </button>
+        <button type="button" class="console-nav-item" data-stage-nav="console" data-stage="plan">
+          <span class="console-nav-number">4</span>计划<span class="console-nav-state">18 项动作</span>
+        </button>
+        <div class="console-nav-section">工具</div>
+        <button type="button" class="console-nav-item"><svg class="icon"><use href="#icon-eye"/></svg>报告（目录树）<span class="console-nav-state">只读</span></button>
+        <button type="button" class="console-nav-item"><svg class="icon"><use href="#icon-database"/></svg>manifest 管理</button>
+      </nav>
+      <div class="console-sidebar-footer">
+        本地服务 127.0.0.1:3000 · 仅回环<br>v0.1.0 (abc1234) · GPL-3.0
+      </div>
+    </aside>
+
+    <!-- 主区 -->
+    <div class="console-main">
+
+      <!-- ===== E 阶段 1：设置（标签页表单） ===== -->
+      <div class="stage-pane active" data-stage-pane="console" data-stage="setup" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+        <div class="console-toolbar">
+          <span class="console-breadcrumb">三盘备份整合 / <b>设置</b></span>
+          <div class="console-toolbar-actions">
+            <span class="default-tag">全部配置项可见 · 6 个标签页</span>
+            <button type="button" class="btn btn-small"><svg class="icon icon-small"><use href="#icon-eye"/></svg>快速预览目录层</button>
+            <button type="button" class="btn btn-small btn-primary" data-stage-nav="console" data-stage="scan"><svg class="icon icon-small"><use href="#icon-play"/></svg>保存并开始扫描</button>
+          </div>
+        </div>
+        <div class="console-content">
+          <div class="console-tabstrip" role="tablist">
+            <button type="button" class="console-tab active" data-console-tab="scope">扫描范围</button>
+            <button type="button" class="console-tab" data-console-tab="rules">排除规则</button>
+            <button type="button" class="console-tab" data-console-tab="behavior">扫描行为</button>
+            <button type="button" class="console-tab" data-console-tab="depth">分析深度</button>
+            <button type="button" class="console-tab" data-console-tab="performance">性能选项</button>
+            <button type="button" class="console-tab" data-console-tab="profiles">配置档案</button>
+          </div>
+
+          <!-- 标签页：扫描范围 -->
+          <div class="console-tabpanel" data-console-tabpanel="scope">
+            <div class="detail-panel-heading"><svg class="icon icon-small"><use href="#icon-hard-drive"/></svg>根路径集合（多路径 · Canonical Path 校验 · 严格不主动扩大边界）</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+              <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>D:\Backup1<button type="button" class="chip-remove" title="移除该根路径"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+              <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>D:\Backup2<button type="button" class="chip-remove" title="移除该根路径"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+              <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>E:\Archive\Photos<button type="button" class="chip-remove" title="移除该根路径"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+              <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>E:\Photos<button type="button" class="chip-remove" title="移除该根路径"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <input type="text" class="text-input monospace" style="flex:1;" placeholder="添加根路径（如 F:\NewDisk\Backup）">
+              <button type="button" class="btn btn-small"><svg class="icon icon-small"><use href="#icon-plus"/></svg>添加根路径</button>
+              <button type="button" class="btn btn-small"><svg class="icon icon-small"><use href="#icon-folder"/></svg>浏览…</button>
+            </div>
+            <div class="banner banner-info" style="font-size:12px;">
+              <svg class="icon icon-small"><use href="#icon-info-circle"/></svg>
+              <span><b>4 个根路径均已通过规范化校验</b>（realpath / GetFinalPathNameByHandle）：未检测到嵌套与重叠；D:\Backup1 与 D:\Backup2 同卷不同目录，E:\Archive\Photos 与 E:\Photos 同卷不同目录。</span>
+            </div>
+          </div>
+
+          <!-- 标签页：排除规则 -->
+          <div class="console-tabpanel" data-console-tabpanel="rules" hidden>
+            <div class="detail-panel-heading"><svg class="icon icon-small"><use href="#icon-filter"/></svg>排除规则（glob / 正则 / 文件名 / 目录名 · 命中即不进入扫描世界）</div>
+            <table class="console-layer-table">
+              <thead><tr><th style="width:70px;">类型</th><th>模式</th><th>用途</th><th style="width:40px;"></th></tr></thead>
+              <tbody>
+                <tr><td><span class="rule-type-badge">glob</span></td><td class="rule-pattern">*.tmp</td><td class="rule-purpose">临时文件</td><td><button type="button" class="chip-remove"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></td></tr>
+                <tr><td><span class="rule-type-badge">目录名</span></td><td class="rule-pattern">node_modules</td><td class="rule-purpose">前端依赖</td><td><button type="button" class="chip-remove"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></td></tr>
+                <tr><td><span class="rule-type-badge">目录名</span></td><td class="rule-pattern">$RECYCLE.BIN</td><td class="rule-purpose">回收站</td><td><button type="button" class="chip-remove"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></td></tr>
+                <tr><td><span class="rule-type-badge">正则</span></td><td class="rule-pattern">(?i)^thumbs\.db$</td><td class="rule-purpose">缩略图缓存</td><td><button type="button" class="chip-remove"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></td></tr>
+                <tr><td><span class="rule-type-badge">glob</span></td><td class="rule-pattern">**\.git\objects\**</td><td class="rule-purpose">Git 对象库</td><td><button type="button" class="chip-remove"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></td></tr>
+              </tbody>
+            </table>
+            <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+              <select class="select-input" style="width:96px;"><option>glob</option><option>正则</option><option>文件名</option><option>目录名</option></select>
+              <input type="text" class="text-input monospace" style="flex:1;" placeholder="输入排除模式…">
+              <button type="button" class="btn btn-small"><svg class="icon icon-small"><use href="#icon-plus"/></svg>添加规则</button>
+            </div>
+          </div>
+
+          <!-- 标签页：扫描行为 -->
+          <div class="console-tabpanel" data-console-tabpanel="behavior" hidden>
+            <div class="console-form-grid">
+              <div class="setting-row">
+                <div class="setting-row-main">
+                  <div class="setting-row-title">跨设备 / 挂载点递归 <span class="default-tag">默认关</span></div>
+                  <div class="setting-row-hint">遇到新的挂载点 / 设备边界即停止，防止误入系统卷与其他磁盘</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+              </div>
+              <div class="setting-row">
+                <div class="setting-row-main">
+                  <div class="setting-row-title">跟随符号链接 <span class="default-tag">默认关</span></div>
+                  <div class="setting-row-hint">默认只记录 (source, target) 引用关系，不递归进入；可显式启用</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+              </div>
+              <div class="setting-row">
+                <div class="setting-row-main">
+                  <div class="setting-row-title">跳过常见虚拟目录 <span class="default-tag">默认开</span></div>
+                  <div class="setting-row-hint">$RECYCLE.BIN · System Volume Information · .git/objects · node_modules · .DS_Store · Thumbs.db（列表可配置）</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              </div>
+              <div class="setting-row">
+                <div class="setting-row-main">
+                  <div class="setting-row-title">快速预览模式 <span class="default-tag">默认关</span></div>
+                  <div class="setting-row-hint">数秒内生成目录层概览，适合先"看一眼里面有什么"，不写 manifest</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 标签页：分析深度 -->
+          <div class="console-tabpanel" data-console-tabpanel="depth" hidden>
+            <div class="detail-panel-heading"><svg class="icon icon-small"><use href="#icon-activity"/></svg>分析深度（分层渐进 · 显式指定；上层未命中冲突时下层不启动）</div>
+            <div class="depth-choice-grid">
+              <label class="depth-choice"><span class="depth-choice-title">仅目录结构<span class="layer-chip">第 1 层</span></span><span class="depth-choice-hint">只读目录元数据，秒级建立结构索引，适合圈定可疑子集</span></label>
+              <label class="depth-choice"><span class="depth-choice-title">文件元数据<span class="layer-chip">第 2 层</span></span><span class="depth-choice-hint">路径 / size / mtime / ctime，不读文件内容</span></label>
+              <label class="depth-choice"><span class="depth-choice-title">快速 hash<span class="layer-chip">第 3 层</span></span><span class="depth-choice-hint">size+mtime 命中后采样（头 16KB + 中 32KB + 尾 16KB，xxhash）</span></label>
+              <label class="depth-choice selected"><span class="depth-choice-title">全量内容 hash<span class="layer-chip hit">第 4 层 · 当前</span></span><span class="depth-choice-hint">SHA256 最终判据，仅对采样层仍碰撞的少数文件计算</span></label>
+            </div>
+          </div>
+
+          <!-- 标签页：性能选项 -->
+          <div class="console-tabpanel" data-console-tabpanel="performance" hidden>
+            <div class="setting-row">
+              <div class="setting-row-main">
+                <div class="setting-row-title">并发度</div>
+                <div class="setting-row-hint">目录遍历与 hash 计算的并行度（本机逻辑核数 16）</div>
+                <div class="slider-row" style="margin-top:10px;max-width:460px;">
+                  <span class="member-meta">1</span>
+                  <input type="range" class="range-slider" min="1" max="16" value="8">
+                  <span class="member-meta">16</span>
+                  <span class="slider-value">8</span>
+                </div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-main">
+                <div class="setting-row-title">指纹索引强度</div>
+                <div class="setting-row-hint">指纹随 manifest 持久化，作为执行前验证、增量扫描、完整性校验的统一基线；未存指纹的对象执行时视为"基线缺失"，默认中止动作</div>
+                <select class="select-input" style="margin-top:10px;max-width:520px;">
+                  <option>L0 · 不存储指纹（最省空间，执行阶段受限）</option>
+                  <option>L1 · 快速摘要（CRC32 / xxhash）</option>
+                  <option selected>L2 · 快速 + 强摘要（当前 · 默认推荐 · CRC32 → MD5 升级路径）</option>
+                  <option>L3 · 全量元数据 + 双摘要（最大安全冗余）</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 标签页：配置档案 -->
+          <div class="console-tabpanel" data-console-tabpanel="profiles" hidden>
+            <div class="detail-panel-heading"><svg class="icon icon-small"><use href="#icon-bookmark"/></svg>配置档案（保存 / 加载 / 命名）</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+              <input type="text" class="text-input" style="flex:1;max-width:340px;" value="三盘备份整合">
+              <button type="button" class="btn btn-small btn-primary">保存配置</button>
+              <button type="button" class="btn btn-small">另存为…</button>
+              <button type="button" class="btn btn-small">加载…</button>
+            </div>
+            <table class="console-layer-table">
+              <thead><tr><th>档案名</th><th>状态</th><th>上次使用</th><th style="width:90px;"></th></tr></thead>
+              <tbody>
+                <tr><td style="font-weight:650;">三盘备份整合</td><td><span class="layer-state-chip state-running">当前</span></td><td class="member-meta">2026-08-10 保存</td><td><button type="button" class="btn btn-small">重命名</button></td></tr>
+                <tr><td>default</td><td><span class="layer-state-chip state-pending">可用</span></td><td class="member-meta">2026-08-01</td><td><button type="button" class="btn btn-small">加载</button></td></tr>
+                <tr><td>相册专项清理</td><td><span class="layer-state-chip state-pending">可用</span></td><td class="member-meta">2026-07-22</td><td><button type="button" class="btn btn-small">加载</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== E 阶段 2：扫描（上总览 + 下分栏） ===== -->
+      <div class="stage-pane" data-stage-pane="console" data-stage="scan" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+        <div class="console-toolbar">
+          <span class="console-breadcrumb">三盘备份整合 / <b>扫描进行中</b></span>
+          <div class="console-toolbar-actions">
+            <span class="resolution-badge resolution-equality"><svg class="icon icon-small"><use href="#icon-shield"/></svg>只读阶段 · 无任何写动作</span>
+            <button type="button" class="btn btn-small"><svg class="icon icon-small"><use href="#icon-pause"/></svg>暂停</button>
+            <button type="button" class="btn btn-small"><svg class="icon icon-small"><use href="#icon-stop"/></svg>中断扫描</button>
+            <button type="button" class="btn btn-small btn-primary" data-stage-nav="console" data-stage="results">查看结果<svg class="icon icon-small"><use href="#icon-arrow-right"/></svg></button>
+          </div>
+        </div>
+        <div class="console-content">
+          <!-- 上半：进度总览 -->
+          <div class="console-scan-overview">
+            <div class="card console-progress-hero">
+              <div class="console-progress-line">
+                <span class="console-progress-pct">62<small>%</small></span>
+                <span class="console-progress-meta">已扫描 <b class="numeric">1,284,301</b> / <b class="numeric">2,071,463</b> 个对象 · 已进行 18 分 06 秒 · 任务 scan-2026-08-15-01 启动于 16:24:09</span>
+              </div>
+              <div class="progress-track"><div class="progress-fill" style="width:62%;"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-tertiary);margin-top:5px;font-variant-numeric:tabular-nums;"><span>开始 16:24</span><span>预计总量 2,071,463</span><span>断点续扫已启用</span></div>
+              <div class="current-path-line"><span class="current-path-label">当前路径</span>D:\Backup2\backup0620\视频\2024\DV_0231.MOV<span class="current-path-cursor">▊</span></div>
+            </div>
+            <div class="card" style="padding:14px 16px;">
+              <div class="console-kv-row"><span class="rule-purpose">当前速率</span><span class="console-kv-count" style="color:var(--color-brand-deep);">18,420 对象/秒</span></div>
+              <div class="console-kv-row"><span class="rule-purpose">预计剩余 ETA</span><span class="console-kv-count">00:47:12</span></div>
+              <div class="console-kv-row"><span class="rule-purpose">快速摘要预筛命中</span><span class="console-kv-count">431,207 次</span></div>
+              <div class="console-kv-row"><span class="rule-purpose">速率峰值（近 5 分钟）</span><span class="console-kv-count">24,180 对象/秒</span></div>
+              <svg style="width:100%;height:44px;margin-top:8px;display:block;" viewBox="0 0 280 44" preserveAspectRatio="none" aria-label="扫描速率曲线">
+                <polyline points="0,36 20,32 40,34 60,27 80,29 100,22 120,24 140,19 160,21 180,14 200,16 220,11 240,13 260,8 280,10" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="0,36 20,32 40,34 60,27 80,29 100,22 120,24 140,19 160,21 180,14 200,16 220,11 240,13 260,8 280,10 280,44 0,44" fill="rgba(245,158,11,0.10)" stroke="none"/>
+              </svg>
+            </div>
+          </div>
+          <!-- 下半：左（层进度 + 日志）/ 右（隔离 + 实时发现） -->
+          <div class="console-scan-split">
+            <div>
+              <div class="card" style="margin-bottom:12px;">
+                <div class="card-header" style="padding:10px 14px;"><svg class="icon" style="color:var(--color-brand);"><use href="#icon-activity"/></svg><span class="card-title" style="font-size:13.5px;">四层渐进分析</span><span class="card-title-note">从轻到重逐层加深</span></div>
+                <table class="console-layer-table">
+                  <thead><tr><th>层</th><th style="width:76px;">状态</th><th>规模 / 算法</th><th style="width:110px;">耗时</th><th style="width:120px;">进度</th></tr></thead>
+                  <tbody>
+                    <tr><td style="font-weight:650;">① 目录结构层</td><td><span class="layer-state-chip state-done">完成</span></td><td class="member-meta">41.6 万对象</td><td class="member-meta">12 秒</td><td><span class="mini-progress-track"><span class="mini-progress-fill" style="width:100%;display:block;"></span></span></td></tr>
+                    <tr><td style="font-weight:650;">② 文件元数据层</td><td><span class="layer-state-chip state-done">完成</span></td><td class="member-meta">size / mtime / ctime</td><td class="member-meta">4 分 32 秒</td><td><span class="mini-progress-track"><span class="mini-progress-fill" style="width:100%;display:block;"></span></span></td></tr>
+                    <tr><td style="font-weight:650;">③ 快速 hash 层</td><td><span class="layer-state-chip state-done">完成</span></td><td class="member-meta">431,207 次采样命中（xxhash）</td><td class="member-meta">11 分 08 秒</td><td><span class="mini-progress-track"><span class="mini-progress-fill" style="width:100%;display:block;"></span></span></td></tr>
+                    <tr><td style="font-weight:650;">④ 全量内容 hash 层</td><td><span class="layer-state-chip state-running">进行中</span></td><td class="member-meta">SHA256 · 84,216 个候选文件</td><td class="member-meta">—</td><td><span class="mini-progress-track"><span class="mini-progress-fill" style="width:62%;display:block;"></span></span> <span class="member-meta">62%</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card">
+                <div class="card-header" style="padding:10px 14px;"><svg class="icon" style="color:var(--color-brand);"><use href="#icon-list"/></svg><span class="card-title" style="font-size:13.5px;">实时日志</span><span class="card-title-note">最近事件 · 完整日志见 manifest</span></div>
+                <div style="padding:10px 14px;">
+                  <div class="scan-log scrollable" style="max-height:178px;overflow:auto;">
+                    <div class="log-line"><span class="log-time">16:42:15</span> <span class="log-tag-warning">[warn]</span> 隔离: E:\Photos\老照片-1998.zip（zip 中央目录校验失败，跳过并标记）</div>
+                    <div class="log-line"><span class="log-time">16:42:14</span> <span class="log-tag-hash">[hash]</span> 快速摘要命中 431,207 / 2,071,463，升级全量 hash 候选 84,216</div>
+                    <div class="log-line"><span class="log-time">16:42:13</span> <span class="log-tag-link">[link]</span> 符号链接 D:\Backup2\archive → F:\外接盘\Archive（OutOfScope，不递归）</div>
+                    <div class="log-line"><span class="log-time">16:42:12</span> <span class="log-tag-hash">[hash]</span> SHA256 完成 DV_0230.MOV（2.4 GB · 8.1 秒 · 硬件加速）</div>
+                    <div class="log-line"><span class="log-time">16:42:11</span> <span class="log-tag-info">[scan]</span> 目录枚举 D:\Backup2\backup0620\视频\2024（1,204 项）</div>
+                    <div class="log-line"><span class="log-time">16:42:09</span> <span class="log-tag-info">[scan]</span> 检测到硬链接组 inode 48213377（2 路径，内容仅统计一次）</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="card" style="margin-bottom:12px;">
+                <div class="card-header" style="padding:10px 14px;"><svg class="icon" style="color:var(--color-brand);"><use href="#icon-shield"/></svg><span class="card-title" style="font-size:13.5px;">韧性隔离</span><span class="card-title-note" style="margin-left:auto;"><button type="button" class="btn btn-small">查看 7 个对象详情</button></span></div>
+                <div style="padding:10px 14px;">
+                  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"><span style="font-size:24px;font-weight:750;color:var(--color-brand-deep);font-variant-numeric:tabular-nums;">7</span><span style="font-size:11.5px;color:var(--color-text-secondary);">个对象被跳过并标记 · 单对象失败绝不终止整体扫描</span></div>
+                  <div class="console-kv-row"><svg class="icon icon-small" style="color:var(--relation-broken);"><use href="#icon-alert-triangle"/></svg>损坏（解析失败）<span class="console-kv-count">2</span></div>
+                  <div class="console-kv-row"><svg class="icon icon-small" style="color:var(--relation-out-of-scope);"><use href="#icon-alert-triangle"/></svg>权限拒绝<span class="console-kv-count">3</span></div>
+                  <div class="console-kv-row"><svg class="icon icon-small" style="color:var(--relation-partial-overlap);"><use href="#icon-alert-triangle"/></svg>畸形输入（路径超长等）<span class="console-kv-count">2</span></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header" style="padding:10px 14px;"><svg class="icon" style="color:var(--color-brand);"><use href="#icon-search"/></svg><span class="card-title" style="font-size:13.5px;">实时发现</span><span class="card-title-note">随扫描增量更新</span></div>
+                <div style="padding:10px 14px;">
+                  <div class="console-kv-row"><span class="relation-dot" style="background:var(--relation-exact-duplicate);"></span>完全重复组<span class="console-kv-count">1,203</span></div>
+                  <div class="console-kv-row"><span class="relation-dot" style="background:var(--relation-archive-pair);"></span>压缩包配对<span class="console-kv-count">45</span></div>
+                  <div class="console-kv-row"><span class="relation-dot" style="background:var(--relation-out-of-scope);"></span>范围外链接<span class="console-kv-count">3</span></div>
+                  <div class="console-kv-row"><span class="relation-dot" style="background:var(--relation-broken);"></span>断裂链接<span class="console-kv-count">12</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== E 阶段 3：结果（三栏：类型导航 / 问题列表 / 选中详情） ===== -->
+      <div class="stage-pane" data-stage-pane="console" data-stage="results" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+        <div class="console-toolbar">
+          <span class="console-breadcrumb">三盘备份整合 / <b>结果审阅</b></span>
+          <div class="console-toolbar-actions">
+            <span class="default-tag">快照 manifest-2026-08-01 · 2 周前</span>
+            <button type="button" class="btn btn-small"><svg class="icon icon-small"><use href="#icon-refresh"/></svg>重新扫描</button>
+            <button type="button" class="btn btn-small btn-primary" data-stage-nav="console" data-stage="plan"><svg class="icon icon-small"><use href="#icon-clipboard"/></svg>生成处理计划</button>
+          </div>
+        </div>
+        <div class="console-content">
+          <!-- 统计 + 筛选 -->
+          <div class="card" style="padding:10px 14px;margin-bottom:10px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+            <span class="member-meta" style="font-size:12.5px;"><b class="numeric" style="font-size:17px;color:var(--color-text-primary);">16</b> 组问题</span>
+            <span class="member-meta" style="font-size:12.5px;"><b class="numeric" style="font-size:17px;color:var(--color-text-primary);">31</b> 个对象</span>
+            <span class="member-meta" style="font-size:12.5px;"><b class="numeric" style="font-size:17px;color:var(--resolution-conflict);">4</b> 组需人工</span>
+            <span class="member-meta" style="font-size:12.5px;"><b class="numeric" style="font-size:17px;color:var(--color-brand-deep);">42.4 GB</b> 可释放</span>
+            <span style="flex:1;"></span>
+            <select class="select-input" style="width:150px;font-size:12px;"><option>全部问题类型</option><option>完全重复</option><option>版本演进</option><option>压缩包配对</option><option>链接异常</option></select>
+            <input type="text" class="text-input monospace" style="width:170px;" value="**\*.jpg; **\*.zip" title="路径 / glob">
+            <input type="text" class="text-input" style="width:64px;" value="1 MB" title="大小下限">
+            <input type="text" class="text-input" style="width:64px;" value="不限" title="大小上限">
+            <input type="date" class="text-input" style="width:128px;" value="2023-01-01" title="mtime 起">
+            <input type="date" class="text-input" style="width:128px;" value="2025-06-20" title="mtime 止">
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;">
+            <button type="button" class="quick-chip selected">仅需人工决策</button>
+            <button type="button" class="quick-chip">仅可自动处理</button>
+            <button type="button" class="quick-chip">仅压缩包</button>
+            <button type="button" class="btn btn-small"><svg class="icon icon-small"><use href="#icon-filter"/></svg>重置筛选</button>
+          </div>
+
+          <div class="console-results-grid">
+            <!-- 左：类型导航 -->
+            <aside class="card console-type-nav" id="console-type-nav">
+              <div class="console-type-nav-heading">问题类型</div>
+              <button type="button" class="console-type-item active"><span class="relation-dot" style="background:var(--color-text-secondary);"></span>全部<span class="console-type-count">16</span></button>
+              <button type="button" class="console-type-item"><span class="relation-dot" style="background:var(--relation-structural-sibling);"></span>结构相似<span class="console-type-count">1</span></button>
+              <button type="button" class="console-type-item"><span class="relation-dot" style="background:var(--relation-versioned);"></span>版本演进<span class="console-type-count">2</span></button>
+              <button type="button" class="console-type-item"><span class="relation-dot" style="background:var(--relation-exact-duplicate);"></span>完全重复<span class="console-type-count">3</span></button>
+              <button type="button" class="console-type-item"><span class="relation-dot" style="background:var(--relation-near-duplicate);"></span>近似重复<span class="console-type-count">1</span></button>
+              <button type="button" class="console-type-item"><span class="relation-dot" style="background:var(--relation-partial-overlap);"></span>部分重叠<span class="console-type-count">1</span></button>
+              <button type="button" class="console-type-item"><span class="relation-dot" style="background:var(--relation-renamed);"></span>重命名<span class="console-type-count">1</span></button>
+              <button type="button" class="console-type-item"><span class="relation-dot" style="background:var(--relation-moved);"></span>移动<span class="console-type-count">1</span></button>
+              <button type="button" class="console-type-item"><span class="relation-dot" style="background:var(--relation-archive-pair);"></span>压缩包配对<span class="console-type-count">2</span></button>
+              <button type="button" class="console-type-item"><span class="relation-dot" style="background:var(--relation-link-reference);"></span>链接引用<span class="console-type-count">1</span></button>
+              <button type="button" class="console-type-item"><span class="relation-dot" style="background:var(--relation-out-of-scope);"></span>链接异常<span class="console-type-count">3</span></button>
+            </aside>
+
+            <!-- 中：批量条 + 问题列表（JS 渲染 16 组） -->
+            <div>
+              <div class="console-batchbar">
+                <span class="selected-count">已选 6 个对象</span>
+                <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-bookmark"/></svg>保留</button>
+                <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-trash"/></svg>回收站</button>
+                <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-hard-drive"/></svg>移动到…</button>
+                <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-rename"/></svg>重命名</button>
+                <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-link"/></svg>替换为链接</button>
+                <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-git-merge"/></svg>合并</button>
+                <span class="console-batch-note">标记汇总生成计划，执行前二次确认</span>
+              </div>
+              <div id="console-issue-list"></div>
+            </div>
+
+            <!-- 右：选中组详情（JS 渲染） -->
+            <aside class="console-detail-panel" id="console-issue-detail"></aside>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== E 阶段 4：计划（上动作表 / 下确认区+保底策略） ===== -->
+      <div class="stage-pane" data-stage-pane="console" data-stage="plan" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+        <div class="console-toolbar">
+          <span class="console-breadcrumb">三盘备份整合 / <b>计划 plan-2026-08-15-01</b></span>
+          <div class="console-toolbar-actions">
+            <button type="button" class="btn btn-small"><svg class="icon icon-small"><use href="#icon-refresh"/></svg>重新生成</button>
+            <button type="button" class="btn btn-small"><svg class="icon icon-small"><use href="#icon-download"/></svg>保存计划</button>
+            <button type="button" class="btn btn-small" data-stage-nav="console" data-stage="results"><svg class="icon icon-small"><use href="#icon-arrow-left"/></svg>返回结果</button>
+          </div>
+        </div>
+        <div class="console-content">
+          <!-- 上：动作列表 -->
+          <div class="card console-plan-top">
+            <div class="card-header" style="padding:10px 14px;">
+              <svg class="icon" style="color:var(--color-brand);"><use href="#icon-clipboard"/></svg>
+              <span class="card-title" style="font-size:13.5px;">计划项</span>
+              <span class="card-title-note">18 项动作 · 每项含回滚信息</span>
+              <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+                <span class="plan-summary-chip emphasis">共 18 项</span>
+                <span class="plan-summary-chip">回收站 ×9</span><span class="plan-summary-chip">保留 ×4</span><span class="plan-summary-chip">移动 ×2</span><span class="plan-summary-chip">链接 ×1</span><span class="plan-summary-chip">重命名 ×1</span><span class="plan-summary-chip">合并 ×1</span>
+                <span class="plan-summary-chip emphasis">预计释放 42.4 GB</span>
+              </span>
+            </div>
+            <div class="console-plan-table-header"><span>动作</span><span>对象</span><span>目标</span><span style="text-align:right;">释放空间</span></div>
+            <div id="console-plan-rows"></div>
+          </div>
+          <!-- 下：左（冲突 + dry-run）/ 右（保底策略 + 确认） -->
+          <div class="console-plan-bottom">
+            <div>
+              <div class="card" style="margin-bottom:12px;">
+                <div class="card-header" style="padding:10px 14px;"><svg class="icon" style="color:var(--resolution-conflict);"><use href="#icon-alert-triangle"/></svg><span class="card-title" style="font-size:13.5px;">冲突检测</span><span class="card-title-note">2 项待解决，解决后方可执行</span></div>
+                <div style="padding:8px 14px;">
+                  <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed var(--color-border);">
+                    <svg class="icon icon-small" style="color:var(--resolution-conflict);margin-top:2px;flex:none;"><use href="#icon-alert-triangle"/></svg>
+                    <div style="font-size:12.5px;color:var(--color-text-secondary);line-height:1.55;"><b style="color:var(--color-text-primary);">目标路径已存在</b>：<span class="monospace">E:\Archive\Photos\2023\随手拍\IMG_0704.jpg</span> 与计划保留项为同一文件（SHA256 一致），移动将覆盖歧义。<br><span style="color:var(--action-move);font-size:12px;">建议：改为 MoveToTrash（源文件），保留归档区现有副本。</span></div>
+                  </div>
+                  <div style="display:flex;gap:10px;padding:8px 0;">
+                    <svg class="icon icon-small" style="color:var(--resolution-conflict);margin-top:2px;flex:none;"><use href="#icon-alert-triangle"/></svg>
+                    <div style="font-size:12.5px;color:var(--color-text-secondary);line-height:1.55;"><b style="color:var(--color-text-primary);">移动后产生歧义</b>：<span class="monospace">E:\Photos\随手拍\三亚（9 项独有文件）</span> 并入归档区后与既有「三亚」目录命名语义重叠。<br><span style="color:var(--action-move);font-size:12px;">建议：目标改为 E:\Archive\Photos\2023\三亚-随手拍\，或先解决目录级 PartialOverlap。</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header" style="padding:10px 14px;"><svg class="icon" style="color:var(--color-brand);"><use href="#icon-eye"/></svg><span class="card-title" style="font-size:13.5px;">dry-run 预览</span><span class="card-title-note">执行后状态对比 · 不写任何数据，纯推演</span></div>
+                <div style="padding:12px 14px;">
+                  <div class="dry-run-compare">
+                    <div class="compare-column">
+                      <div class="compare-column-heading">执行前（当前快照）</div>
+                      <div class="compare-stat"><span class="compare-stat-label">Scope 内对象</span><span class="compare-stat-value numeric">57,609</span></div>
+                      <div class="compare-stat"><span class="compare-stat-label">总大小</span><span class="compare-stat-value numeric">225.9 GB</span></div>
+                      <div class="compare-stat"><span class="compare-stat-label">问题组</span><span class="compare-stat-value numeric">16</span></div>
+                    </div>
+                    <div class="compare-arrow"><svg class="icon"><use href="#icon-arrow-right"/></svg></div>
+                    <div class="compare-column column-after">
+                      <div class="compare-column-heading">执行后（推演结果）</div>
+                      <div class="compare-stat"><span class="compare-stat-label">Scope 内对象</span><span class="compare-stat-value numeric">36,742</span></div>
+                      <div class="compare-stat"><span class="compare-stat-label">总大小</span><span class="compare-stat-value numeric">183.5 GB</span></div>
+                      <div class="compare-stat"><span class="compare-stat-label">问题组</span><span class="compare-stat-value numeric">2（仅剩人工确认项）</span></div>
+                    </div>
+                  </div>
+                  <div style="margin-top:10px;font-size:12px;color:var(--color-text-secondary);display:flex;flex-direction:column;gap:6px;">
+                    <div><span style="color:var(--color-brand);font-weight:700;">→</span> <span class="monospace">E:\Photos\photos-2023.zip</span> 移入回收站，释放 12.8 GB</div>
+                    <div><span style="color:var(--color-brand);font-weight:700;">→</span> <span class="monospace">D:\Backup1\backup0505\</span> 新增文件并入 backup0620 后，整目录移入回收站</div>
+                    <div><span style="color:var(--color-brand);font-weight:700;">→</span> <span class="monospace">D:\Backup1\backup0505\杂项\2023合同扫描件.pdf</span> 变为指向规范名的符号链接</div>
+                    <div><span style="color:var(--color-brand);font-weight:700;">→</span> <span class="monospace">E:\Archive\Photos\</span> 保持不变（保留基准，重校验通过后写入新 manifest）</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="card" style="margin-bottom:12px;">
+                <div class="card-header" style="padding:10px 14px;"><svg class="icon" style="color:var(--color-brand);"><use href="#icon-shield"/></svg><span class="card-title" style="font-size:13.5px;">保底策略</span><span class="card-title-note">三档可配</span></div>
+                <div style="padding:12px 14px;">
+                  <div style="display:flex;flex-direction:column;gap:8px;">
+                    <label class="strategy-card selected"><span class="strategy-radio-dot"></span><span><span class="strategy-card-title">双保险 <span class="strategy-recommend-tag">默认</span></span><span class="strategy-card-desc">Trash + Staging 双写：清理对象同时进回收站与保底区，清理后校验失败可自动回滚</span></span></label>
+                    <label class="strategy-card"><span class="strategy-radio-dot"></span><span><span class="strategy-card-title">仅回收站</span><span class="strategy-card-desc">信任判定、容量敏感场景；回收站清空后不可恢复（需显式开启）</span></span></label>
+                    <label class="strategy-card"><span class="strategy-radio-dot"></span><span><span class="strategy-card-title">仅 Staging</span><span class="strategy-card-desc">大文件 / 高风险场景；不占用回收站容量</span></span></label>
+                  </div>
+                  <div style="display:flex;gap:10px;margin-top:11px;align-items:flex-end;">
+                    <div class="filter-field" style="flex:1;"><span class="field-label">Staging 位置</span><input type="text" class="text-input monospace" value="~/.helichrysum/staging/"></div>
+                    <div class="filter-field"><span class="field-label">保留天数</span><input type="text" class="text-input" style="width:70px;" value="30"></div>
+                  </div>
+                  <div class="setting-row-hint" style="margin-top:8px;">保底副本独立于回收站，不受清空回收站影响；到期自动清理，期间可随时恢复</div>
+                </div>
+              </div>
+              <div class="banner banner-info" style="font-size:12px;margin-bottom:12px;">
+                <svg class="icon icon-small"><use href="#icon-shield"/></svg>
+                <span><b>执行前身份重校验（防 TOCTOU）</b>：① mtime / ctime 一致 ② CRC32 快速摘要 → MD5 强摘要 ③ inode / file id 一致；任何维度不符 → 中止该动作并转人工。</span>
+              </div>
+              <div class="confirm-zone">
+                <div class="confirm-heading"><svg class="icon"><use href="#icon-shield"/></svg>执行前二次确认</div>
+                <div class="confirm-summary">
+                  <div><span class="confirm-stat-value numeric">18</span><span class="confirm-stat-label">项动作</span></div>
+                  <div><span class="confirm-stat-value numeric">42.4 GB</span><span class="confirm-stat-label">预计释放</span></div>
+                  <div><span class="confirm-stat-value">可回滚</span><span class="confirm-stat-label">回收站 + Staging 双保险</span></div>
+                </div>
+                <div class="banner banner-danger" style="margin-bottom:11px;font-size:12px;">
+                  <svg class="icon icon-small"><use href="#icon-alert-triangle"/></svg>
+                  <span>存在 <b>2 项未解决冲突</b>，解决后方可执行。</span>
+                </div>
+                <div class="confirm-actions">
+                  <button type="button" class="confirm-primary-btn disabled" title="解决全部冲突后可用"><svg class="icon"><use href="#icon-check"/></svg>我已确认，开始执行</button>
+                  <button type="button" class="btn"><svg class="icon"><use href="#icon-eye"/></svg>再次 dry-run</button>
+                </div>
+                <p class="confirm-caption"><b>执行前必须再次确认，Helichrysum 不提供"自动执行"模式</b>。默认删除走回收站而非直接删除，每步动作记录执行日志、中断可恢复，完成后生成新 manifest。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 底部状态栏 -->
+    <div class="console-statusbar">
+      <span class="status-ok">● 引擎就绪</span>
+      <span>会话 <b>三盘备份整合</b></span>
+      <span>快照 <b class="monospace">manifest-2026-08-01</b>（2 周前）</span>
+      <span>Scope <b>4 根路径 · 57,609 对象 · 225.9 GB</b></span>
+      <span style="margin-left:auto;">阶段 <b id="console-statusbar-stage">1/4 · 设置</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- @@SECTIONS -->
+</main>
+
+<footer class="design-footer">
+  Helichrysum WebUI 详细流程设计稿 · 4 套方案共享同一份数据（16 问题组 / 扫描统计 / 18 计划动作）· 顶部切换器仅用于设计评审导航 · 单文件自包含，零外部依赖
+</footer>
+
+<!-- @@SCRIPT -->
+</body>
+</html>
