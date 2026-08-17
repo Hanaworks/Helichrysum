@@ -702,6 +702,976 @@ input[type="checkbox"] { cursor: pointer; }
 </style>
 </head>
 <body>
-<!-- __APPEND_BODY__ -->
+<!-- SVG 图标库 -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="icon-brand-flower" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/><g stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 2.8v3.4"/><path d="M12 17.8v3.4"/><path d="M2.8 12h3.4"/><path d="M17.8 12h3.4"/><path d="M5.5 5.5l2.4 2.4"/><path d="M16.1 16.1l2.4 2.4"/><path d="M18.5 5.5l-2.4 2.4"/><path d="M7.9 16.1l-2.4 2.4"/></g></symbol>
+  <symbol id="icon-chevron-right" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="icon-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></symbol>
+  <symbol id="icon-archive-box" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></symbol>
+  <symbol id="icon-link" viewBox="0 0 24 24"><path d="M15 7h3a5 5 0 0 1 0 10h-3"/><path d="M9 17H6a5 5 0 0 1 0-10h3"/><path d="M8 12h8"/></symbol>
+  <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="icon-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></symbol>
+  <symbol id="icon-list" viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></symbol>
+  <symbol id="icon-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M22 12h-4"/><path d="M6 12H2"/><path d="M12 6V2"/><path d="M12 22v-4"/></symbol>
+  <symbol id="icon-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="icon-clipboard" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></symbol>
+  <symbol id="icon-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="icon-x" viewBox="0 0 24 24"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></symbol>
+  <symbol id="icon-alert-triangle" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="icon-star" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></symbol>
+  <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+  <symbol id="icon-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></symbol>
+  <symbol id="icon-git-merge" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></symbol>
+  <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+  <symbol id="icon-rename" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+  <symbol id="icon-bookmark" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="icon-hard-drive" viewBox="0 0 24 24"><path d="M22 12H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M6 16h.01"/><path d="M10 16h.01"/></symbol>
+  <symbol id="icon-broken-link" viewBox="0 0 24 24"><path d="M15 7h3a5 5 0 0 1 0 10h-3"/><path d="M9 17H6a5 5 0 0 1 0-10h3"/><path d="M4 4l16 16"/></symbol>
+  <symbol id="icon-repeat" viewBox="0 0 24 24"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
+  <symbol id="icon-sort" viewBox="0 0 24 24"><path d="M7 11l5-6 5 6H7z"/><path d="M7 13l5 6 5-6H7z"/></symbol>
+  <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4"/><path d="M12 19v4"/><path d="M4.22 4.22l2.83 2.83"/><path d="M16.95 16.95l2.83 2.83"/><path d="M1 12h4"/><path d="M19 12h4"/><path d="M4.22 19.78l2.83-2.83"/><path d="M16.95 7.05l2.83-2.83"/></symbol>
+</svg>
+
+<!-- 方向切换器 -->
+<header class="direction-switcher">
+  <span class="switcher-brand"><svg><use href="#icon-brand-flower"/></svg>Helichrysum WebUI</span>
+  <span class="switcher-label">问题列表 · 设计方向评审</span>
+  <nav class="switcher-buttons" id="switcher-buttons">
+    <button type="button" class="switcher-button active" data-direction="a"><span class="switcher-key">A</span>侧栏应用式</button>
+    <button type="button" class="switcher-button" data-direction="b"><span class="switcher-key">B</span>杂志信息流</button>
+    <button type="button" class="switcher-button" data-direction="c"><span class="switcher-key">C</span>全宽数据表格</button>
+    <button type="button" class="switcher-button" data-direction="d"><span class="switcher-key">D</span>仪表板混合</button>
+  </nav>
+  <span class="switcher-note">4 个方向共享同一份数据 · 结构 / 导航 / 组件形态各自独立</span>
+</header>
+
+<div id="design-root">
+  <section class="direction-stage direction-a active" id="stage-a"></section>
+  <section class="direction-stage direction-b" id="stage-b"></section>
+  <section class="direction-stage direction-c" id="stage-c"></section>
+  <section class="direction-stage direction-d" id="stage-d"></section>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   共享数据：问题列表（与 webui-mockup.html 视图① 完全一致）
+   ============================================================ */
+var VIEW_SUBTITLE = '基于快照 <span class="monospace">manifest-2026-08-01</span>（2 周前）· 按关系类型分组 · 自动化决策全程可见、可否决（F-Resolve-7）';
+
+var STATISTICS = [
+  { value: "16", unit: "组", label: "问题组（9 类关系 + Link 异常）", tone: "normal" },
+  { value: "31", unit: "个对象", label: "涉及文件 / 目录 / 链接", tone: "normal" },
+  { value: "4", unit: "组", label: "需人工决策（Conflict ×3 / 损坏嫌疑 ×1）", tone: "warning" },
+  { value: "42.4", unit: "GB", label: "预计可释放空间", tone: "accent" }
+];
+
+var TYPE_NAVIGATION = [
+  { name: "全部", count: 16, color: "#78716c", anchor: null, active: true },
+  { name: "结构相似", count: 1, color: "#4f46e5", anchor: "structural-sibling" },
+  { name: "版本演进", count: 2, color: "#16a34a", anchor: "versioned-annual-report" },
+  { name: "完全重复", count: 3, color: "#2563eb", anchor: "exact-duplicate-photo" },
+  { name: "近似重复", count: 1, color: "#0e7490", anchor: "near-duplicate-notes" },
+  { name: "部分重叠", count: 1, color: "#ea580c", anchor: "partial-overlap-sanya" },
+  { name: "重命名", count: 1, color: "#52627a", anchor: "renamed-contract" },
+  { name: "移动", count: 1, color: "#64748b", anchor: "moved-family-photo" },
+  { name: "压缩包配对", count: 2, color: "#9333ea", anchor: "archive-pair-photos" },
+  { name: "链接引用", count: 1, color: "#475569", anchor: "link-reference-latest" },
+  { name: "链接异常", count: 3, color: "#b45309", anchor: "out-of-scope-archive" }
+];
+
+var FILTER_TYPE_OPTIONS = ["全部类型（9 类关系 + Link 异常）", "完全重复 ExactDuplicate", "近似重复 NearDuplicate", "版本演进 Versioned", "重命名 Renamed", "移动 Moved", "结构相似 StructuralSibling", "压缩包配对 ArchivePair", "部分重叠 PartialOverlap", "范围外链接 OutOfScope", "断裂链接 Broken", "循环链接 Circular"];
+var FILTER_PATH_VALUE = "**\\*.jpg; **\\*.zip";
+var FILTER_SIZE_MIN = "1 MB";
+var FILTER_SIZE_MAX = "不限";
+var FILTER_MTIME_MIN = "2023-01-01";
+var FILTER_MTIME_MAX = "2025-06-20";
+var QUICK_CHIPS = [
+  { label: "仅需人工决策", selected: true },
+  { label: "仅可自动处理", selected: false },
+  { label: "仅压缩包", selected: false }
+];
+
+var BATCH_ACTIONS = [
+  { icon: "icon-bookmark", label: "保留 Keep" },
+  { icon: "icon-trash", label: "回收站 MoveToTrash" },
+  { icon: "icon-hard-drive", label: "移动到… MoveTo" },
+  { icon: "icon-rename", label: "重命名 Rename" },
+  { icon: "icon-link", label: "替换为链接 ReplaceWithLink" },
+  { icon: "icon-git-merge", label: "合并 Merge" }
+];
+var BATCH_SELECTED_COUNT = 6;
+var BATCH_NOTE = "标记将汇总生成处理计划，执行前仍需二次确认";
+
+var NAVIGATION_ITEMS = [
+  { icon: "icon-list", label: "问题列表", active: true },
+  { icon: "icon-crosshair", label: "Scope 配置", active: false },
+  { icon: "icon-activity", label: "扫描进度", active: false },
+  { icon: "icon-clipboard", label: "计划与执行", active: false },
+  { icon: "icon-folder", label: "报告", active: false }
+];
+
+var SNAPSHOT_TOOLTIP = "manifest-2026-08-01.sqlite · created_at 2026-08-01 09:12 · scanned_at 2026-08-01 15:42（F-Report-12）";
+
+/* 下钻详情：语义化数据，四个方向各自换肤 */
+var DETAILS = {
+  "structural-sibling": {
+    kind: "evidence-chain",
+    leftHeading: "判定依据（多证据综合 · F-Resolve-4）",
+    evidence: [
+      { positive: true, html: "<b>内容包含关系（最强）</b>：backup0505 文件集合 ⊆ backup0620，相同项 SHA256 一致，旧数据零丢失" },
+      { positive: true, html: "<b>目录命名序列</b>：backup0505 → backup0620，演化方向自证" },
+      { positive: false, html: "<b>可信时间戳（降权）</b>：backup0505 内 92% 文件 ctime 聚集 → 判为批量拷贝痕迹，时间戳整体降权（F-Resolve-4a）" },
+      { positive: true, html: "<b>父目录时间佐证</b>：backup0620 目录 mtime 晚于其全部子文件 → 之后仍有增删活动，佐证“活跃新版”" }
+    ],
+    layerChips: [
+      { label: "目录结构 ✓", hit: true }, { label: "元数据 ✓", hit: true }, { label: "快速 hash ✓", hit: true }, { label: "全量 hash", hit: false }
+    ],
+    rightHeading: "处理链（顺序约束 · F-Resolve-11 / F-Resolve-15）",
+    chain: [
+      { state: "done", name: "文件级", meta: "新旧冲突已解决 ×3（年报转人工 · 简历以新为准 · 合同重命名确认）" },
+      { state: "active", name: "目录级 · 合并就绪", dependency: "← 文件级已解决 ×3", meta: "新增 1,478 文件合并进新版 · 重复项入回收站" },
+      { state: "pending", name: "结构级 · 待整合", meta: "backup0505 并入 backup0620 后移入回收站" }
+    ],
+    chainNote: "下钻仅揭示链上依据，不改变处理链执行顺序（F-Resolve-14）；交织文件已在文件级独立解决，不用目录级判断覆盖（F-Resolve-12）"
+  },
+  "versioned-annual-report": {
+    kind: "conflict",
+    parties: [
+      { label: "参与方 A（旧候选）", path: "D:\\Backup1\\backup0505\\工作\\2024年报.xlsx", meta: "1.18 MB · 2025-04-28 · SHA256 a3f8…c21e" },
+      { label: "参与方 B（新候选）", path: "D:\\Backup2\\backup0620\\工作\\2024年报.xlsx", meta: "1.31 MB · 2025-06-18 · SHA256 7b0d…94af" }
+    ],
+    summaryHtml: "<b>差异摘要</b>：新版将工作表「2024Q1」拆分为「2024Q1」「2024Q2」，新增 3 行数据；旧版含 1 条已被新版删除的备注。<br><b>证据链结论</b>：内容包含 ✗（互不包含，diverged）· 命名序列 → backup0620 更新（弱证据）· 可信时间 → backup0620 更新（ctime 已降权）。证据矛盾，无法自动裁定。",
+    ribbon: "所有证据链均无法给出明确方向 → 提升为人工确认（F-Resolve-17）"
+  },
+  "integrity-img-2201": {
+    kind: "evidence-chain",
+    leftHeading: "多备份一致性投票（F-Resolve-18）",
+    evidence: [
+      { positive: true, html: "按内容摘要分组：<b>多数派 2 份一致</b>（backup0505 · E:\\Archive\\Photos）" },
+      { positive: false, html: "<b>孤立者 1 份不同</b>：backup0620 副本 hash 与多数派不一致 → 标注 Integrity_Suspected" },
+      { positive: false, html: "格式内建校验（F-Resolve-19）：JPEG 结束标记（EOI）缺失 → 校验失败，佐证损坏" }
+    ],
+    rightHeading: "处理约束",
+    constraintHtml: "损坏嫌疑对象<b>默认不进入自动清理</b>，由处理链转为人工确认（F-Exec-12）；人工确认后决策持久化，同一决策不再重复询问（F-Resolve-10）。<br>工具只做<b>嫌疑标记</b>、不判死——若各副本皆由同一损坏源拷贝（同源自洽损坏），一致性手段无法发现（约束 §6.6）。"
+  },
+  "archive-pair-photos": {
+    kind: "evidence-chain",
+    leftHeading: "配对判定（F-Archive-4 / F-Archive-5）",
+    evidence: [
+      { positive: true, html: "<b>FullyExtracted</b>：内部清单 1,842 / 1,842 与目录实际内容完全一致（无新增 / 修改 / 删除）" },
+      { positive: true, html: "<b>解压锚点（F-Resolve-16）</b>：包内条目时间 2023-12-30 15:40~16:02，目录 mtime 聚集于同一窗口（偏差 22 分钟 &lt; 容差 1 小时）" },
+      { positive: true, html: "<b>解压后无修改</b>：目录 mtime 未晚于锚点窗口 → 高可信“建议清理压缩包”标记" }
+    ],
+    rightHeading: "处理链位置",
+    chain: [
+      { state: "done", name: "文件级", meta: "清单比对完成（无文件级冲突）" },
+      { state: "done", name: "目录级", meta: "解压目录确认为保留基准" },
+      { state: "active", name: "结构级 · 待执行", dependency: "← 依赖目录级已确认", meta: "photos-2023.zip → MoveToTrash（进计划，待确认）" }
+    ]
+  }
+};
+
+var ISSUE_GROUPS = [
+  {
+    anchor: "structural-sibling", relationClass: "structural-sibling", relationName: "结构相似", relationCode: "StructuralSibling",
+    relationTitle: "StructuralSibling：两个目录结构高度相似，推断为同一套数据的演进",
+    title: 'backup0505 <span class="title-separator">↔</span> backup0620',
+    confidence: 86, resolutionClass: "compatibility", resolutionText: "兼容 · 以新为准 Compatibility",
+    resolutionTitle: "Compatibility：新版本完全覆盖旧版本（fast-forward）",
+    meta: "2 目录 · 可释放 29.6 GB", columns: ["对象", "大小", "修改时间", "建议", "角色"],
+    members: [
+      { icon: "icon-folder", star: false, checked: false, path: "D:\\Backup1\\backup0505", detail: "20,933 文件 · ctime 聚集 92%（批量拷贝痕迹，时间戳已降权）", size: "54.2 GB", mtime: "2025-05-05 18:40", suggestionClass: "keep", suggestion: "并入新版", extra: "旧 · 被包含" },
+      { icon: "icon-folder", star: true, checked: false, path: "D:\\Backup2\\backup0620", detail: "22,411 文件 · 较旧版新增 1,478 个文件，相同项 SHA256 一致", size: "61.8 GB", mtime: "2025-06-20 21:07", suggestionClass: "keep", suggestion: "保留基准", extra: "新 · 超集" }
+    ],
+    detailKey: "structural-sibling", detailOpen: true, detailOpenLabel: "收起判定依据与处理链", detailClosedLabel: "查看判定依据与处理链"
+  },
+  {
+    anchor: "versioned-annual-report", relationClass: "versioned", relationName: "版本演进", relationCode: "Versioned",
+    relationTitle: "Versioned：同一基础文件的多次修改版本",
+    title: '2024年报.xlsx <span class="title-separator">·</span> 两版分叉',
+    confidence: 87, resolutionClass: "conflict", resolutionText: "冲突 · 需人工决策 Conflict",
+    resolutionTitle: "Conflict：新旧版本互不包含、彼此不同，必须人工确认",
+    meta: "同名 · 内容部分相似 0.62", columns: ["对象", "大小", "修改时间", "建议", "快照 hash"],
+    members: [
+      { icon: "icon-file", star: false, checked: false, path: "D:\\Backup1\\backup0505\\工作\\2024年报.xlsx", detail: "含工作表「2024Q1」· 1 条备注行（新版已删）", size: "1.18 MB", mtime: "2025-04-28 16:11", suggestionClass: "manual", suggestion: "需人工决策", extra: "a3f8…c21e", extraMonospace: true },
+      { icon: "icon-file", star: false, checked: false, path: "D:\\Backup2\\backup0620\\工作\\2024年报.xlsx", detail: "「2024Q1」拆分为「2024Q1」「2024Q2」· 新增 3 行数据", size: "1.31 MB", mtime: "2025-06-18 09:36", suggestionClass: "manual", suggestion: "需人工决策", extra: "7b0d…94af", extraMonospace: true }
+    ],
+    detailKey: "versioned-annual-report", detailOpen: false, detailOpenLabel: "收起参与方与差异摘要", detailClosedLabel: "查看参与方与差异摘要"
+  },
+  {
+    anchor: "versioned-resume", relationClass: "versioned", relationName: "版本演进", relationCode: "Versioned",
+    relationTitle: "Versioned：同一基础文件的多次修改版本",
+    title: '简历.docx <span class="title-separator">·</span> 新版包含旧版',
+    confidence: 93, resolutionClass: "compatibility", resolutionText: "兼容 · 以新为准 Compatibility",
+    resolutionTitle: "Compatibility：旧版内容逐字包含于新版（fast-forward）",
+    meta: "可释放 24 KB", columns: ["对象", "大小", "修改时间", "建议", "快照 hash"],
+    members: [
+      { icon: "icon-file", star: false, checked: false, path: "D:\\Backup1\\backup0505\\求职\\简历.docx", detail: "旧版内容逐字包含于新版（文本级精确判定 · F-Resolve-3）", size: "24 KB", mtime: "2025-03-02 11:20", suggestionClass: "trash", suggestion: "旧版可清理", extra: "d41c…88b2", extraMonospace: true },
+      { icon: "icon-file", star: true, checked: false, path: "D:\\Backup2\\backup0620\\求职\\简历.docx", detail: "新增「项目经历」与「证书」两节", size: "26 KB", mtime: "2025-06-12 22:48", suggestionClass: "keep", suggestion: "以新为准", extra: "09be…31d7", extraMonospace: true }
+    ],
+    detailKey: null
+  },
+  {
+    anchor: "exact-duplicate-photo", relationClass: "exact-duplicate", relationName: "完全重复", relationCode: "ExactDuplicate",
+    relationTitle: "ExactDuplicate：内容完全一致（hash 相同）",
+    title: 'IMG_0412.jpg <span class="title-separator">·</span> 3 处副本',
+    confidence: 98, resolutionClass: "equality", resolutionText: "相等 · 可自动处理 Equality",
+    resolutionTitle: "Equality：内容摘要确认完全一致，可自动保留一份",
+    meta: "4.2 MB × 3 · 可释放 8.4 MB", columns: ["对象", "大小", "修改时间", "建议", "快照 hash"],
+    members: [
+      { icon: "icon-file", star: true, checked: false, path: "E:\\Archive\\Photos\\2023\\三亚\\IMG_0412.jpg", detail: "保留候选：路径最规范（标准归档区）· SHA256 一致 · size+mtime 一致", size: "4.2 MB", mtime: "2023-10-14 09:23", suggestionClass: "keep", suggestion: "保留", extra: "7f3a…c21b", extraMonospace: true },
+      { icon: "icon-file", star: false, checked: true, path: "D:\\Backup1\\backup0505\\照片\\三亚\\IMG_0412.jpg", detail: "SHA256 一致 · size+mtime 一致", size: "4.2 MB", mtime: "2023-10-14 09:23", suggestionClass: "trash", suggestion: "拟入回收站", extra: "7f3a…c21b", extraMonospace: true },
+      { icon: "icon-file", star: false, checked: true, path: "D:\\Backup2\\backup0620\\照片\\三亚\\IMG_0412.jpg", detail: "SHA256 一致 · size+mtime 一致", size: "4.2 MB", mtime: "2023-10-14 09:23", suggestionClass: "trash", suggestion: "拟入回收站", extra: "7f3a…c21b", extraMonospace: true }
+    ],
+    detailKey: null
+  },
+  {
+    anchor: "exact-duplicate-medical-record", relationClass: "exact-duplicate", relationName: "完全重复", relationCode: "ExactDuplicate",
+    relationTitle: "ExactDuplicate：内容完全一致（hash 相同）",
+    title: '家庭医疗记录.pdf <span class="title-separator">·</span> 2 处副本',
+    confidence: 100, resolutionClass: "equality", resolutionText: "相等 · 可自动处理 Equality",
+    resolutionTitle: "Equality：内容摘要确认完全一致，可自动保留一份",
+    meta: "2.1 MB × 2 · 可释放 2.1 MB", columns: ["对象", "大小", "修改时间", "建议", "快照 hash"],
+    members: [
+      { icon: "icon-file", star: true, checked: false, path: "D:\\Backup1\\backup0505\\文档\\家庭医疗记录.pdf", detail: "SHA256 一致 · size 一致 · mtime 相差 2 秒（拷贝痕迹）", size: "2.1 MB", mtime: "2024-06-02 10:15", suggestionClass: "keep", suggestion: "保留", extra: "c891…0d43", extraMonospace: true },
+      { icon: "icon-file", star: false, checked: true, path: "D:\\Backup2\\backup0620\\文档\\家庭医疗记录.pdf", detail: "SHA256 一致 · size 一致", size: "2.1 MB", mtime: "2024-06-02 10:15", suggestionClass: "trash", suggestion: "拟入回收站", extra: "c891…0d43", extraMonospace: true }
+    ],
+    detailKey: null
+  },
+  {
+    anchor: "integrity-img-2201", relationClass: "exact-duplicate", relationName: "完全重复", relationCode: "ExactDuplicate",
+    relationTitle: "组内投票发现孤立损坏副本",
+    title: 'IMG_2201.jpg <span class="title-separator">·</span> 3 处副本 · 一份可疑',
+    confidence: 100, resolutionClass: "integrity-suspected", resolutionText: "损坏嫌疑 Integrity_Suspected",
+    resolutionTitle: "Integrity_Suspected：多数派一致 + 孤立者不同 → 损坏嫌疑，默认转人工（F-Resolve-18）",
+    meta: "3.8 MB × 3", columns: ["对象", "大小", "修改时间", "建议", "快照 hash"],
+    members: [
+      { icon: "icon-file", star: true, checked: false, path: "D:\\Backup1\\backup0505\\照片\\IMG_2201.jpg", detail: "多数派一致（2:1）· JPEG 结构校验通过", size: "3.8 MB", mtime: "2023-11-05 15:02", suggestionClass: "keep", suggestion: "多数派 · 保留", extra: "e572…9a10", extraMonospace: true },
+      { icon: "icon-file", star: false, checked: false, path: "E:\\Archive\\Photos\\2023\\IMG_2201.jpg", detail: "多数派一致（2:1）· JPEG 结构校验通过", size: "3.8 MB", mtime: "2023-11-05 15:02", suggestionClass: "keep", suggestion: "多数派 · 保留", extra: "e572…9a10", extraMonospace: true },
+      { icon: "icon-file", star: false, checked: true, path: "D:\\Backup2\\backup0620\\照片\\IMG_2201.jpg", detail: "孤立者（hash 不同于多数派）· JPEG 缺少 EOI 结束标记", size: "3.7 MB", mtime: "2023-11-05 15:02", suggestionClass: "integrity", suggestion: "损坏嫌疑 · 转人工", extra: "4419…bb7c", extraMonospace: true }
+    ],
+    detailKey: "integrity-img-2201", detailOpen: true, detailOpenLabel: "收起投票与校验依据", detailClosedLabel: "查看投票与校验依据"
+  },
+  {
+    anchor: "near-duplicate-notes", relationClass: "near-duplicate", relationName: "近似重复", relationCode: "NearDuplicate",
+    relationTitle: "NearDuplicate：内容几乎一致（仅 EOL / BOM / 元数据差异），需内容级比对",
+    title: '读书笔记.txt <span class="title-separator">·</span> EOL / BOM 差异',
+    confidence: 91, resolutionClass: "compatibility", resolutionText: "兼容 · 保留一份 Compatibility",
+    resolutionTitle: "规范化后语义一致，建议保留一份并经 Diff 确认",
+    meta: "字节差异 0.03% · 14 KB", columns: ["对象", "大小", "修改时间", "建议", "快照 hash"],
+    members: [
+      { icon: "icon-file", star: true, checked: false, path: "D:\\Backup2\\backup0620\\文档\\读书笔记.txt", detail: "LF · UTF-8 带 BOM · 含 1 处新增行（见报告 Diff 视图）", size: "14,632 B", mtime: "2024-11-02 21:07", suggestionClass: "keep", suggestion: "保留（含新增行）", extra: "a3f2…9c1d", extraMonospace: true },
+      { icon: "icon-file", star: false, checked: false, path: "D:\\Backup1\\backup0505\\文档\\读书笔记.txt", detail: "CRLF · UTF-8 无 BOM · 1 处行尾空白", size: "14,381 B", mtime: "2024-11-02 21:07", suggestionClass: "neutral", suggestion: "经 Diff 确认后清理", extra: "7b84…e20a", extraMonospace: true }
+    ],
+    detailKey: null
+  },
+  {
+    anchor: "partial-overlap-sanya", relationClass: "partial-overlap", relationName: "部分重叠", relationCode: "PartialOverlap",
+    relationTitle: "PartialOverlap：两个目录内容部分重叠",
+    title: '照片\\三亚 <span class="title-separator">↔</span> 随手拍\\三亚',
+    confidence: 74, resolutionClass: "conflict", resolutionText: "冲突 · 需人工决策 Conflict",
+    resolutionTitle: "双向各有独有文件，无包含关系",
+    meta: "48 项中 12 项重叠 · 128 MB", columns: ["对象", "大小", "修改时间", "建议", "独有文件"],
+    members: [
+      { icon: "icon-folder", star: false, checked: false, path: "D:\\Backup1\\backup0505\\照片\\三亚", detail: "12 项与右侧 SHA256 一致 · 36 项独有（精修版）", size: "96 MB", mtime: "2023-10-15 10:40", suggestionClass: "manual", suggestion: "需人工决策", extra: "36 项独有" },
+      { icon: "icon-folder", star: false, checked: false, path: "E:\\Photos\\随手拍\\三亚", detail: "12 项与左侧一致 · 9 项独有（连拍原始档）", size: "32 MB", mtime: "2023-10-15 11:02", suggestionClass: "manual", suggestion: "需人工决策", extra: "9 项独有" }
+    ],
+    detailKey: null
+  },
+  {
+    anchor: "renamed-contract", relationClass: "renamed", relationName: "重命名", relationCode: "Renamed",
+    relationTitle: "Renamed：同一对象在不同路径以不同名字出现",
+    title: '合同扫描件.pdf <span class="title-separator">·</span> 同一对象两个名字',
+    confidence: 100, resolutionClass: "equality", resolutionText: "相等 · 无需重复清理 Equality",
+    resolutionTitle: "file id 一致 + hash 一致 → 同一对象，非两份副本",
+    meta: "file id 48213377", columns: ["对象", "大小", "修改时间", "建议", "快照 hash"],
+    members: [
+      { icon: "icon-file", star: true, checked: false, path: "D:\\Backup1\\backup0505\\文档\\合同扫描件.pdf", detail: "file id 48213377 一致 · SHA256 一致 · mtime 一致", size: "5.6 MB", mtime: "2024-02-19 14:31", suggestionClass: "keep", suggestion: "保留规范名", extra: "be20…7f62", extraMonospace: true },
+      { icon: "icon-file", star: false, checked: false, path: "D:\\Backup1\\backup0505\\杂项\\2023合同扫描件.pdf", detail: "旧名字（同一 inode）· 建议替换为符号链接或清理引用", size: "5.6 MB", mtime: "2024-02-19 14:31", suggestionClass: "neutral", suggestion: "替换为链接 / 清理", extra: "be20…7f62", extraMonospace: true }
+    ],
+    detailKey: null
+  },
+  {
+    anchor: "moved-family-photo", relationClass: "moved", relationName: "移动", relationCode: "Moved",
+    relationTitle: "Moved：同一对象在不同目录出现（内容与元数据一致）",
+    title: '全家福.jpg <span class="title-separator">·</span> 已归档仍有暂存副本',
+    confidence: 99, resolutionClass: "equality", resolutionText: "相等 · 可自动处理 Equality",
+    resolutionTitle: "Equality：内容摘要确认完全一致，可自动保留一份",
+    meta: "6.8 MB × 2 · 可释放 6.8 MB", columns: ["对象", "大小", "修改时间", "建议", "快照 hash"],
+    members: [
+      { icon: "icon-file", star: true, checked: false, path: "E:\\Archive\\Photos\\2023\\春节\\全家福.jpg", detail: "跨卷拷贝（inode 不同）· SHA256 一致 · size+mtime 一致", size: "6.8 MB", mtime: "2023-02-05 19:44", suggestionClass: "keep", suggestion: "归档正本", extra: "31cc…d845", extraMonospace: true },
+      { icon: "icon-file", star: false, checked: false, path: "E:\\Photos\\精选\\2023\\全家福.jpg", detail: "暂存区遗留副本 · 整理后可清理", size: "6.8 MB", mtime: "2023-02-05 19:44", suggestionClass: "trash", suggestion: "拟入回收站", extra: "31cc…d845", extraMonospace: true }
+    ],
+    detailKey: null
+  },
+  {
+    anchor: "archive-pair-photos", relationClass: "archive-pair", relationName: "压缩包配对", relationCode: "ArchivePair",
+    relationTitle: "ArchivePair：压缩包与解压目录的对应关系",
+    title: 'photos-2023.zip <span class="title-separator">↔</span> photos-2023\\',
+    confidence: 97, resolutionClass: "equality", resolutionText: "相等 · 清单完全一致 Equality",
+    resolutionTitle: "清单完全一致（FullyExtracted），解压后无修改",
+    recommend: "建议清理压缩包",
+    meta: "12.8 GB × 2 · 可释放 12.8 GB", columns: ["对象", "大小", "修改时间", "建议", "清单比对"],
+    members: [
+      { icon: "icon-archive-box", star: false, checked: true, path: "E:\\Photos\\photos-2023.zip", detail: "内部清单 1,842 条 · zip 中央目录完整", size: "12.8 GB", mtime: "2023-12-30 16:02", suggestionClass: "trash", suggestion: "拟入回收站", extra: "1,842 条" },
+      { icon: "icon-folder", star: true, checked: false, path: "E:\\Photos\\photos-2023\\", detail: "1,842 文件 · 与包内清单逐条一致（路径 / size / mtime）", size: "12.8 GB", mtime: "2023-12-30 16:24", suggestionClass: "keep", suggestion: "保留解压目录", extra: "1,842 / 1,842" }
+    ],
+    detailKey: "archive-pair-photos", detailOpen: true, detailOpenLabel: "收起解压锚点证据链", detailClosedLabel: "查看解压锚点证据链"
+  },
+  {
+    anchor: "archive-pair-work", relationClass: "archive-pair", relationName: "压缩包配对", relationCode: "ArchivePair",
+    relationTitle: "ArchivePair：压缩包与解压目录的对应关系",
+    title: '工作归档2024.7z <span class="title-separator">↔</span> 工作归档2024\\',
+    confidence: 89, resolutionClass: "conflict", resolutionText: "冲突 · 解压后有修改 Conflict",
+    resolutionTitle: "解压后目录有新增 / 修改，不可自动清理",
+    meta: "356 MB × 2", columns: ["对象", "大小", "修改时间", "建议", "清单比对"],
+    members: [
+      { icon: "icon-archive-box", star: false, checked: false, path: "E:\\Photos\\工作归档2024.7z", detail: "内部清单 358 条 · 7z 头部完整", size: "356 MB", mtime: "2024-12-28 11:30", suggestionClass: "manual", suggestion: "需人工决策", extra: "358 条" },
+      { icon: "icon-folder", star: false, checked: false, path: "E:\\Photos\\工作归档2024\\", detail: "ModifiedAfterExtraction：清单 356 / 358 一致，目录新增 2 文件（README.md · 交接备忘.txt）", size: "358 MB", mtime: "2025-01-06 09:15", suggestionClass: "manual", suggestion: "需人工决策", extra: "+2 新增" }
+    ],
+    detailKey: null
+  },
+  {
+    anchor: "link-reference-latest", relationClass: "link-reference", relationName: "链接引用", relationCode: "LinkReference",
+    relationTitle: "LinkReference：链接与其目标之间的引用关系（目标在 Scope 内）",
+    title: '最新备份 <span class="title-separator">→</span> backup0620',
+    confidence: null, confidenceNote: "置信度 —（确定性判定）",
+    resolutionClass: "equality", resolutionText: "正常引用 · 无需处理",
+    resolutionTitle: "目标已 Resolve 到对象，不重复扫描",
+    meta: "目录符号链接 · 不重复统计", columns: ["对象", "类型", "创建时间", "建议", "目标"],
+    members: [
+      { icon: "icon-link", star: false, checked: false, path: "D:\\Backup2\\最新备份", detail: "目标在 Scope 内 → Resolve 到对象，建立引用关系（F-Link-2）", size: "Symlink", mtime: "2025-06-21 08:30", suggestionClass: "neutral", suggestion: "保持现状", extra: "…\\backup0620", extraMonospace: true }
+    ],
+    detailKey: null
+  },
+  {
+    anchor: "out-of-scope-archive", relationClass: "out-of-scope", relationName: "范围外链接", relationCode: "OutOfScope",
+    relationTitle: "目标不在 Scope 内：不递归、不统计、不参与重复分析（F-Link-2）",
+    title: 'archive <span class="title-separator">→</span> F:\\外接盘\\Archive',
+    confidence: null, confidenceNote: "置信度 —（Scope 判定）",
+    resolutionClass: "compatibility", resolutionText: "已标记 · 不参与分析",
+    resolutionTitle: "标记但不处理；扩大 Scope 或显式忽略",
+    meta: "目录符号链接", columns: ["对象", "类型", "创建时间", "建议", "目标"],
+    members: [
+      { icon: "icon-link", star: false, checked: true, path: "D:\\Backup2\\archive", detail: "目标 F:\\外接盘\\Archive 不在 Scope 根集合内 → 不递归、不统计、不参与重复分析", size: "Symlink", mtime: "2025-05-05 19:02", suggestionClass: "manual", suggestion: "扩大 Scope 或忽略", extra: "F:\\外接盘\\…", extraMonospace: true }
+    ],
+    detailKey: null
+  },
+  {
+    anchor: "broken-family", relationClass: "broken", relationName: "断裂链接", relationCode: "Broken",
+    relationTitle: "目标不存在 → 标记 Broken（F-Link-2）",
+    title: 'family-2022-原盘 <span class="title-separator">→</span> G:\\FamilyDisk\\2022',
+    confidence: null, confidenceNote: "置信度 —（确定性判定）",
+    resolutionClass: "conflict", resolutionText: "已标记 · 建议处置",
+    resolutionTitle: "目标卷不存在，链接失效",
+    meta: "目录符号链接 · 目标卷已移除", columns: ["对象", "类型", "创建时间", "建议", "目标"],
+    members: [
+      { icon: "icon-broken-link", star: false, checked: false, path: "E:\\Photos\\family-2022-原盘", detail: "目标 G:\\FamilyDisk\\2022 不存在（卷未挂载或已移除）", size: "Symlink", mtime: "2024-03-12 20:18", suggestionClass: "trash", suggestion: "建议删除链接", extra: "G:\\FamilyDisk\\2022", extraMonospace: true }
+    ],
+    detailKey: null
+  },
+  {
+    anchor: "circular-album", relationClass: "circular", relationName: "循环链接", relationCode: "Circular",
+    relationTitle: "A→B→A 的符号链接环 → 标记 Circular 并停止递归（F-Scan-6）",
+    title: '相册-现行 <span class="title-separator">⇄</span> 相册-归档',
+    confidence: null, confidenceNote: "置信度 —（确定性判定）",
+    resolutionClass: "conflict", resolutionText: "已标记 · 建议解除",
+    resolutionTitle: "环检测命中，停止递归",
+    meta: "环深度 2 · 已停止递归", columns: ["对象", "类型", "创建时间", "建议", "指向"],
+    members: [
+      { icon: "icon-repeat", star: false, checked: false, path: "D:\\Backup2\\backup0620\\相册-现行", detail: "环检测：相册-现行 → 相册-归档 → 现行（回到起点）", size: "Symlink", mtime: "2025-06-20 22:10", suggestionClass: "trash", suggestion: "建议解除循环", extra: "…\\相册-归档", extraMonospace: true },
+      { icon: "icon-repeat", star: false, checked: false, path: "D:\\Backup2\\backup0620\\相册-归档\\现行", detail: "构成环的第二条边", size: "Symlink", mtime: "2025-06-20 22:11", suggestionClass: "trash", suggestion: "建议解除循环", extra: "…\\相册-现行", extraMonospace: true }
+    ],
+    detailKey: null
+  }
+];
+
+/* ============================================================
+   共享渲染助手：徽章 / 置信度 / 成员行 / 下钻详情
+   ============================================================ */
+function iconUse(iconId, extraClass) {
+  return '<svg class="icon' + (extraClass ? " " + extraClass : "") + '"><use href="#' + iconId + '"/></svg>';
+}
+
+function renderRelationBadge(group) {
+  return '<span class="relation-badge relation-' + group.relationClass + '" title="' + group.relationTitle + '">' +
+    group.relationName + ' <span class="relation-code">' + group.relationCode + '</span></span>';
+}
+
+function renderResolutionBadge(group) {
+  return '<span class="resolution-badge resolution-' + group.resolutionClass + '" title="' + (group.resolutionTitle || "") + '">' + group.resolutionText + '</span>';
+}
+
+function renderRecommendTag(group, tagClass) {
+  if (!group.recommend) return "";
+  return '<span class="' + tagClass + '">' + iconUse("icon-star") + group.recommend + '</span>';
+}
+
+/* 置信度：条形（A / B 方向使用） */
+function renderConfidenceBar(group, classes) {
+  if (group.confidence === null) return '<span class="' + classes.note + '">' + group.confidenceNote + '</span>';
+  return '<div class="' + classes.wrap + '">' +
+    '<div class="' + classes.track + '"><div class="' + classes.fill + '" style="width: ' + group.confidence + '%;"></div></div>' +
+    '<span class="' + classes.value + '">' + group.confidence + '%</span></div>';
+}
+
+/* 置信度：环形（D 方向使用，半径 15.9155 → 周长 100） */
+function renderConfidenceDonut(group) {
+  if (group.confidence === null) return '<span class="d-confidence-note">' + group.confidenceNote + '</span>';
+  return '<div class="d-confidence-donut" title="判定置信度 ' + group.confidence + '%">' +
+    '<svg class="d-donut" viewBox="0 0 36 36">' +
+    '<circle class="d-donut-track" cx="18" cy="18" r="15.9155"/>' +
+    '<circle class="d-donut-fill" cx="18" cy="18" r="15.9155" stroke-dasharray="' + group.confidence + ' ' + (100 - group.confidence) + '"/>' +
+    '</svg><span class="d-donut-value">' + group.confidence + '%</span></div>';
+}
+
+function renderMemberPath(member, pathClass, detailClass) {
+  var star = member.star ? '<svg class="icon keep-candidate-star" title="保留候选"><use href="#icon-star"/></svg>' : "";
+  return '<div class="' + pathClass.cell + '">' +
+    '<div class="' + pathClass.path + '">' + iconUse(member.icon) + star + member.path + '</div>' +
+    '<div class="' + detailClass + '">' + member.detail + '</div></div>';
+}
+
+function renderMemberExtra(member, textClass) {
+  return '<span class="' + textClass + (member.extraMonospace ? " monospace" : "") + '">' + member.extra + '</span>';
+}
+
+/* 下钻详情：统一语义 DOM，各方向 CSS 换肤 */
+function renderDetail(detailKey, detailClass) {
+  var detail = DETAILS[detailKey];
+  if (!detail) return "";
+  if (detail.kind === "conflict") {
+    var partiesHtml = detail.parties.map(function (party) {
+      return '<div class="conflict-party"><div class="conflict-party-label">' + party.label + '</div>' +
+        '<div class="monospace">' + party.path + '</div>' +
+        '<div class="conflict-party-meta">' + party.meta + '</div></div>';
+    }).join("");
+    return '<div class="' + detailClass + '">' +
+      '<div class="conflict-parties">' + partiesHtml + '</div>' +
+      '<div class="conflict-summary">' + detail.summaryHtml + '</div>' +
+      '<span class="manual-decision-ribbon">' + iconUse("icon-alert-triangle", "icon-small") + detail.ribbon + '</span></div>';
+  }
+  var evidenceHtml = detail.evidence.map(function (item) {
+    return '<li class="evidence-item">' +
+      '<svg class="icon icon-small evidence-marker' + (item.positive ? "" : " evidence-miss") + '"><use href="#' + (item.positive ? "icon-check" : "icon-x") + '"/></svg>' +
+      '<span class="evidence-item-text">' + item.html + '</span></li>';
+  }).join("");
+  var chipsHtml = detail.layerChips
+    ? '<div class="analysis-layer-chips" title="分层渐进分析命中层（F-Layered-1）">' +
+      detail.layerChips.map(function (chip) { return '<span class="layer-chip' + (chip.hit ? " hit" : "") + '">' + chip.label + '</span>'; }).join("") + '</div>'
+    : "";
+  var rightHtml;
+  if (detail.chain) {
+    rightHtml = '<div class="process-chain-panel">' + detail.chain.map(function (step, index) {
+      var dotText = step.state === "done" ? "✓" : String(index + 1);
+      var dependency = step.dependency ? '<span class="chain-dependency-tag">' + step.dependency + '</span>' : "";
+      return '<div class="process-chain-step state-' + step.state + '"><span class="process-chain-dot">' + dotText + '</span>' +
+        '<div><div class="process-chain-name">' + step.name + dependency + '</div>' +
+        '<div class="process-chain-meta">' + step.meta + '</div></div></div>';
+    }).join("") + '</div>' +
+    (detail.chainNote ? '<div class="process-chain-note">' + detail.chainNote + '</div>' : "");
+  } else {
+    rightHtml = '<div class="conflict-summary">' + detail.constraintHtml + '</div>';
+  }
+  return '<div class="' + detailClass + '"><div class="detail-grid">' +
+    '<div><div class="detail-panel-heading">' + detail.leftHeading + '</div><ul class="evidence-list">' + evidenceHtml + '</ul>' + chipsHtml + '</div>' +
+    '<div><div class="detail-panel-heading">' + detail.rightHeading + '</div>' + rightHtml + '</div>' +
+    '</div></div>';
+}
+
+/* 下钻开关按钮（label 依据展开状态切换） */
+function renderDetailToggle(group, toggleClass, initiallyOpen) {
+  var label = initiallyOpen ? group.detailOpenLabel : group.detailClosedLabel;
+  return '<button type="button" class="' + toggleClass + '" data-detail-toggle="' + group.anchor + '" ' +
+    'data-open-label="' + group.detailOpenLabel + '" data-closed-label="' + group.detailClosedLabel + '">' +
+    '<span class="toggle-label">' + label + '</span>' +
+    '<span class="toggle-caret' + (initiallyOpen ? " rotated" : "") + '">' + iconUse("icon-chevron-right", "icon-small") + '</span></button>';
+}
+
+function renderTypeNavigation(itemClass, dotClass, countClass) {
+  return TYPE_NAVIGATION.map(function (item) {
+    return '<a class="' + itemClass + (item.active ? " active" : "") + '" href="javascript:void(0)">' +
+      '<span class="' + dotClass + '" style="background: ' + item.color + ';"></span>' + item.name +
+      '<span class="' + countClass + '">' + item.count + '</span></a>';
+  }).join("");
+}
+
+function renderFilterTypeOptions() {
+  return FILTER_TYPE_OPTIONS.map(function (option) { return '<option>' + option + '</option>'; }).join("");
+}
+
+function renderQuickChips(chipClass) {
+  return QUICK_CHIPS.map(function (chip) {
+    return '<button type="button" class="' + chipClass + (chip.selected ? " selected" : "") + '">' + chip.label + '</button>';
+  }).join("");
+}
+
+function renderBatchButtons(buttonClass) {
+  return BATCH_ACTIONS.map(function (action) {
+    return '<button type="button" class="' + buttonClass + '">' + iconUse(action.icon) + action.label + '</button>';
+  }).join("");
+}
+
+/* ============================================================
+   方向 A 渲染器：侧栏应用式
+   ============================================================ */
+function renderDirectionA() {
+  var railItems = NAVIGATION_ITEMS.map(function (item) {
+    return '<button type="button" class="a-rail-item' + (item.active ? " active" : "") + '" title="' + item.label + '">' +
+      iconUse(item.icon) + '<span class="a-rail-flyout">' + item.label + '</span></button>';
+  }).join("");
+
+  var sidebar =
+    '<aside class="a-sidebar">' +
+      '<div class="a-sidebar-module">HELICHRYSUM 工作台</div>' +
+      '<div class="a-sidebar-title">问题列表<span class="numeric">16 组</span></div>' +
+      '<div class="a-side-section"><div class="a-side-heading">问题类型</div>' +
+        renderTypeNavigation("a-type-item", "a-type-dot", "a-type-count") + '</div>' +
+      '<div class="a-side-section"><div class="a-side-heading">筛选（F-Report-4 / 5）</div>' +
+        '<div class="a-filter-field"><span class="a-filter-label">问题类型</span>' +
+          '<select class="a-filter-select">' + renderFilterTypeOptions() + '</select></div>' +
+        '<div class="a-filter-field"><span class="a-filter-label">路径 / glob</span>' +
+          '<input type="text" class="a-filter-input monospace" value="' + FILTER_PATH_VALUE + '"></div>' +
+        '<div class="a-filter-field"><span class="a-filter-label">大小范围</span>' +
+          '<div class="a-filter-range"><input type="text" class="a-filter-input" value="' + FILTER_SIZE_MIN + '">' +
+          '<span class="a-filter-separator">至</span><input type="text" class="a-filter-input" value="' + FILTER_SIZE_MAX + '"></div></div>' +
+        '<div class="a-filter-field"><span class="a-filter-label">mtime 范围</span>' +
+          '<div class="a-filter-range"><input type="date" class="a-filter-input" value="' + FILTER_MTIME_MIN + '">' +
+          '<span class="a-filter-separator">至</span><input type="date" class="a-filter-input" value="' + FILTER_MTIME_MAX + '"></div></div>' +
+      '</div>' +
+      '<div class="a-side-section"><div class="a-side-heading">快捷筛选</div>' +
+        renderQuickChips("a-quick-chip") +
+        '<button type="button" class="a-side-reset">' + iconUse("icon-filter") + '重置筛选</button></div>' +
+    '</aside>';
+
+  var statTiles = STATISTICS.map(function (stat) {
+    return '<div class="a-stat-tile' + (stat.tone !== "normal" ? " " + stat.tone : "") + '">' +
+      '<div class="a-stat-value numeric">' + stat.value + '<span class="a-stat-unit">' + stat.unit + '</span></div>' +
+      '<div class="a-stat-label">' + stat.label + '</div></div>';
+  }).join("");
+
+  var groups = ISSUE_GROUPS.map(function (group, groupIndex) {
+    var memberHeader = '<div class="a-member-header"><span></span><span>' + group.columns.join('</span><span>') + '</span><span></span></div>';
+    var members = group.members.map(function (member) {
+      return '<div class="a-member">' +
+        '<input type="checkbox" class="a-member-checkbox"' + (member.checked ? " checked" : "") + '>' +
+        renderMemberPath(member, { cell: "a-path-cell", path: "a-path" }, "a-path-detail") +
+        '<span class="a-cell-text">' + member.size + '</span>' +
+        '<span class="a-cell-text">' + member.mtime + '</span>' +
+        '<span><span class="suggestion-chip suggestion-' + member.suggestionClass + '">' + member.suggestion + '</span></span>' +
+        renderMemberExtra(member, "a-cell-text") +
+        '<button type="button" class="member-more-button a-member-more" title="单个对象操作">⋯</button></div>';
+    }).join("");
+    var detailBlock = "";
+    if (group.detailKey) {
+      var open = group.detailOpen;
+      detailBlock = renderDetailToggle(group, "a-detail-toggle", open) +
+        '<div class="issue-detail' + (open ? "" : " collapsed") + '" data-detail="' + group.anchor + '">' +
+        renderDetail(group.detailKey, "a-detail-content") + '</div>';
+    }
+    return '<article class="a-group expanded" id="a-group-' + group.anchor + '">' +
+      '<div class="a-group-header" data-group-toggle>' +
+        '<span class="a-group-caret">' + iconUse("icon-chevron-right") + '</span>' +
+        renderRelationBadge(group) +
+        '<div class="a-group-title">' + group.title + '</div>' +
+        renderConfidenceBar(group, { wrap: "a-confidence", track: "a-confidence-track", fill: "a-confidence-fill", value: "a-confidence-value", note: "a-confidence-note" }) +
+        renderResolutionBadge(group) + renderRecommendTag(group, "a-recommend-tag") +
+        '<div class="a-group-meta">' + group.meta + '</div></div>' +
+      '<div class="a-group-body">' + memberHeader + members + detailBlock + '</div></article>';
+  }).join("");
+
+  return '<div class="a-app">' +
+    '<nav class="a-icon-rail"><div class="a-rail-brand"><svg><use href="#icon-brand-flower"/></svg></div>' + railItems +
+      '<div class="a-rail-footer"><button type="button" class="a-rail-item" title="设置">' + iconUse("icon-settings") + '<span class="a-rail-flyout">设置</span></button></div></nav>' +
+    sidebar +
+    '<main class="a-main">' +
+      '<div class="a-view-header"><div><h1 class="a-view-title">问题列表</h1><p class="a-view-subtitle">' + VIEW_SUBTITLE + '</p></div>' +
+        '<div class="a-header-actions">' +
+          '<button type="button" class="a-button">' + iconUse("icon-refresh") + '重新扫描</button>' +
+          '<button type="button" class="a-button a-button-primary">' + iconUse("icon-clipboard") + '生成处理计划</button></div></div>' +
+      '<div class="a-stat-row">' + statTiles + '</div>' +
+      '<div class="a-batch-bar"><span class="a-selected-count">已选 ' + BATCH_SELECTED_COUNT + ' 个对象</span>' +
+        renderBatchButtons("a-batch-button") + '<span class="a-batch-note">' + BATCH_NOTE + '</span></div>' +
+      '<div class="a-group-list">' + groups + '</div>' +
+    '</main></div>';
+}
+
+/* ============================================================
+   方向 B 渲染器：顶部导航 + 杂志式信息流
+   ============================================================ */
+function renderDirectionB() {
+  var navItems = NAVIGATION_ITEMS.map(function (item) {
+    return '<button type="button" class="b-nav-item' + (item.active ? " active" : "") + '">' + item.label + '</button>';
+  }).join("");
+
+  var stats = STATISTICS.map(function (stat) {
+    return '<div class="b-stat' + (stat.tone !== "normal" ? " " + stat.tone : "") + '">' +
+      '<div class="b-stat-value">' + stat.value + '<span class="b-stat-unit">' + stat.unit + '</span></div>' +
+      '<div class="b-stat-label">' + stat.label + '</div></div>';
+  }).join("");
+
+  var groups = ISSUE_GROUPS.map(function (group) {
+    var memberHeader = '<div class="b-member-header"><span></span><span>' + group.columns.join('</span><span>') + '</span><span></span></div>';
+    var members = group.members.map(function (member) {
+      return '<div class="b-member">' +
+        '<input type="checkbox" class="b-member-checkbox"' + (member.checked ? " checked" : "") + '>' +
+        renderMemberPath(member, { cell: "b-path-cell", path: "b-path" }, "b-path-detail") +
+        '<span class="b-cell-text">' + member.size + '</span>' +
+        '<span class="b-cell-text">' + member.mtime + '</span>' +
+        '<span><span class="suggestion-chip suggestion-' + member.suggestionClass + '">' + member.suggestion + '</span></span>' +
+        renderMemberExtra(member, "b-cell-text") +
+        '<button type="button" class="member-more-button b-member-more" title="单个对象操作">⋯</button></div>';
+    }).join("");
+    var detailBlock = "";
+    if (group.detailKey) {
+      var open = group.detailOpen;
+      detailBlock = renderDetailToggle(group, "b-detail-toggle", open) +
+        '<div class="issue-detail' + (open ? "" : " collapsed") + '" data-detail="' + group.anchor + '">' +
+        renderDetail(group.detailKey, "b-detail-content") + '</div>';
+    } else {
+      detailBlock = '<div class="b-group-footer"></div>';
+    }
+    return '<article class="b-group" id="b-group-' + group.anchor + '">' +
+      '<div class="b-group-header">' +
+        renderRelationBadge(group) +
+        '<div class="b-group-title">' + group.title + '</div>' +
+        renderConfidenceBar(group, { wrap: "b-confidence", track: "b-confidence-track", fill: "b-confidence-fill", value: "b-confidence-value", note: "b-confidence-note" }) +
+        renderResolutionBadge(group) + renderRecommendTag(group, "b-recommend-tag") +
+        '<div class="b-group-meta">' + group.meta + '</div></div>' +
+      memberHeader + members + detailBlock + '</article>';
+  }).join("");
+
+  return '<header class="b-topbar">' +
+      '<div class="b-brand"><div class="b-brand-mark"><svg><use href="#icon-brand-flower"/></svg></div>' +
+        '<div class="b-brand-name">Helichrysum <em>蜡菊</em></div></div>' +
+      '<nav class="b-nav">' + navItems + '</nav>' +
+      '<div class="b-topbar-actions"><div class="b-snapshot-pill" title="' + SNAPSHOT_TOOLTIP + '">' + iconUse("icon-clock") + '快照 2 周前 · manifest-2026-08-01</div></div>' +
+    '</header><div class="b-gold-divider"></div>' +
+    '<div class="b-container">' +
+      '<div class="b-hero">' +
+        '<div class="b-eyebrow">ISSUE REVIEW</div>' +
+        '<h1 class="b-title">问题列表</h1>' +
+        '<p class="b-subtitle">' + VIEW_SUBTITLE + '</p>' +
+        '<div class="b-hero-actions">' +
+          '<button type="button" class="b-button">' + iconUse("icon-refresh") + '重新扫描</button>' +
+          '<button type="button" class="b-button b-button-primary">' + iconUse("icon-clipboard") + '生成处理计划</button></div></div>' +
+      '<div class="b-stat-strip">' + stats + '</div>' +
+      '<div class="b-filter-toggle-row">' +
+        '<button type="button" class="b-filter-toggle" id="b-filter-toggle">' + iconUse("icon-filter") + '筛选与快捷条件<span class="toggle-caret">' + iconUse("icon-chevron-right") + '</span></button>' +
+        '<span class="b-filter-active-note">当前生效：<b>仅需人工决策</b> · 路径 <b>**\\*.jpg; **\\*.zip</b> · 4 个条件</span></div>' +
+      '<div class="b-filter-panel" id="b-filter-panel"><div class="b-filter-panel-inner">' +
+        '<div class="b-filter-field"><span class="b-filter-label">问题类型</span><select class="b-filter-select">' + renderFilterTypeOptions() + '</select></div>' +
+        '<div class="b-filter-field"><span class="b-filter-label">路径 / glob</span><input type="text" class="b-filter-input b-filter-wide" value="' + FILTER_PATH_VALUE + '"></div>' +
+        '<div class="b-filter-field"><span class="b-filter-label">大小范围</span><div class="b-filter-range">' +
+          '<input type="text" class="b-filter-input" value="' + FILTER_SIZE_MIN + '"><span class="b-filter-separator">至</span>' +
+          '<input type="text" class="b-filter-input" value="' + FILTER_SIZE_MAX + '"></div></div>' +
+        '<div class="b-filter-field"><span class="b-filter-label">mtime 范围</span><div class="b-filter-range">' +
+          '<input type="date" class="b-filter-input" value="' + FILTER_MTIME_MIN + '"><span class="b-filter-separator">至</span>' +
+          '<input type="date" class="b-filter-input" value="' + FILTER_MTIME_MAX + '"></div></div>' +
+        '<div class="b-chip-row">' + renderQuickChips("b-chip") +
+          '<button type="button" class="b-reset-button">' + iconUse("icon-filter") + '重置</button></div>' +
+      '</div></div>' +
+      '<div class="b-batch-bar"><span class="b-selected-count">已选 ' + BATCH_SELECTED_COUNT + ' 个对象</span>' +
+        renderBatchButtons("b-batch-button") + '<span class="b-batch-note">' + BATCH_NOTE + '</span></div>' +
+      '<div class="b-group-list">' + groups + '</div>' +
+    '</div>';
+}
+
+/* ============================================================
+   方向 C 渲染器：全宽数据表格
+   ============================================================ */
+function renderDirectionC() {
+  var viewTabs = NAVIGATION_ITEMS.map(function (item) {
+    return '<button type="button" class="c-view-tab' + (item.active ? " active" : "") + '">' + iconUse(item.icon) + item.label + '</button>';
+  }).join("");
+
+  var tableRows = ISSUE_GROUPS.map(function (group) {
+    var confidenceCell = group.confidence === null
+      ? '<span class="c-confidence-note">' + group.confidenceNote + '</span>'
+      : '<span class="c-confidence"><span class="c-confidence-dot"></span><span class="c-confidence-value">' + group.confidence + '%</span></span>';
+    var recommendInline = group.recommend ? '<span class="c-recommend-inline">★ ' + group.recommend + '</span>' : "";
+
+    var groupRow = '<tr class="c-group-row relation-' + group.relationClass + ' expanded" data-c-group="' + group.anchor + '">' +
+      '<td class="c-caret-cell"><span class="c-row-caret">' + iconUse("icon-chevron-right") + '</span></td>' +
+      '<td><input type="checkbox" class="c-group-checkbox"></td>' +
+      '<td><div class="c-group-title-cell"><span class="c-status-bar"></span><span class="c-group-title-text">' + group.title + '</span>' + recommendInline + '</div></td>' +
+      '<td>' + renderRelationBadge(group) + '</td>' +
+      '<td>' + renderResolutionBadge(group) + '</td>' +
+      '<td class="c-group-meta-cell">' + group.meta + '</td>' +
+      '<td>' + confidenceCell + '</td>' +
+      '<td></td></tr>';
+
+    var memberRows = group.members.map(function (member, memberIndex) {
+      return '<tr class="c-member-row member-' + member.suggestionClass + (memberIndex % 2 === 1 ? " striped" : "") + '">' +
+        '<td></td>' +
+        '<td><input type="checkbox" class="c-member-checkbox"' + (member.checked ? " checked" : "") + '></td>' +
+        '<td class="c-path-cell"><div class="c-path"><span class="c-path-indent"></span><span class="c-status-bar"></span>' + iconUse(member.icon) +
+          (member.star ? '<svg class="icon keep-candidate-star" title="保留候选"><use href="#icon-star"/></svg>' : "") + member.path + '</div>' +
+          '<div class="c-path-detail">' + member.detail + '</div></td>' +
+        '<td><span class="c-cell-text">' + member.size + '</span></td>' +
+        '<td><span class="c-cell-text">' + member.mtime + '</span></td>' +
+        '<td><span class="suggestion-chip suggestion-' + member.suggestionClass + '">' + member.suggestion + '</span></td>' +
+        '<td>' + renderMemberExtra(member, "c-cell-text") + '</td>' +
+        '<td><div class="c-row-actions">' +
+          '<button type="button" class="c-row-action" title="保留 Keep">' + iconUse("icon-bookmark") + '</button>' +
+          '<button type="button" class="c-row-action danger" title="回收站 MoveToTrash">' + iconUse("icon-trash") + '</button>' +
+          '<button type="button" class="c-row-action" title="更多操作">' + iconUse("icon-rename") + '</button>' +
+        '</div></td></tr>';
+    }).join("");
+
+    var detailRows = "";
+    if (group.detailKey) {
+      var open = group.detailOpen;
+      detailRows =
+        '<tr class="c-detail-block-row"><td></td><td colspan="7" class="c-detail-toggle-cell">' +
+          renderDetailToggle(group, "c-detail-toggle", open) + '</td></tr>' +
+        '<tr class="c-detail-block-row c-detail-row' + (open ? "" : " c-member-hidden") + '" data-detail-row="' + group.anchor + '">' +
+          '<td></td><td colspan="7"><div class="c-detail-inner">' + renderDetail(group.detailKey, "c-detail") + '</div></td></tr>';
+    }
+    return '<tbody class="c-group-members expanded" data-c-members="' + group.anchor + '">' + groupRow + memberRows + detailRows + '</tbody>';
+  }).join("");
+
+  var sortHint = '<span class="sort-hint">' + iconUse("icon-sort") + '</span>';
+
+  return '<div class="c-toolbar">' +
+      '<div class="c-brand"><div class="c-brand-mark"><svg><use href="#icon-brand-flower"/></svg></div>' +
+        '<div class="c-brand-name">Helichrysum <em>蜡菊</em></div></div>' +
+      '<nav class="c-view-tabs">' + viewTabs + '</nav>' +
+      '<div class="c-toolbar-actions">' +
+        '<span class="c-snapshot" title="' + SNAPSHOT_TOOLTIP + '">' + iconUse("icon-clock") + '快照 <b>manifest-2026-08-01</b>（2 周前）</span>' +
+        '<button type="button" class="c-button">' + iconUse("icon-refresh") + '重新扫描</button>' +
+        '<button type="button" class="c-button c-button-primary">' + iconUse("icon-clipboard") + '生成处理计划</button></div></div>' +
+    '<div class="c-filter-strip">' +
+      '<div class="c-filter-item"><span class="c-filter-label">问题类型</span><select class="c-filter-select">' + renderFilterTypeOptions() + '</select></div>' +
+      '<div class="c-filter-item"><span class="c-filter-label">路径 / glob</span><input type="text" class="c-filter-input c-filter-wide" value="' + FILTER_PATH_VALUE + '"></div>' +
+      '<div class="c-filter-item"><span class="c-filter-label">大小</span><input type="text" class="c-filter-input c-filter-narrow" value="' + FILTER_SIZE_MIN + '">' +
+        '<span class="c-filter-separator">至</span><input type="text" class="c-filter-input c-filter-narrow" value="' + FILTER_SIZE_MAX + '"></div>' +
+      '<div class="c-filter-item"><span class="c-filter-label">mtime</span><input type="date" class="c-filter-input" value="' + FILTER_MTIME_MIN + '">' +
+        '<span class="c-filter-separator">至</span><input type="date" class="c-filter-input" value="' + FILTER_MTIME_MAX + '"></div>' +
+      '<span class="c-filter-divider"></span>' + renderQuickChips("c-chip") +
+      '<button type="button" class="c-reset">' + iconUse("icon-filter") + '重置</button>' +
+      '<span class="c-stat-inline"><b>16</b> 组 · <b>31</b> 对象 · <span class="warning">4 组需人工</span> · 可释放 <span class="accent">42.4 GB</span></span></div>' +
+    '<div class="c-batch-float" id="c-batch-float"><span class="c-selected-count">已选 ' + BATCH_SELECTED_COUNT + ' 个对象</span>' +
+      renderBatchButtons("c-batch-button") + '<span class="c-batch-note">' + BATCH_NOTE + '</span></div>' +
+    '<div class="c-table-wrap"><table class="c-table"><thead><tr>' +
+      '<th style="width:30px;"></th><th style="width:30px;"></th>' +
+      '<th>对象' + sortHint + '</th>' +
+      '<th style="width:170px;">问题类型' + sortHint + '</th>' +
+      '<th style="width:190px;" class="sorted">判定' + sortHint + '</th>' +
+      '<th style="width:180px;">摘要 / 大小' + sortHint + '</th>' +
+      '<th style="width:110px;">置信度' + sortHint + '</th>' +
+      '<th style="width:110px;">操作</th>' +
+    '</tr></thead>' + tableRows + '</table></div>';
+}
+
+/* ============================================================
+   方向 D 渲染器：仪表板混合式
+   ============================================================ */
+function renderDirectionD() {
+  var kpiCards = [
+    { icon: "icon-list", value: "16", unit: "组", label: "问题组（9 类关系 + Link 异常）", warning: false, trend: "较上次扫描 +2 组", spark: [4, 6, 5, 8, 7, 10, 9, 12] },
+    { icon: "icon-file", value: "31", unit: "个对象", label: "涉及文件 / 目录 / 链接", warning: false, trend: "覆盖 4 个根路径", spark: [3, 5, 4, 7, 6, 8, 9, 10] },
+    { icon: "icon-alert-triangle", value: "4", unit: "组", label: "需人工决策（Conflict ×3 / 损坏嫌疑 ×1）", warning: true, trend: "须处理后方可自动执行", spark: [2, 3, 3, 4, 4, 5, 4, 4] },
+    { icon: "icon-database", value: "42.4", unit: "GB", label: "预计可释放空间", warning: false, trend: "占快照总量 18.6%", spark: [5, 8, 7, 11, 10, 14, 13, 16] }
+  ].map(function (kpi) {
+    var points = kpi.spark.map(function (value, index) { return (index * 7) + "," + (22 - value * 1.4); }).join(" ");
+    return '<div class="d-kpi-card' + (kpi.warning ? " warning" : "") + '">' +
+      '<div class="d-kpi-icon">' + iconUse(kpi.icon) + '</div>' +
+      '<div class="d-kpi-main">' +
+        '<div class="d-kpi-value">' + kpi.value + '<span class="d-kpi-unit">' + kpi.unit + '</span></div>' +
+        '<div class="d-kpi-label">' + kpi.label + '</div>' +
+        '<div class="d-kpi-trend"><svg class="d-kpi-spark" width="52" height="20" viewBox="0 0 52 22"><polyline points="' + points + '" fill="none" stroke="' + (kpi.warning ? "#dc2626" : "#f59e0b") + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '<span class="d-kpi-trend-text">' + kpi.trend + '</span></div></div></div>';
+  }).join("");
+
+  var filterPanel =
+    '<aside class="d-filter-panel" id="d-filter-panel">' +
+      '<div class="d-filter-head" id="d-filter-head">' + iconUse("icon-filter") +
+        '<span class="d-filter-head-title">筛选与问题类型</span>' +
+        '<span class="d-filter-collapse">' + iconUse("icon-chevron-right") + '</span></div>' +
+      '<div class="d-filter-body">' +
+        '<div class="d-filter-section"><div class="d-filter-heading">问题类型</div>' +
+          renderTypeNavigation("d-type-item", "d-type-dot", "d-type-count") + '</div>' +
+        '<div class="d-filter-section"><div class="d-filter-heading">条件筛选（F-Report-4 / 5）</div>' +
+          '<div class="d-filter-field"><span class="d-filter-label">问题类型</span><select class="d-filter-select">' + renderFilterTypeOptions() + '</select></div>' +
+          '<div class="d-filter-field"><span class="d-filter-label">路径 / glob</span><input type="text" class="d-filter-input monospace" value="' + FILTER_PATH_VALUE + '"></div>' +
+          '<div class="d-filter-field"><span class="d-filter-label">大小范围</span><div class="d-filter-range">' +
+            '<input type="text" class="d-filter-input" value="' + FILTER_SIZE_MIN + '"><span class="d-filter-separator">至</span>' +
+            '<input type="text" class="d-filter-input" value="' + FILTER_SIZE_MAX + '"></div></div>' +
+          '<div class="d-filter-field"><span class="d-filter-label">mtime 范围</span><div class="d-filter-range">' +
+            '<input type="date" class="d-filter-input" value="' + FILTER_MTIME_MIN + '"><span class="d-filter-separator">至</span>' +
+            '<input type="date" class="d-filter-input" value="' + FILTER_MTIME_MAX + '"></div></div></div>' +
+        '<div class="d-filter-section"><div class="d-filter-heading">快捷筛选</div>' +
+          renderQuickChips("d-chip") + '<button type="button" class="d-reset">' + iconUse("icon-filter") + '重置筛选</button></div>' +
+      '</div></aside>';
+
+  var groups = ISSUE_GROUPS.map(function (group, groupIndex) {
+    var memberHeader = '<div class="d-member-header"><span></span><span>' + group.columns.join('</span><span>') + '</span><span></span></div>';
+    var members = group.members.map(function (member) {
+      return '<div class="d-member">' +
+        '<input type="checkbox" class="d-member-checkbox"' + (member.checked ? " checked" : "") + '>' +
+        renderMemberPath(member, { cell: "d-path-cell", path: "d-path" }, "d-path-detail") +
+        '<span class="d-cell-text">' + member.size + '</span>' +
+        '<span class="d-cell-text">' + member.mtime + '</span>' +
+        '<span><span class="suggestion-chip suggestion-' + member.suggestionClass + '">' + member.suggestion + '</span></span>' +
+        renderMemberExtra(member, "d-cell-text") +
+        '<button type="button" class="member-more-button d-member-more" title="单个对象操作">⋯</button></div>';
+    }).join("");
+    var detailBlock = "";
+    if (group.detailKey) {
+      var open = group.detailOpen;
+      detailBlock = renderDetailToggle(group, "d-detail-toggle", open) +
+        '<div class="issue-detail' + (open ? "" : " collapsed") + '" data-detail="' + group.anchor + '">' +
+        renderDetail(group.detailKey, "d-detail-content") + '</div>';
+    }
+    var expanded = groupIndex < 2;
+    return '<div class="d-group' + (expanded ? " expanded" : "") + '" id="d-group-' + group.anchor + '">' +
+      '<div class="d-group-header-card" data-group-toggle>' +
+        renderRelationBadge(group) +
+        '<div class="d-group-title">' + group.title + '</div>' +
+        renderResolutionBadge(group) + renderRecommendTag(group, "d-recommend-tag") +
+        '<span class="d-header-spacer"></span>' +
+        '<span class="d-group-meta">' + group.meta + '</span>' +
+        renderConfidenceDonut(group) +
+        '<span class="d-group-caret">' + iconUse("icon-chevron-right") + '</span></div>' +
+      '<div class="d-group-body">' + memberHeader + members + detailBlock + '</div></div>';
+  }).join("");
+
+  return '<header class="d-topbar">' +
+      '<div class="d-brand"><div class="d-brand-mark"><svg><use href="#icon-brand-flower"/></svg></div>' +
+        '<div class="d-brand-name">Helichrysum <em>蜡菊</em></div></div>' +
+      '<div class="d-env-cluster">' +
+        '<span class="d-env-chip" title="' + SNAPSHOT_TOOLTIP + '">' + iconUse("icon-clock") + '快照年龄 <b>2 周</b></span>' +
+        '<span class="d-env-chip">' + iconUse("icon-database") + 'manifest <b>manifest-2026-08-01</b></span>' +
+        '<span class="d-env-chip">' + iconUse("icon-hard-drive") + 'Scope 根路径 <b>4 个</b></span></div>' +
+      '<div class="d-topbar-actions">' +
+        '<button type="button" class="d-button">' + iconUse("icon-refresh") + '重新扫描</button>' +
+        '<button type="button" class="d-button d-button-primary">' + iconUse("icon-clipboard") + '生成处理计划</button></div></header>' +
+    '<div class="d-kpi-strip">' + kpiCards + '</div>' +
+    '<div class="d-body">' + filterPanel +
+      '<main class="d-main">' +
+        '<div class="d-main-header"><div><h1 class="d-main-title">问题列表</h1>' +
+          '<p class="d-main-subtitle">' + VIEW_SUBTITLE + '</p></div></div>' +
+        '<div class="d-batch-bar"><span class="d-selected-count">已选 ' + BATCH_SELECTED_COUNT + ' 个对象</span>' +
+          renderBatchButtons("d-batch-button") + '<span class="d-batch-note">' + BATCH_NOTE + '</span></div>' +
+        '<div class="d-group-list">' + groups + '</div>' +
+      '</main></div>';
+}
+
+/* ============================================================
+   交互绑定与初始化
+   ============================================================ */
+var RENDERERS = { a: renderDirectionA, b: renderDirectionB, c: renderDirectionC, d: renderDirectionD };
+var renderedStages = {};
+
+function renderStage(directionKey) {
+  if (renderedStages[directionKey]) return;
+  var stage = document.getElementById("stage-" + directionKey);
+  stage.innerHTML = RENDERERS[directionKey]();
+  renderedStages[directionKey] = true;
+}
+
+function switchDirection(directionKey) {
+  renderStage(directionKey);
+  document.querySelectorAll(".direction-stage").forEach(function (stage) { stage.classList.remove("active"); });
+  document.getElementById("stage-" + directionKey).classList.add("active");
+  document.querySelectorAll(".switcher-button").forEach(function (button) {
+    button.classList.toggle("active", button.dataset.direction === directionKey);
+  });
+  window.scrollTo({ top: 0 });
+}
+
+document.getElementById("switcher-buttons").addEventListener("click", function (event) {
+  var button = event.target.closest(".switcher-button");
+  if (button) switchDirection(button.dataset.direction);
+});
+
+/* 全局事件代理：下钻展开 / 组展开 / 面板折叠 */
+document.addEventListener("click", function (event) {
+  /* 下钻详情开关（A / B / C / D 共用） */
+  var detailToggle = event.target.closest("[data-detail-toggle]");
+  if (detailToggle) {
+    var anchor = detailToggle.dataset.detailToggle;
+    var stage = detailToggle.closest(".direction-stage");
+    var detailBlock = stage.querySelector('[data-detail="' + anchor + '"]');
+    var detailRow = stage.querySelector('[data-detail-row="' + anchor + '"]');
+    var caret = detailToggle.querySelector(".toggle-caret");
+    var label = detailToggle.querySelector(".toggle-label");
+    var isOpen = detailBlock ? !detailBlock.classList.contains("collapsed") : !(detailRow && detailRow.classList.contains("c-member-hidden"));
+    if (detailBlock) detailBlock.classList.toggle("collapsed", isOpen);
+    if (detailRow) detailRow.classList.toggle("c-member-hidden", isOpen);
+    if (caret) caret.classList.toggle("rotated", !isOpen);
+    if (label) label.textContent = isOpen ? detailToggle.dataset.closedLabel : detailToggle.dataset.openLabel;
+    return;
+  }
+
+  /* 方向 A / D：点击组头展开/收起成员列表 */
+  var groupToggle = event.target.closest("[data-group-toggle]");
+  if (groupToggle) {
+    var groupElement = groupToggle.closest(".a-group, .d-group");
+    if (groupElement) groupElement.classList.toggle("expanded");
+    return;
+  }
+
+  /* 方向 C：点击组行展开/收起成员行 */
+  var groupRow = event.target.closest(".c-group-row");
+  if (groupRow) {
+    var memberBody = groupRow.closest(".c-group-members");
+    var willExpand = !memberBody.classList.contains("expanded");
+    memberBody.classList.toggle("expanded", willExpand);
+    groupRow.classList.toggle("expanded", willExpand);
+    memberBody.querySelectorAll(".c-member-row, .c-detail-block-row").forEach(function (row) {
+      if (row.hasAttribute("data-detail-row")) {
+        var detailAnchor = row.getAttribute("data-detail-row");
+        var toggle = memberBody.querySelector('[data-detail-toggle="' + detailAnchor + '"]');
+        var detailOpen = toggle && toggle.querySelector(".toggle-caret").classList.contains("rotated");
+        row.classList.toggle("c-member-hidden", !(willExpand && detailOpen));
+      } else {
+        row.classList.toggle("c-member-hidden", !willExpand);
+      }
+    });
+    return;
+  }
+
+  /* 方向 B：筛选面板滑出 / 收起 */
+  var filterToggle = event.target.closest("#b-filter-toggle");
+  if (filterToggle) {
+    filterToggle.classList.toggle("open");
+    document.getElementById("b-filter-panel").classList.toggle("open");
+    return;
+  }
+
+  /* 方向 D：筛选面板折叠 / 展开 */
+  var filterHead = event.target.closest("#d-filter-head");
+  if (filterHead) {
+    document.getElementById("d-filter-panel").classList.toggle("collapsed");
+    return;
+  }
+});
+
+/* 快捷筛选 chip 单选互斥（演示级） */
+document.addEventListener("click", function (event) {
+  var chip = event.target.closest(".a-quick-chip, .b-chip, .c-chip, .d-chip");
+  if (!chip) return;
+  var siblings = chip.parentElement.querySelectorAll("." + chip.classList[0]);
+  siblings.forEach(function (sibling) { sibling.classList.remove("selected"); });
+  chip.classList.add("selected");
+});
+
+/* 类型导航点击滚动定位到对应组 */
+document.addEventListener("click", function (event) {
+  var navItem = event.target.closest(".a-type-item, .d-type-item");
+  if (!navItem) return;
+  var siblings = navItem.parentElement.querySelectorAll(".a-type-item, .d-type-item");
+  siblings.forEach(function (sibling) { sibling.classList.remove("active"); });
+  navItem.classList.add("active");
+});
+
+/* 初始化：渲染方向 A */
+renderStage("a");
+</script>
 </body>
 </html>
