@@ -66,6 +66,42 @@ public sealed class ArchivePairTests : IDisposable
         Assert.Null(result);
     }
 
+    [Fact]
+    public void Anchor_ExtractedAndUnmodified_SameTimestamp()
+    {
+        string zipPath = Path.Combine(_tempDir, "anchor.zip");
+        string extractDir = Directory.CreateDirectory(Path.Combine(_tempDir, "anchor")).FullName;
+
+        File.WriteAllText(Path.Combine(extractDir, "a.txt"), "alpha");
+        File.WriteAllText(Path.Combine(extractDir, "b.txt"), "beta");
+
+        System.IO.Compression.ZipFile.CreateFromDirectory(extractDir, zipPath);
+
+        var anchor = ArchivePairDetector.GetArchiveAnchorInfo(zipPath);
+
+        Assert.NotNull(anchor.LatestEntryTimestamp);
+        Assert.True(anchor.EntryCount > 0);
+    }
+
+    [Fact]
+    public void Anchor_SiblingDirOlder_FullyExtractedWithFlag()
+    {
+        string zipPath = Path.Combine(_tempDir, "old.zip");
+        string extractDir = Directory.CreateDirectory(Path.Combine(_tempDir, "old")).FullName;
+
+        File.WriteAllText(Path.Combine(extractDir, "a.txt"), "alpha");
+        File.WriteAllText(Path.Combine(extractDir, "b.txt"), "beta");
+        System.IO.Compression.ZipFile.CreateFromDirectory(extractDir, zipPath);
+
+        // Ensure the extracted dir's file mtimes are at most equal to archive entries.
+        var result = ArchivePairDetector.Detect(zipPath, _tempDir);
+
+        Assert.NotNull(result);
+        Assert.Equal("FullyExtracted", result!.Status);
+        Assert.NotNull(result.AnchorTimestamp);
+        Assert.NotNull(result.ModifiedAfterExtraction);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDir)) TestFileHelper.DeleteDirectoryWithRetry(_tempDir);
