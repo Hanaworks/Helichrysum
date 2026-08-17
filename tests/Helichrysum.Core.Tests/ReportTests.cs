@@ -106,7 +106,7 @@ public sealed class ReportTests : IDisposable
             var builder = new ReportBuilder(_repository);
             builder.ExportSqlite(dbPath);
 
-            using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath}");
+            using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Pooling=False;");
             connection.Open();
             var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT COUNT(*) FROM report_duplicates;";
