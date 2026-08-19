@@ -126,11 +126,11 @@ helichrysum/
 
 | 项 | 选择 | 理由 |
 |---|---|---|
-| 目标框架 | **.NET 8 (LTS)** 基线；GUI 可选 net8.0-windows | LTS 支持期最长；NativeAOT 成熟 |
-| Windows | `net8.0-windows` | WPF / WinUI 3 |
-| Linux / macOS | `net8.0` | 跨平台运行时 |
+| 目标框架 | **.NET 10 (LTS)** 基线；GUI 可选 net10.0-windows | LTS 支持期最长；NativeAOT 成熟 |
+| Windows | `net10.0-windows` | WPF / WinUI 3 |
+| Linux / macOS | `net10.0` | 跨平台运行时 |
 | 发布方式 | **NativeAOT 单文件**（CLI）；框架依赖（Web/Desktop 默认） | CLI 零依赖分发；Web/Desktop 用快的发布模式 |
-| 最低运行时 | .NET 8 独立部署时自包含 | 用户无需装 SDK |
+| 最低运行时 | .NET 10 独立部署时自包含 | 用户无需装 SDK |
 
 ---
 
@@ -142,7 +142,7 @@ helichrysum/
 |---|---|
 | 开发效率 | 强类型 + IDE（VS/Rider）+ NuGet 生态，迭代极快 |
 | 跨平台 | .NET 6+ 三端一等公民；文件系统 API 跨平台统一 |
-| 性能 | .NET 8 AOT / Tiered JIT 已接近 native；Span/ReadOnlySpan 无 GC 开销处理大文件 |
+| 性能 | .NET 10 AOT / Tiered JIT 已接近 native；Span/ReadOnlySpan 无 GC 开销处理大文件 |
 | 桌面 GUI | WPF（Windows 原生）/ WinUI 3（现代 Windows）；如需跨平台 Avalonia |
 | WebUI | ASP.NET Core Minimal API 性能顶级；共享前端工程 |
 | 类型安全 | 强类型 + nullable reference types + analyzers，避免 `as any` 类问题 |
@@ -165,7 +165,7 @@ helichrysum/
 | 用途 | 包 | 选型理由 |
 |---|---|---|
 | CLI 框架 | `Spectre.Console` + `Spectre.Console.Cli` | 现代 CLI 事实标准，树/表格/进度条开箱即用 |
-| 目录遍历 | `System.IO` 自带或 `SafeFileHandle` 原生枚举 | .NET 8 `EnumerationOptions` 高效 |
+| 目录遍历 | `System.IO` 自带或 `SafeFileHandle` 原生枚举 | .NET 10 `EnumerationOptions` 高效 |
 | Hash | `System.Security.Cryptography`（SHA256）+ `Avalonia` 无关的 `blake3` 或 `xxhash` | 分层 hash：SHA256 内置；快速层用 xxhash（OxyHashing） |
 | 数据库 | `Microsoft.Data.Sqlite` | 官方 ADO.NET provider，零配置 |
 | 异步运行时 | `System.Threading.Tasks`（TPL / `Parallel.ForEachAsync`） | 内建，无额外依赖 |
@@ -584,9 +584,33 @@ public sealed class Executor
 
 ## 5. 三端形态
 
-### 5.1 CLI（Spectre.Console）
+### 5.1 CLI（Spectre.Console + Spectre.Console.Cli）
 
-命令集与 Rust 版一致（`scope` / `scan` / `analyze` / `report` / `plan` / `exec` / `manifest`），但渲染用 Spectre：
+实际命令（11 个，均已实现）：
+
+```text
+# 范围管理
+helichrysum scope-add <path> [--name <name>]    # 添加扫描根路径
+helichrysum scope-list                          # 列出已配置范围
+
+# 扫描与分析
+helichrysum scan --scope dir1,dir2 [-m manifest]      # 扫描 + 写 manifest
+helichrysum analyze [-t full|sampled|metadata]        # hash + 重复检测 + 生成计划
+helichrysum verify                                    # 归档完整性验证
+
+# 报告
+helichrysum report -f html|json|sqlite [-o out]       # 生成报告
+
+# 计划与执行
+helichrysum plan-list / plan-show <id> / plan-dry-run <id>
+helichrysum exec <id> [-y|--yes]                      # 交互式确认（-y 静默）
+
+# 工具
+helichrysum config                                    # 显示当前配置
+helichrysum --version / -v                            # 双轨版本号
+```
+
+渲染示例：
 
 ```text
 helichrysum scan --scope default
@@ -598,8 +622,6 @@ helichrysum scan --scope default
     发现 ArchivePair 45
     发现 OutOfScope Link 3
 ```
-
-Spectre 好处：树渲染、进度条、表格开箱即用，无需自定义。
 
 **退出码：** 0 成功 / 1 用户错误 / 2 系统错误 / 130 中断。
 

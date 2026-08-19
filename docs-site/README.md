@@ -13,8 +13,8 @@
 | 文档 | 内容 |
 |---|---|
 | **[需求规格说明书](REQUIREMENTS.md)** | 背景、核心概念、典型场景、功能需求（116 条编号需求）、非功能需求、边界 |
-| **[技术实现方案（.NET 版）](TECHNICAL_DESIGN.md)** | 主方案：.NET 8 / C# 技术栈，架构、数据模型、模块设计、CLI/WebUI/WPF 三端、路线图 |
-| **[实施计划](IMPLEMENTATION_PLAN.md)** | 垂直切片（0-9）、功能清单、TDD 红线、fixture 验收、完成定义 |
+| **[技术实现方案（.NET 版）](TECHNICAL_DESIGN.md)** | 主方案：.NET 10 / C# 技术栈，架构、数据模型、模块设计、CLI/WebUI/WPF 三端、路线图 |
+| **[实施计划](IMPLEMENTATION_PLAN.md)** | 垂直切片（0-14）、功能清单、TDD 红线、fixture 验收、完成定义 |
 | **[备选：技术实现方案（Rust 版）](TECHNICAL_DESIGN_RUST.md)** | 早期备选方案：Rust / Cargo / Tauri 技术栈（保留作参考） |
 
 ---
@@ -61,4 +61,4 @@
 ---
 
 > 当前文档版本：v0.2 Draft · 最后更新：2026-08-15
-> 代码状态：**切片 0-6 已完成（64 测试全绿）**
+> 代码状态：**切片 0-14 全部完成（113 测试全绿，CI 三平台绿）；UI 线（WebUI/WPF）由用户单独推进**

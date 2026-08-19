@@ -504,6 +504,12 @@ Scope = {
 | 标签（Verdict-Label） | 扫描/分析阶段为对象生成的判决（Equality / Compatibility / Conflict / Integrity_Suspected 等），只描述状态不执行动作，可持久化、可被用户修订 |
 | 处理链（Process Chain） | 按固定顺序消费标签产出动作的执行链路（文件级 → 目录级 → 结构级），是等级最高的执行约束 |
 | Staging（归档保底区） | 清理前将被清理对象复制到的保底目录（独立于回收站），用于清理后校验失败时自动回滚 |
+| 一致性投票（Consistency Vote） | 对同一逻辑文件多副本按内容 hash 分组投票，多数派一致的副本可信任，孤立副本标 Integrity_Suspected（F-Resolve-18） |
+| 时间可信度（Time Trust） | 判定文件时间戳是否可信：目录内 ctime 高度聚集 → 批量拷贝/迁移痕迹 → 时间戳降权（F-Resolve-4a） |
+| 同层仲裁（Conflict Arbitration） | 同一对象上的矛盾意图（Keep vs Clean）按优先级裁决：Moved > StructuralSibling > ArchivePair > Duplicate（F-Resolve-13） |
+| 依赖链（Dependency Chain） | 记录"目录级判定 ← 文件级已解决 ×N"的层级依赖关系，供报告追溯（F-Resolve-15） |
+| NearDuplicate | 文本内容仅 EOL / BOM / 尾部空白不同的近似重复（F-Relation-2） |
+| JsonService | JSON 序列化统一门面，隔离底层 JSON 库依赖（业务代码不直接引用） |
 
 ---
 

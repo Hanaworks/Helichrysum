@@ -21,12 +21,12 @@ features:
     linkText: 查看需求 →
   - icon: 🛠️
     title: 技术实现方案（.NET 主方案）
-    details: 分层架构（Core SDK + CLI + WebUI + WPF）、.NET 8 / C# 核心引擎选型、分层择优（Polyglot）与可替换接口、核心数据模型与 SQLite Schema、关键模块设计、操作/报告双界面、阶段路线图。
+    details: 分层架构（Core SDK + CLI + WPF + WebUI）、C# / .NET 核心引擎选型、分层择优（Polyglot）与可替换接口、核心数据模型与 SQLite Schema、关键模块设计、操作/报告双界面、阶段路线图。
     link: /technical-design
     linkText: 查看方案 →
   - icon: 🗺️
     title: 实施计划
-    details: 垂直切片序列（切片 0-9）、每片功能清单与 TDD 红线、fixture 目录树、双层验收与完成定义（DoD），从骨架到 v1.0 的施工图。
+    details: 垂直切片序列（切片 0-14）、每片功能清单与 TDD 红线、fixture 目录树、双层验收与完成定义（DoD），从骨架到后端 v1.0 的施工图。
     link: /implementation-plan
     linkText: 查看计划 →
   - icon: 🎯
@@ -62,9 +62,10 @@ Helichrysum（蜡菊 / 永久花）是一款**面向个人数字资产整理与�
 |---|---|
 | 需求规格说明书 | Draft v0.2（116 条编号需求） |
 | 技术实现方案（.NET 主方案） | Draft v0.2 |
-| 实施计划 | Draft v0.2（切片 0-9 + TDD 验收标准） |
+| 实施计划 | Draft v0.2（切片 0-14 + TDD 验收标准） |
 | License | GPL-3.0 |
-| 代码实现 | 切片 0-6 已完成（64 测试全绿） |
+| 代码实现 | 切片 0-14 全部完成（113 测试全绿，CI 三平台绿） |
+| 待实现 | WebUI（切片 7）/ WPF 桌面壳（切片 8）—— 用户单独线 |
 
 ## 后续文档（待补）
 

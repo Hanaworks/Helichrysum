@@ -46,7 +46,7 @@
 
 | 层 | 选型 |
 |---|---|
-| 核心引擎 | .NET 8 / C#（NativeAOT 可选） |
+| 核心引擎 | .NET 10 / C# |
 | 存储 | SQLite（manifest 可跨语言、可审计） |
 | CLI | Spectre.Console |
 | WebUI | ASP.NET Core + Vite（Vue） |

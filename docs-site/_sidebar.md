@@ -5,6 +5,6 @@
   - [技术实现方案（.NET 版）](TECHNICAL_DESIGN.md)
   - [备选：Rust 版](TECHNICAL_DESIGN_RUST.md)
 - **实施**
-  - [实施计划（切片 0-9）](IMPLEMENTATION_PLAN.md)
+  - [实施计划（切片 0-14）](IMPLEMENTATION_PLAN.md)
 - **资源**
   - [GitHub (待补)](https://github.com/)
