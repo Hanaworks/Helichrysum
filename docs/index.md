@@ -67,9 +67,12 @@ Helichrysum（蜡菊 / 永久花）是一款**面向个人数字资产整理与�
 | 代码实现 | 切片 0-14 全部完成（113 测试全绿，CI 三平台绿） |
 | 待实现 | WebUI（切片 7）/ WPF 桌面壳（切片 8）—— 用户单独线 |
 
-## 后续文档（待补）
+## 文档清单
 
-- CLI 命令参考
-- Manifest Schema 规范
-- 插件 API
-- UI 原型设计
+| 文档 | 状态 |
+|---|---|
+| [CLI 命令参考（§5.1）](../docs/technical-design.md) | ✅ 技术方案内 |
+| [Manifest Schema 规范](../docs/manifest-schema.md) | ✅ 已补全 |
+| [插件 API 规范](../docs/plugin-api.md) | ✅ 已补全 |
+| UI 原型设计（docs/design/） | ✅ mockup + 4 份方向稿 |
+| 需求全覆盖 | ✅ 116 条编号需求均有测试追溯 |

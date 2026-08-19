@@ -60,7 +60,9 @@
 |---|---|
 | [docs/requirements.md](docs/requirements.md) | 需求规格说明书（116 条编号需求，含处理决策模型） |
 | [docs/technical-design.md](docs/technical-design.md) | .NET 技术实现方案（主方案，含分层选型与可替换接口） |
-| [docs/implementation-plan.md](docs/implementation-plan.md) | 实施计划（切片 0-9 + TDD 验收标准 + 需求全覆盖测试策略） |
+| [docs/implementation-plan.md](docs/implementation-plan.md) | 实施计划（切片 0-14 + TDD 验收标准 + 需求全覆盖测试策略） |
+| [docs/manifest-schema.md](docs/manifest-schema.md) | Manifest Schema 规范（SQLite 表定义 + 查询面） |
+| [docs/plugin-api.md](docs/plugin-api.md) | 插件 API 规范（扩展点现状 + 演进方向） |
 | [docs/technical-design-rust.md](docs/technical-design-rust.md) | Rust 版备选方案（早期探索，保留参考） |
 
 ## 路线图

@@ -3,6 +3,8 @@
   - [需求规格说明书](REQUIREMENTS.md)
 - **技术方案**
   - [技术实现方案（.NET 版）](TECHNICAL_DESIGN.md)
+  - [Manifest Schema 规范](MANIFEST_SCHEMA.md)
+  - [插件 API 规范](PLUGIN_API.md)
   - [备选：Rust 版](TECHNICAL_DESIGN_RUST.md)
 - **实施**
   - [实施计划（切片 0-14）](IMPLEMENTATION_PLAN.md)
