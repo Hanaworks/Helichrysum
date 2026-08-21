@@ -40,7 +40,7 @@
 - **关系识别**：ExactDuplicate / StructuralSibling / ArchivePair / Versioned / Renamed 等 9 种语义关系
 - **压缩包配对**：识别 `.zip` / `.7z` / `.tar.gz` 与解压目录的关系，结合 mtime 判断"解压后未改动"的高可信清理标记
 - **报告驱动**：操作界面（配置/扫描/问题列表/标记/计划/执行）+ 报告界面（目录树展开/预览差异），Plan → Exec 严格分离、二次确认、默认走回收站
-- **三端形态**：CLI（Spectre.Console） / SDK / WebUI / WPF 桌面壳（Windows 优先），共用 .NET 核心引擎
+- **三端形态**：CLI（Spectre.Console） / SDK / WebUI / WPF 桌面壳（Windows 增强壳，跨平台走 WebUI），共用 .NET 核心引擎
 
 ## 技术栈
 
@@ -50,7 +50,7 @@
 | 存储 | SQLite（manifest 可跨语言、可审计） |
 | CLI | Spectre.Console |
 | WebUI | ASP.NET Core + Vite（Vue） |
-| 桌面壳 | WPF（Windows 优先）；Avalonia / Tauri 为 v1.x 候选 |
+| 桌面壳（Windows 增强） | WPF（Windows 原生）；Avalonia / Tauri 为 v1.x 跨平台候选 |
 
 详见 [docs/technical-design.md](docs/technical-design.md)（含分层选型与可替换接口设计）。
 
@@ -68,7 +68,7 @@
 ## 路线图
 
 - ✅ **切片 0-14**：项目骨架 / 扫描重复报告 / Link 处理 / 分层 Hash / 关系分析 / ArchivePair / Plan+Executor / 决策模型 / 安全兜底 / 扩展 / 报告完善 / 安全配置 / 决策补全 / 边缘补全
-- ⏳ **切片 7-8**：WebUI（交互实验室）→ WPF 桌面壳（Windows 优先）—— 用户单独线推进
+- ⏳ **切片 7-8**：WebUI（跨平台一等公民）→ WPF 桌面壳（Windows 增强壳）—— 用户单独线推进
 - ⏳ **切片 9**：扫描优化（全量快照重扫）、规模调优、压力基准
 
 ## 开发

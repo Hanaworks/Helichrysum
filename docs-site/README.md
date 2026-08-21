@@ -47,7 +47,7 @@
 - **关系识别**：ExactDuplicate / StructuralSibling / ArchivePair / Versioned 等 9 种关系
 - **压缩包配对**：识别 `.zip` / `.7z` / `.tar.gz` 与解压目录的关系，结合 mtime 判断可清理
 - **报告驱动**：目录树逐层展开、按问题类型筛选、Plan / Exec 严格分离
-- **三端形态**：CLI / SDK / WebUI / WPF 桌面 GUI（Windows 优先），共用 .NET 核心引擎
+- **三端形态**：CLI / SDK / WebUI / WPF 桌面壳（Windows 增强壳，跨平台走 WebUI），共用 .NET 核心引擎
 
 ---
 

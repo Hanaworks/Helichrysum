@@ -330,13 +330,13 @@ helichrysum exec <id>             # 确认后执行
 - fixture 扫描 → 浏览器完整流程走一遍：配置 → 扫描 → 问题列表 → 标记 → 计划 → dry-run → 执行
 - 报告界面：目录树展开、预览文本 Diff、导出 HTML
 
-**注意：** 此切片是"交互实验室"——UI 布局与交互细节在此迭代定稿，然后才进入 WPF。
+**注意：** WebUI 是跨平台一等公民交互形态，WPF 是 Windows 增强壳，不替代 WebUI 的跨平台角色。
 
 ---
 
 ### 切片 8：WPF 桌面壳（⏳ 待开发）
 
-**目标：** Windows 桌面一等公民体验。
+**目标：** Windows 原生体验（系统托盘、资源管理器定位，增强 WebUI 无法覆盖的能力）。
 
 **功能清单：**
 - MVVM（`CommunityToolkit.Mvvm`），复刻切片 7 定稿的交互
@@ -392,7 +392,7 @@ helichrysum exec --confirm  # 安全执行（TOCTOU + Staging）
 | 采样 hash 误判（中段碰撞漏检） | 切片 3 | 采样阈值可调；`MetaOnly` 回退层保留 |
 | ArchivePair 误配（命名相似但无关） | 切片 5 | 多重证据：清单匹配 + mtime + size 分布；低于阈值标 Unrelated |
 | 跨卷移动中断 | 切片 6 | 两阶段 + 执行日志；中断恢复向幂等 |
-| WebUI 交互不好用 | 切片 7 | 这正是"交互实验室"——迭代到满意再进 WPF，不返工 |
+| WebUI 交互不好用 | 切片 7 | WebUI 是跨平台一等公民，WPF 是 Windows 增强壳，不因 WPF 降低 WebUI 完整度 |
 | Trash 在无桌面环境失效 | 切片 6 | 检测失败即报错，绝不静默永久删除 |
 | 平台 P/Invoke 差异（junction/reparse） | 切片 2 | 未知 reparse 类型标记 Unknown 保留原始数据；三平台 CI 覆盖 |
 

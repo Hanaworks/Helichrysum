@@ -968,7 +968,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--color-brand); 
       </div>
 
       <!-- ===== E 阶段 2：扫描（上总览 + 下分栏） ===== -->
-      <div class="stage-pane" data-stage-pane="console" data-stage="scan" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="stage-pane" data-stage-pane="console" data-stage="scan" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
         <div class="console-toolbar">
           <span class="console-breadcrumb">三盘备份整合 / <b>扫描进行中</b></span>
           <div class="console-toolbar-actions">
@@ -1055,7 +1055,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--color-brand); 
       </div>
 
       <!-- ===== E 阶段 3：结果（三栏：类型导航 / 问题列表 / 选中详情） ===== -->
-      <div class="stage-pane" data-stage-pane="console" data-stage="results" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="stage-pane" data-stage-pane="console" data-stage="results" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
         <div class="console-toolbar">
           <span class="console-breadcrumb">三盘备份整合 / <b>结果审阅</b></span>
           <div class="console-toolbar-actions">
@@ -1125,7 +1125,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--color-brand); 
       </div>
 
       <!-- ===== E 阶段 4：计划（上动作表 / 下确认区+保底策略） ===== -->
-      <div class="stage-pane" data-stage-pane="console" data-stage="plan" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="stage-pane" data-stage-pane="console" data-stage="plan" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
         <div class="console-toolbar">
           <span class="console-breadcrumb">三盘备份整合 / <b>计划 plan-2026-08-15-01</b></span>
           <div class="console-toolbar-actions">
@@ -1244,6 +1244,474 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--color-brand); 
       <span>快照 <b class="monospace">manifest-2026-08-01</b>（2 周前）</span>
       <span>Scope <b>4 根路径 · 57,609 对象 · 225.9 GB</b></span>
       <span style="margin-left:auto;">阶段 <b id="console-statusbar-stage">1/4 · 设置</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     方案 F · 现代 SaaS 设置中心
+     ============================================================ -->
+<section class="paradigm-section" id="paradigm-saas">
+  <div class="saas-shell">
+
+    <!-- 左侧窄导航 -->
+    <aside class="saas-nav">
+      <div class="saas-nav-project">
+        <span class="saas-nav-project-badge"><svg><use href="#icon-brand-flower"/></svg></span>
+        <div>
+          <div class="saas-nav-project-name">三盘备份整合</div>
+          <div class="saas-nav-project-sub">整理项目 · 4 根路径</div>
+        </div>
+      </div>
+      <button type="button" class="saas-nav-item active" data-stage-nav="saas" data-stage="setup"><svg class="icon"><use href="#icon-settings"/></svg>设置<span class="saas-nav-step">1</span></button>
+      <button type="button" class="saas-nav-item" data-stage-nav="saas" data-stage="scan"><svg class="icon"><use href="#icon-activity"/></svg>扫描<span class="saas-nav-step">2</span></button>
+      <button type="button" class="saas-nav-item" data-stage-nav="saas" data-stage="results"><svg class="icon"><use href="#icon-list"/></svg>结果<span class="saas-nav-step">3</span></button>
+      <button type="button" class="saas-nav-item" data-stage-nav="saas" data-stage="plan"><svg class="icon"><use href="#icon-clipboard"/></svg>计划<span class="saas-nav-step">4</span></button>
+      <div class="saas-nav-footer">
+        快照 manifest-2026-08-01<br>创建于 2 周前<br>本地服务 127.0.0.1:3000
+      </div>
+    </aside>
+
+    <!-- 右侧内容区（880px 居中） -->
+    <div class="saas-content">
+
+      <!-- ===== F 阶段 1：设置（分组卡片） ===== -->
+      <div class="stage-pane active" data-stage-pane="saas" data-stage="setup">
+        <div class="saas-content-inner">
+          <div class="saas-page-header">
+            <div class="saas-page-header-row">
+              <div>
+                <h1 class="saas-page-title">设置</h1>
+                <p class="saas-page-subtitle">扫描范围、排除规则、行为开关、分析深度与性能选项——所有配置项在此分组呈现，保存后生效</p>
+              </div>
+              <div class="saas-page-actions">
+                <button type="button" class="btn"><svg class="icon"><use href="#icon-eye"/></svg>快速预览目录层</button>
+                <button type="button" class="btn btn-primary" data-stage-nav="saas" data-stage="scan"><svg class="icon"><use href="#icon-play"/></svg>保存并开始扫描</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片：扫描范围 -->
+          <div class="card saas-card">
+            <div class="card-header">
+              <span class="saas-card-icon"><svg class="icon"><use href="#icon-hard-drive"/></svg></span>
+              <div>
+                <div class="card-title">扫描范围</div>
+                <div class="saas-card-description">分析世界的边界：扫描器、分析器、执行器的所有行为都基于此范围推理，严格不主动扩大</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+                <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>D:\Backup1<button type="button" class="chip-remove" title="移除"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+                <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>D:\Backup2<button type="button" class="chip-remove" title="移除"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+                <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>E:\Archive\Photos<button type="button" class="chip-remove" title="移除"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+                <span class="path-chip"><svg class="icon"><use href="#icon-hard-drive"/></svg>E:\Photos<button type="button" class="chip-remove" title="移除"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></span>
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:14px;">
+                <input type="text" class="text-input monospace" style="flex:1;" placeholder="添加根路径（如 F:\NewDisk\Backup）">
+                <button type="button" class="btn"><svg class="icon icon-small"><use href="#icon-plus"/></svg>添加根路径</button>
+              </div>
+              <div class="banner banner-info" style="font-size:12.5px;">
+                <svg class="icon icon-small"><use href="#icon-info-circle"/></svg>
+                <span><b>4 个根路径均已通过规范化校验</b>：未检测到嵌套与重叠；D:\Backup1 与 D:\Backup2 同卷不同目录，E:\Archive\Photos 与 E:\Photos 同卷不同目录。</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片：排除规则 -->
+          <div class="card saas-card">
+            <div class="card-header">
+              <span class="saas-card-icon"><svg class="icon"><use href="#icon-filter"/></svg></span>
+              <div>
+                <div class="card-title">排除规则</div>
+                <div class="saas-card-description">支持 glob / 正则 / 文件名 / 目录名四种类型，命中即不进入扫描世界</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="member-row"><span class="rule-type-badge">glob</span><span class="rule-pattern">*.tmp</span><span class="rule-purpose" style="margin-left:auto;">临时文件</span><button type="button" class="chip-remove"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></div>
+              <div class="member-row"><span class="rule-type-badge">目录名</span><span class="rule-pattern">node_modules</span><span class="rule-purpose" style="margin-left:auto;">前端依赖</span><button type="button" class="chip-remove"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></div>
+              <div class="member-row"><span class="rule-type-badge">目录名</span><span class="rule-pattern">$RECYCLE.BIN</span><span class="rule-purpose" style="margin-left:auto;">回收站</span><button type="button" class="chip-remove"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></div>
+              <div class="member-row"><span class="rule-type-badge">正则</span><span class="rule-pattern">(?i)^thumbs\.db$</span><span class="rule-purpose" style="margin-left:auto;">缩略图缓存</span><button type="button" class="chip-remove"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></div>
+              <div class="member-row"><span class="rule-type-badge">glob</span><span class="rule-pattern">**\.git\objects\**</span><span class="rule-purpose" style="margin-left:auto;">Git 对象库</span><button type="button" class="chip-remove"><svg class="icon icon-small"><use href="#icon-x"/></svg></button></div>
+              <div style="display:flex;gap:8px;margin-top:14px;align-items:center;">
+                <select class="select-input" style="width:96px;"><option>glob</option><option>正则</option><option>文件名</option><option>目录名</option></select>
+                <input type="text" class="text-input monospace" style="flex:1;" placeholder="输入排除模式…">
+                <button type="button" class="btn"><svg class="icon icon-small"><use href="#icon-plus"/></svg>添加规则</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片：扫描行为 -->
+          <div class="card saas-card">
+            <div class="card-header">
+              <span class="saas-card-icon"><svg class="icon"><use href="#icon-sliders"/></svg></span>
+              <div>
+                <div class="card-title">扫描行为</div>
+                <div class="saas-card-description">链接语义与设备边界：默认值经过安全选择，改动前请确认理解其含义</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div class="setting-row-main">
+                  <div class="setting-row-title">跨设备 / 挂载点递归 <span class="default-tag">默认关</span></div>
+                  <div class="setting-row-hint">遇到新的挂载点 / 设备边界即停止，防止误入系统卷与其他磁盘</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+              </div>
+              <div class="setting-row">
+                <div class="setting-row-main">
+                  <div class="setting-row-title">跟随符号链接 <span class="default-tag">默认关</span></div>
+                  <div class="setting-row-hint">默认只记录 (source, target) 引用关系，不递归进入；可显式启用</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+              </div>
+              <div class="setting-row">
+                <div class="setting-row-main">
+                  <div class="setting-row-title">跳过常见虚拟目录 <span class="default-tag">默认开</span></div>
+                  <div class="setting-row-hint">$RECYCLE.BIN · System Volume Information · .git/objects · node_modules · .DS_Store · Thumbs.db（列表可配置）</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              </div>
+              <div class="setting-row">
+                <div class="setting-row-main">
+                  <div class="setting-row-title">快速预览模式 <span class="default-tag">默认关</span></div>
+                  <div class="setting-row-hint">数秒内生成目录层概览，适合先"看一眼里面有什么"，不写 manifest</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片：分析深度 -->
+          <div class="card saas-card">
+            <div class="card-header">
+              <span class="saas-card-icon"><svg class="icon"><use href="#icon-activity"/></svg></span>
+              <div>
+                <div class="card-title">分析深度</div>
+                <div class="saas-card-description">分层渐进：从轻到重逐层加深，上层未命中冲突时下层不启动，避免无差别全盘 hash</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="depth-choice-grid">
+                <label class="depth-choice"><span class="depth-choice-title">仅目录结构<span class="layer-chip">第 1 层</span></span><span class="depth-choice-hint">只读目录元数据，秒级建立结构索引，适合圈定可疑子集</span></label>
+                <label class="depth-choice"><span class="depth-choice-title">文件元数据<span class="layer-chip">第 2 层</span></span><span class="depth-choice-hint">路径 / size / mtime / ctime，不读文件内容</span></label>
+                <label class="depth-choice"><span class="depth-choice-title">快速 hash<span class="layer-chip">第 3 层</span></span><span class="depth-choice-hint">size+mtime 命中后采样（头 16KB + 中 32KB + 尾 16KB，xxhash）</span></label>
+                <label class="depth-choice selected"><span class="depth-choice-title">全量内容 hash<span class="layer-chip hit">第 4 层 · 当前</span></span><span class="depth-choice-hint">SHA256 最终判据，仅对采样层仍碰撞的少数文件计算</span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片：性能选项 -->
+          <div class="card saas-card">
+            <div class="card-header">
+              <span class="saas-card-icon"><svg class="icon"><use href="#icon-sliders"/></svg></span>
+              <div>
+                <div class="card-title">性能选项</div>
+                <div class="saas-card-description">并发度与指纹索引强度：指纹是执行前验证、增量扫描、完整性校验的统一基线</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div class="setting-row-main">
+                  <div class="setting-row-title">并发度 <span class="default-tag">当前 8 / 上限 16</span></div>
+                  <div class="setting-row-hint">目录遍历与 hash 计算的并行度（本机逻辑核数 16）</div>
+                  <div class="slider-row" style="margin-top:10px;">
+                    <span class="member-meta">1</span>
+                    <input type="range" class="range-slider" min="1" max="16" value="8">
+                    <span class="member-meta">16</span>
+                    <span class="slider-value">8</span>
+                  </div>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div class="setting-row-main">
+                  <div class="setting-row-title">指纹索引强度 <span class="default-tag">当前 L2</span></div>
+                  <div class="setting-row-hint">未存指纹的对象执行时视为"基线缺失"，默认中止动作</div>
+                  <select class="select-input" style="margin-top:10px;">
+                    <option>L0 · 不存储指纹（最省空间，执行阶段受限）</option>
+                    <option>L1 · 快速摘要（CRC32 / xxhash）</option>
+                    <option selected>L2 · 快速 + 强摘要（当前 · 默认推荐 · CRC32 → MD5 升级路径）</option>
+                    <option>L3 · 全量元数据 + 双摘要（最大安全冗余）</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片：配置档案 -->
+          <div class="card saas-card">
+            <div class="card-header">
+              <span class="saas-card-icon"><svg class="icon"><use href="#icon-bookmark"/></svg></span>
+              <div>
+                <div class="card-title">配置档案</div>
+                <div class="saas-card-description">将以上全部设置保存为命名档案，随时加载复用</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+                <input type="text" class="text-input" style="flex:1;" value="三盘备份整合">
+                <button type="button" class="btn btn-primary">保存配置</button>
+                <button type="button" class="btn">另存为…</button>
+                <button type="button" class="btn">加载…</button>
+              </div>
+              <div class="member-row"><svg class="icon icon-small" style="color:var(--color-brand);"><use href="#icon-check"/></svg><span style="font-weight:650;">三盘备份整合</span><span class="rule-purpose" style="margin-left:auto;">当前 · 上次保存 2026-08-10</span></div>
+              <div class="member-row"><svg class="icon icon-small" style="color:var(--color-text-tertiary);"><use href="#icon-bookmark"/></svg>default<span class="rule-purpose" style="margin-left:auto;">上次使用 2026-08-01</span><button type="button" class="btn btn-small">加载</button></div>
+              <div class="member-row"><svg class="icon icon-small" style="color:var(--color-text-tertiary);"><use href="#icon-bookmark"/></svg>相册专项清理<span class="rule-purpose" style="margin-left:auto;">上次使用 2026-07-22</span><button type="button" class="btn btn-small">加载</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== F 阶段 2：扫描（大进度卡片 + 2x2 网格） ===== -->
+      <div class="stage-pane" data-stage-pane="saas" data-stage="scan">
+        <div class="saas-content-inner">
+          <div class="saas-page-header">
+            <div class="saas-page-header-row">
+              <div>
+                <h1 class="saas-page-title">扫描进行中</h1>
+                <p class="saas-page-subtitle">任务 scan-2026-08-15-01 · 全程只读，无任何写动作 · 中断不丢失已完成结果</p>
+              </div>
+              <div class="saas-page-actions">
+                <button type="button" class="btn"><svg class="icon"><use href="#icon-pause"/></svg>暂停</button>
+                <button type="button" class="btn"><svg class="icon"><use href="#icon-stop"/></svg>中断扫描</button>
+                <button type="button" class="btn btn-primary" data-stage-nav="saas" data-stage="results">查看结果<svg class="icon icon-small"><use href="#icon-arrow-right"/></svg></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 大进度卡片 -->
+          <div class="card saas-progress-card">
+            <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:12px;">
+              <span style="font-size:44px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1;">62<span style="font-size:20px;font-weight:600;color:var(--color-text-secondary);">%</span></span>
+              <span style="font-size:13px;color:var(--color-text-secondary);">已扫描 <b class="numeric">1,284,301</b> / <b class="numeric">2,071,463</b> 个对象 · 已进行 18 分 06 秒 · 启动于 16:24:09</span>
+            </div>
+            <div class="progress-track" style="height:12px;border-radius:7px;"><div class="progress-fill" style="width:62%;"></div></div>
+            <div class="current-path-line"><span class="current-path-label">当前路径</span>D:\Backup2\backup0620\视频\2024\DV_0231.MOV<span class="current-path-cursor">▊</span></div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;">
+              <div style="border-left:3px solid var(--color-brand-border);padding-left:12px;"><span style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;">18,420<span class="stat-unit"> 对象/秒</span></span><span class="stat-label">当前速率</span></div>
+              <div style="border-left:3px solid var(--color-brand-border);padding-left:12px;"><span style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;">00:47:12</span><span class="stat-label">预计剩余 ETA</span></div>
+              <div style="border-left:3px solid var(--color-brand-border);padding-left:12px;"><span style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;">1,284,301</span><span class="stat-label">已扫描对象</span></div>
+              <div style="border-left:3px solid var(--color-brand-border);padding-left:12px;"><span style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;">431,207<span class="stat-unit"> 次</span></span><span class="stat-label">预筛命中</span></div>
+            </div>
+          </div>
+
+          <!-- 2x2 网格 -->
+          <div class="saas-scan-grid">
+            <div class="card">
+              <div class="card-header"><svg class="icon" style="color:var(--color-brand);"><use href="#icon-activity"/></svg><span class="card-title">四层渐进分析</span><span class="card-title-note">从轻到重</span></div>
+              <div class="card-body" style="padding-top:10px;">
+                <div class="member-row"><span class="layer-state-chip state-done">完成</span><span style="font-weight:650;">① 目录结构层</span><span class="member-meta" style="margin-left:auto;">41.6 万对象 · 12 秒</span></div>
+                <div class="member-row"><span class="layer-state-chip state-done">完成</span><span style="font-weight:650;">② 文件元数据层</span><span class="member-meta" style="margin-left:auto;">size/mtime/ctime · 4 分 32 秒</span></div>
+                <div class="member-row"><span class="layer-state-chip state-done">完成</span><span style="font-weight:650;">③ 快速 hash 层</span><span class="member-meta" style="margin-left:auto;">431,207 命中 · 11 分 08 秒</span></div>
+                <div class="member-row"><span class="layer-state-chip state-running">进行中 62%</span><span style="font-weight:650;">④ 全量 hash 层</span><span class="member-meta" style="margin-left:auto;">SHA256 · 84,216 文件</span></div>
+                <div class="mini-progress-track" style="width:100%;margin-top:10px;"><span class="mini-progress-fill" style="width:62%;display:block;"></span></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><svg class="icon" style="color:var(--color-brand);"><use href="#icon-search"/></svg><span class="card-title">实时发现</span><span class="card-title-note">随扫描增量更新</span></div>
+              <div class="card-body" style="padding-top:10px;">
+                <div class="member-row"><span class="relation-dot" style="background:var(--relation-exact-duplicate);"></span>完全重复组<span class="member-meta" style="margin-left:auto;font-weight:700;">1,203</span></div>
+                <div class="member-row"><span class="relation-dot" style="background:var(--relation-archive-pair);"></span>压缩包配对<span class="member-meta" style="margin-left:auto;font-weight:700;">45</span></div>
+                <div class="member-row"><span class="relation-dot" style="background:var(--relation-out-of-scope);"></span>范围外链接<span class="member-meta" style="margin-left:auto;font-weight:700;">3</span></div>
+                <div class="member-row"><span class="relation-dot" style="background:var(--relation-broken);"></span>断裂链接<span class="member-meta" style="margin-left:auto;font-weight:700;">12</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><svg class="icon" style="color:var(--color-brand);"><use href="#icon-shield"/></svg><span class="card-title">韧性隔离</span><span class="card-title-note" style="margin-left:auto;"><button type="button" class="btn btn-small">查看 7 个对象详情</button></span></div>
+              <div class="card-body" style="padding-top:10px;">
+                <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"><span style="font-size:24px;font-weight:750;color:var(--color-brand-deep);font-variant-numeric:tabular-nums;">7</span><span style="font-size:12px;color:var(--color-text-secondary);">个对象被跳过并标记 · 单对象失败绝不终止整体扫描</span></div>
+                <div class="member-row"><svg class="icon icon-small" style="color:var(--relation-broken);"><use href="#icon-alert-triangle"/></svg>损坏（解析失败）<span class="member-meta" style="margin-left:auto;font-weight:700;">2</span></div>
+                <div class="member-row"><svg class="icon icon-small" style="color:var(--relation-out-of-scope);"><use href="#icon-alert-triangle"/></svg>权限拒绝<span class="member-meta" style="margin-left:auto;font-weight:700;">3</span></div>
+                <div class="member-row"><svg class="icon icon-small" style="color:var(--relation-partial-overlap);"><use href="#icon-alert-triangle"/></svg>畸形输入（路径超长等）<span class="member-meta" style="margin-left:auto;font-weight:700;">2</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><svg class="icon" style="color:var(--color-brand);"><use href="#icon-list"/></svg><span class="card-title">实时日志</span><span class="card-title-note">最近事件</span></div>
+              <div class="card-body" style="padding-top:10px;">
+                <div class="scan-log scrollable" style="max-height:168px;overflow:auto;">
+                  <div class="log-line"><span class="log-time">16:42:15</span> <span class="log-tag-warning">[warn]</span> 隔离: E:\Photos\老照片-1998.zip（中央目录校验失败）</div>
+                  <div class="log-line"><span class="log-time">16:42:14</span> <span class="log-tag-hash">[hash]</span> 快速摘要命中 431,207，升级全量候选 84,216</div>
+                  <div class="log-line"><span class="log-time">16:42:13</span> <span class="log-tag-link">[link]</span> D:\Backup2\archive → F:\外接盘\Archive（OutOfScope）</div>
+                  <div class="log-line"><span class="log-time">16:42:12</span> <span class="log-tag-hash">[hash]</span> SHA256 完成 DV_0230.MOV（2.4 GB · 8.1 秒）</div>
+                  <div class="log-line"><span class="log-time">16:42:11</span> <span class="log-tag-info">[scan]</span> 目录枚举 …\视频\2024（1,204 项）</div>
+                  <div class="log-line"><span class="log-time">16:42:09</span> <span class="log-tag-info">[scan]</span> 硬链接组 inode 48213377（2 路径，仅统计一次）</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== F 阶段 3：结果（统计条 + 筛选栏 + 问题卡片列表） ===== -->
+      <div class="stage-pane" data-stage-pane="saas" data-stage="results">
+        <div class="saas-content-inner">
+          <div class="saas-page-header">
+            <div class="saas-page-header-row">
+              <div>
+                <h1 class="saas-page-title">扫描结果</h1>
+                <p class="saas-page-subtitle">基于快照 manifest-2026-08-01 · 按关系类型分组 · 自动化决策全程可见、可否决</p>
+              </div>
+              <div class="saas-page-actions">
+                <button type="button" class="btn"><svg class="icon"><use href="#icon-refresh"/></svg>重新扫描</button>
+                <button type="button" class="btn btn-primary" data-stage-nav="saas" data-stage="plan"><svg class="icon"><use href="#icon-clipboard"/></svg>生成处理计划</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 顶部统计条 -->
+          <div class="saas-stats-strip">
+            <div class="card saas-stat-tile"><span class="stat-value">16<span class="stat-unit"> 组</span></span><span class="stat-label">问题组（9 类关系 + 链接异常）</span></div>
+            <div class="card saas-stat-tile"><span class="stat-value">31<span class="stat-unit"> 个</span></span><span class="stat-label">涉及文件 / 目录 / 链接</span></div>
+            <div class="card saas-stat-tile stat-warning"><span class="stat-value">4<span class="stat-unit"> 组</span></span><span class="stat-label">需人工决策</span></div>
+            <div class="card saas-stat-tile stat-accent"><span class="stat-value">42.4<span class="stat-unit"> GB</span></span><span class="stat-label">预计可释放空间</span></div>
+          </div>
+
+          <!-- 筛选栏 -->
+          <div class="card saas-filter-card">
+            <div class="saas-filter-grid">
+              <div class="filter-field"><span class="field-label">问题类型</span>
+                <select class="select-input"><option>全部类型（16 组）</option><option>结构相似（1）</option><option>版本演进（2）</option><option>完全重复（3）</option><option>近似重复（1）</option><option>部分重叠（1）</option><option>重命名（1）</option><option>移动（1）</option><option>压缩包配对（2）</option><option>链接引用（1）</option><option>链接异常（3）</option></select>
+              </div>
+              <div class="filter-field"><span class="field-label">路径 / glob</span><input type="text" class="text-input monospace" value="**\*.jpg; **\*.zip"></div>
+              <div class="filter-field"><span class="field-label">大小范围</span>
+                <div style="display:flex;gap:6px;align-items:center;"><input type="text" class="text-input" value="1 MB"><span style="color:var(--color-text-tertiary);">至</span><input type="text" class="text-input" value="不限"></div>
+              </div>
+              <div class="filter-field"><span class="field-label">mtime 范围</span>
+                <div style="display:flex;gap:6px;align-items:center;"><input type="date" class="text-input" value="2023-01-01"><span style="color:var(--color-text-tertiary);">至</span><input type="date" class="text-input" value="2025-06-20"></div>
+              </div>
+            </div>
+            <div class="saas-filter-chips">
+              <button type="button" class="quick-chip selected">仅需人工决策</button>
+              <button type="button" class="quick-chip">仅可自动处理</button>
+              <button type="button" class="quick-chip">仅压缩包</button>
+              <button type="button" class="btn btn-small" style="margin-left:auto;"><svg class="icon icon-small"><use href="#icon-filter"/></svg>重置筛选</button>
+            </div>
+          </div>
+
+          <!-- 批量操作条 -->
+          <div class="saas-batchbar">
+            <span class="selected-count" style="font-size:12px;font-weight:600;color:var(--color-brand-bright);background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.35);border-radius:999px;padding:3px 11px;font-variant-numeric:tabular-nums;">已选 6 个对象</span>
+            <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-bookmark"/></svg>保留</button>
+            <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-trash"/></svg>回收站</button>
+            <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-hard-drive"/></svg>移动到…</button>
+            <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-rename"/></svg>重命名</button>
+            <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-link"/></svg>替换为链接</button>
+            <button type="button" class="console-batch-btn"><svg class="icon"><use href="#icon-git-merge"/></svg>合并</button>
+            <span class="console-batch-note">标记汇总生成计划 · 执行前二次确认</span>
+          </div>
+
+          <!-- 问题卡片列表（JS 渲染 16 组） -->
+          <div id="saas-issue-list"></div>
+        </div>
+      </div>
+
+      <!-- ===== F 阶段 4：计划（摘要卡 + 动作表 + 保底卡 + 底部确认条） ===== -->
+      <div class="stage-pane" data-stage-pane="saas" data-stage="plan">
+        <div class="saas-content-inner">
+          <div class="saas-page-header">
+            <div class="saas-page-header-row">
+              <div>
+                <h1 class="saas-page-title">处理计划</h1>
+                <p class="saas-page-subtitle">plan-2026-08-15-01 · 由结果页 12 处标记汇总生成 · 可保存 / 加载 / 多次迭代</p>
+              </div>
+              <div class="saas-page-actions">
+                <button type="button" class="btn"><svg class="icon"><use href="#icon-refresh"/></svg>重新生成</button>
+                <button type="button" class="btn"><svg class="icon"><use href="#icon-download"/></svg>保存计划</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 摘要卡片 -->
+          <div class="card saas-card">
+            <div class="card-header">
+              <span class="saas-card-icon"><svg class="icon"><use href="#icon-clipboard"/></svg></span>
+              <div>
+                <div class="card-title">计划摘要</div>
+                <div class="saas-card-description">18 项动作 · 另有 1 项损坏嫌疑对象等待人工决策（不在动作计数内）</div>
+              </div>
+            </div>
+            <div class="card-body" style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="plan-summary-chip emphasis">共 18 项动作</span>
+              <span class="plan-summary-chip">回收站 ×9</span><span class="plan-summary-chip">保留 ×4</span><span class="plan-summary-chip">移动 ×2</span><span class="plan-summary-chip">替换为链接 ×1</span><span class="plan-summary-chip">重命名 ×1</span><span class="plan-summary-chip">合并 ×1</span>
+              <span class="plan-summary-chip emphasis">预计释放 42.4 GB</span>
+            </div>
+          </div>
+
+          <!-- 动作表格 -->
+          <div class="card saas-card">
+            <div class="card-header"><span class="saas-card-icon"><svg class="icon"><use href="#icon-list"/></svg></span><div><div class="card-title">动作列表</div><div class="saas-card-description">每项动作含回滚信息；冲突项已标红，需先解决</div></div></div>
+            <div class="saas-plan-table-header"><span>动作</span><span>对象</span><span>目标</span><span style="text-align:right;">释放空间</span></div>
+            <div id="saas-plan-rows"></div>
+          </div>
+
+          <!-- 冲突提示 -->
+          <div class="card saas-card" style="border-color:#fecaca;">
+            <div class="card-header"><span class="saas-card-icon" style="background:var(--resolution-conflict-bg);color:var(--resolution-conflict);"><svg class="icon"><use href="#icon-alert-triangle"/></svg></span><div><div class="card-title">2 项未解决冲突</div><div class="saas-card-description">解决后方可执行</div></div></div>
+            <div class="card-body" style="padding-top:10px;">
+              <div class="member-row" style="align-items:flex-start;"><svg class="icon icon-small" style="color:var(--resolution-conflict);margin-top:3px;"><use href="#icon-alert-triangle"/></svg><div style="font-size:12.5px;color:var(--color-text-secondary);line-height:1.55;"><b style="color:var(--color-text-primary);">目标路径已存在</b>：<span class="monospace">E:\Archive\Photos\2023\随手拍\IMG_0704.jpg</span> 与计划保留项为同一文件（SHA256 一致），移动将覆盖歧义。<br><span style="color:var(--action-move);">建议：改为 MoveToTrash（源文件），保留归档区现有副本。</span></div></div>
+              <div class="member-row" style="align-items:flex-start;"><svg class="icon icon-small" style="color:var(--resolution-conflict);margin-top:3px;"><use href="#icon-alert-triangle"/></svg><div style="font-size:12.5px;color:var(--color-text-secondary);line-height:1.55;"><b style="color:var(--color-text-primary);">移动后产生歧义</b>：<span class="monospace">E:\Photos\随手拍\三亚（9 项独有文件）</span> 并入归档区后与既有「三亚」目录命名语义重叠。<br><span style="color:var(--action-move);">建议：目标改为 E:\Archive\Photos\2023\三亚-随手拍\，或先解决目录级 PartialOverlap。</span></div></div>
+            </div>
+          </div>
+
+          <!-- dry-run 预览 -->
+          <div class="card saas-card">
+            <div class="card-header"><span class="saas-card-icon"><svg class="icon"><use href="#icon-eye"/></svg></span><div><div class="card-title">dry-run 预览</div><div class="saas-card-description">执行前后状态对比 · 不写任何数据，纯推演</div></div></div>
+            <div class="card-body">
+              <div class="dry-run-compare">
+                <div class="compare-column">
+                  <div class="compare-column-heading">执行前（当前快照）</div>
+                  <div class="compare-stat"><span class="compare-stat-label">Scope 内对象</span><span class="compare-stat-value numeric">57,609</span></div>
+                  <div class="compare-stat"><span class="compare-stat-label">总大小</span><span class="compare-stat-value numeric">225.9 GB</span></div>
+                  <div class="compare-stat"><span class="compare-stat-label">问题组</span><span class="compare-stat-value numeric">16</span></div>
+                </div>
+                <div class="compare-arrow"><svg class="icon"><use href="#icon-arrow-right"/></svg></div>
+                <div class="compare-column column-after">
+                  <div class="compare-column-heading">执行后（推演结果）</div>
+                  <div class="compare-stat"><span class="compare-stat-label">Scope 内对象</span><span class="compare-stat-value numeric">36,742</span></div>
+                  <div class="compare-stat"><span class="compare-stat-label">总大小</span><span class="compare-stat-value numeric">183.5 GB</span></div>
+                  <div class="compare-stat"><span class="compare-stat-label">问题组</span><span class="compare-stat-value numeric">2（仅剩人工确认项）</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 保底策略卡片 -->
+          <div class="card saas-card">
+            <div class="card-header"><span class="saas-card-icon"><svg class="icon"><use href="#icon-shield"/></svg></span><div><div class="card-title">保底策略</div><div class="saas-card-description">三档可配 · 保底副本独立于回收站，不受清空回收站影响</div></div></div>
+            <div class="card-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <label class="strategy-card selected"><span class="strategy-radio-dot"></span><span><span class="strategy-card-title">双保险 <span class="strategy-recommend-tag">默认</span></span><span class="strategy-card-desc">Trash + Staging 双写，校验失败可自动回滚</span></span></label>
+                <label class="strategy-card"><span class="strategy-radio-dot"></span><span><span class="strategy-card-title">仅回收站</span><span class="strategy-card-desc">容量敏感场景；清空后不可恢复</span></span></label>
+                <label class="strategy-card"><span class="strategy-radio-dot"></span><span><span class="strategy-card-title">仅 Staging</span><span class="strategy-card-desc">大文件 / 高风险场景；不占回收站容量</span></span></label>
+              </div>
+              <div style="display:flex;gap:12px;margin-top:14px;align-items:flex-end;">
+                <div class="filter-field" style="flex:1;"><span class="field-label">Staging 位置</span><input type="text" class="text-input monospace" value="~/.helichrysum/staging/"></div>
+                <div class="filter-field"><span class="field-label">保留天数</span><input type="text" class="text-input" style="width:80px;" value="30"></div>
+              </div>
+              <div class="banner banner-info" style="margin-top:14px;font-size:12.5px;">
+                <svg class="icon icon-small"><use href="#icon-shield"/></svg>
+                <span><b>执行前身份重校验（防 TOCTOU）</b>：① mtime / ctime 一致 ② CRC32 快速摘要 → MD5 强摘要 ③ inode / file id 一致；任何维度不符 → 中止该动作并转人工。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部确认条（sticky） -->
+        <div class="saas-confirm-bar">
+          <div class="saas-confirm-bar-inner">
+            <div style="display:flex;gap:20px;align-items:center;">
+              <span style="font-size:13px;"><b class="numeric" style="font-size:16px;">18</b> 项动作</span>
+              <span style="font-size:13px;">预计释放 <b class="numeric" style="font-size:16px;color:var(--color-brand-deep);">42.4 GB</b></span>
+              <span style="font-size:12px;color:var(--resolution-conflict);font-weight:600;">2 项冲突待解决</span>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
+              <button type="button" class="btn"><svg class="icon"><use href="#icon-eye"/></svg>再次 dry-run</button>
+              <button type="button" class="btn btn-primary disabled" title="解决全部冲突后可用"><svg class="icon"><use href="#icon-check"/></svg>我已确认，开始执行</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
